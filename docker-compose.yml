@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  ifs:
+    build: ./ifs
+    env_file:
+      - .env
+    environment:
+      - IFS_REDIS_HOST=redis
+      - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
+      - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+    depends_on:
+      - mongodb
+      - redis
+
+# mongodb as persistent scada database
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    hostname: mongodb
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_DATABASE: scada
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME} # replicaset is needed for changestreams
+    ports:
+      - "27017:27017"
+    volumes: #WARNING: mongodb.key needs to be chmod 400 and chown 999:999 to work like this
+      - ./mongodb/mongodb.key:/data/mongodb.key
+      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
+    command: ["--keyFile", "/data/mongodb.key", "--replSet", "${MONGO_REPLICA_SET_NAME}", "--bind_ip_all"]
+
+# redis as real-time database
+  redis:
+    image: "redis:alpine"
+    env_file:
+      - .env
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+
+# management interface for mongodb
+  admin-mongo:
+    image: mongo-express
+    env_file:
+      - .env
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_OPTIONS_EDITORTHEME=ambiance
+      - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017/?replicaSet=${MONGO_REPLICA_SET_NAME}
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    links:
+      - mongodb
+    depends_on:
+      - mongodb
+
+# management interface for redis
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    env_file:
+      - .env
+    restart: always
+    environment:
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+    - "8082:8081"
+

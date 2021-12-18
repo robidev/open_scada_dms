@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<title>webclient</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="static/css/layout.css" rel="stylesheet" type="text/css"></link>
+<link href="static/css/leaflet.css" rel="stylesheet" crossorigin=""/>
+<script src="static/lib/leaflet.js" crossorigin=""></script>
+<script src="static/lib/svg-pan-zoom.min.js" crossorigin=""></script>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" crossorigin=""></script>
+<script>
+if (typeof jQuery == 'undefined') {
+    document.write(unescape("%3Cscript type='text/javascript' src='static/lib/jquery-3.5.1.min.js' crossorigin=''%3E%3C/script%3E"));
+}
+</script>
+<script type="text/javascript" src="static/lib/socket.io.js"></script>
+<script type="text/javascript" src="static/client.js"></script>
+
+</head>
+<body><!--onload="draw()"-->
+
+<main id='main_content'>
+<div class='wrap'>
+
+  <div class="column middle">
+    <h2 class='h2 teal'>HMI</h2>	
+    <div class='content'>
+      <div id="network" class="network">
+        <object data="static/mmi.local.svg" type="image/svg+xml" id="mmi_svg" width="100%" height="100%"></object>
+        <div id="gis_map" style="display:none;"></div>
+      </div>
+    </div>
+    <button onclick="toggle_view()">toggle schema/gis view</button>
+  </div>
+</div>
+</main>
+</body>
+</html>
+
