@@ -12,6 +12,9 @@ import sys
 import os
 import logging
 
+import pymongo
+import redis
+
 async_mode = None #"threading" eventlet None
 thread = None
 tick = 0.001
@@ -337,5 +340,9 @@ if __name__ == '__main__':
     level=logging.INFO)
 
   logger.info("started")
+
+  mongoclient = pymongo.MongoClient('localhost', 27017, username="aaa",password="bbb", authSource='scada', authMechanism='SCRAM-SHA-256')
+  rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+
   socketio.run(app,host="0.0.0.0")
 
