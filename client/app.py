@@ -79,16 +79,35 @@ def query_schema(x1,y1,x2,y2,z):
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
-  cursor = db.schema_objects.find({})#"x":x1,"y":y1,"x2":x2,"y2":y2})
+  zoom = 1.0 + (z*1.0)
+  x1 = x1*zoom
+  x2 = x2*zoom
+  y1 = y1*zoom
+  y2 = y2*zoom
+  cursor = db.schema_objects.find(
+    {
+      '$and':[
+        { 
+          '$or': [ 
+            {'x':  {'$gt':x1, '$lt':x2 }},  
+            {'x2': {'$gt':x1, '$lt':x2 }}, 
+          ]
+        },{
+          '$or':[
+            {'y':  {'$gt':y1, '$lt':y2 }},
+            {'y2': {'$gt':y1, '$lt':y2 }} 
+          ] 
+        }
+      ]
+    } 
+  )
+    #"x":x1,"y":y1,"x2":x2,"y2":y2})
 
   data = []
   for object in cursor:
     svg = db.svg_templates.find_one({"name":object["svg"]})
-    datapoints = {}
-    for datapoint_index in range(int(svg["datapoint_amount"])):
-      datapoints["datapoint_" + str(datapoint_index + 1)]="iec60870-5-104://bla"
-    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(datapoints) + "</svg>"
-    object["id"] = str(object["_id"])
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
+    object["id"] = "_" + str(object["_id"])
     object.pop("_id")
     data.append(object)
 
@@ -99,7 +118,7 @@ def query_schema(x1,y1,x2,y2,z):
 def get_svg_for_schema(data):
   logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_schema(data['x'], data['y'], data['x']+100,data['y']+100, data['z'])
+  in_view_new = query_schema(data['x']-200, data['y']-200, data['x']+300,data['y']+300, data['z'])
 
   # remove old items that should not be in view anymore
   for item in data['in_view']:
@@ -121,18 +140,17 @@ def query_gis(x1,y1,x2,y2,z):
   cursor = db.gis_objects.find({})
   return cursor
 
+
 @socketio.on('get_svg_for_gis', namespace='')
 def get_svg_for_gis(data):
-  logger.info("jolo1")
-  #logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
+  logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_gis(1,2,3,4,5)#data['x'], data['y'], data['x']+100,data['y']+100, data['z'])
+  in_view_new = query_gis(data['x'], data['y'], data['x']+100,data['y']+100, data['z'])
   data = []
   for item in in_view_new:
     item['_id'] = str(item['_id'])
     data.append(item)
   geojson = [{"type": "FeatureCollection", "features": data }]
-  logger.info("jolo2")
   socketio.emit("geojson_object_add_to_gis",geojson )
 
 #socketio.emit("geojson_object_update",{})
@@ -148,7 +166,6 @@ def readvaluecallback(key,data):
 def worker():
   socketio.sleep(tick)
   logger.info("worker treat started")
-  #get_svg_for_gis({})
   while True:
     socketio.sleep(1)
     #logger.info("values polled")

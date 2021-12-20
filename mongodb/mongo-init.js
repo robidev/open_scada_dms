@@ -17,6 +17,7 @@ db.rtu_list.insert([
     { "RTU": "127.0.0.1:2404", "enabled":1, "IFS":"IFS_A" },
     { "RTU": "127.0.0.1:2405", "enabled":0, "IFS":"IFS_A" },
     { "RTU": "127.0.0.1:2406", "enabled":1, "IFS":"IFS_B" },
+    { "RTU": "172.17.0.1:2404", "enabled":1, "IFS":"IFS_A" },
 ]);
 
 db.createCollection("data_timeseries");
@@ -62,14 +63,14 @@ db.svg_templates.insert([
 
 db.createCollection("schema_objects");
 db.schema_objects.insert([
-    { "svg": "feed", "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "ptr",  "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "vt",   "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "cbr",  "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "swi",  "x":0, "y":0, "x2":100, "y2":100 },
-    { "svg": "load", "x":0, "y":0, "x2":100, "y2":100 },
+    { "svg": "feed", "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
+    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"aa" } },
+    { "svg": "ptr",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
+    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"bb" } },
+    { "svg": "vt",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"cc" } },
+    { "svg": "cbr",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"111", "datapoint_2":"222", "datapoint_3":"333" } },
+    { "svg": "swi",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"444", "datapoint_2":"555", "datapoint_3":"666" } },
+    { "svg": "load", "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
 ]);
 
 db.createCollection("gis_objects");
