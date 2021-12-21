@@ -59,18 +59,24 @@ db.svg_templates.insert([
         "datapoint_amount":0,
         "svg": "<line id=\"S12/E1/W1/BB1\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"360\" x2=\"266\" y1=\"320.436511\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n<text id=\"LOAD\" class=\"LOAD\" stroke=\"#ffffff\"  xml:space=\"preserve\" text-anchor=\"middle\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"380\" x=\"266\" fill=\"#ffffff\">Load</text>\n"
     },
+    { 
+        "name": "rect", 
+        "datapoint_amount":0,
+        "svg": "<rect fill=\"#000000\" id=\"canvas_background\" height=\"512\" width=\"552\" y=\"0\" x=\"0\"/>"
+    },
 ]);
 
 db.createCollection("schema_objects");
 db.schema_objects.insert([
-    { "svg": "feed", "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
-    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"aa" } },
-    { "svg": "ptr",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
-    { "svg": "ct",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"bb" } },
-    { "svg": "vt",   "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"cc" } },
-    { "svg": "cbr",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"111", "datapoint_2":"222", "datapoint_3":"333" } },
-    { "svg": "swi",  "x":0, "y":0, "x2":100, "y2":100, "datapoints": { "datapoint_1":"444", "datapoint_2":"555", "datapoint_3":"666" } },
-    { "svg": "load", "x":0, "y":0, "x2":100, "y2":100, "datapoints": {} },
+    { "svg": "rect", "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
+    { "svg": "feed", "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
+    { "svg": "ct",   "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"aa" } },
+    { "svg": "ptr",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
+    { "svg": "ct",   "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"bb" } },
+    { "svg": "vt",   "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"cc" } },
+    { "svg": "cbr",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"111", "datapoint_2":"222", "datapoint_3":"333" } },
+    { "svg": "swi",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"444", "datapoint_2":"555", "datapoint_3":"666" } },
+    { "svg": "load", "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
 ]);
 
 db.createCollection("gis_objects");
