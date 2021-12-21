@@ -39,12 +39,13 @@ function init_schema(){
         zoomEnabled: true, 
         controlIconsEnabled: true, 
         minZoom: 0.1, 
+        maxZoom: 10, 
         onZoom: update_schema, 
         onPan: update_schema ,
         preventMouseEventsDefault: false,
         fit: false,
       });
-      schema_panzoomcontrol.pan({x:75,y:20});
+      schema_panzoomcontrol.pan({x:1,y:1});
     },false);
   }
   else {//race condition, where svg is allready loaded from cache
@@ -54,12 +55,13 @@ function init_schema(){
       zoomEnabled: true, 
       controlIconsEnabled: true, 
       minZoom: 0.1, 
+      maxZoom: 10, 
       onZoom: update_schema, 
       onPan: update_schema ,
       preventMouseEventsDefault: false,
       fit: false,
     });
-    schema_panzoomcontrol.pan({x:75,y:20});
+    schema_panzoomcontrol.pan({x:1,y:1});
   }
 }
 
@@ -339,6 +341,10 @@ var update_schema = function(){
 } 
 
 function svg_add_to_schema(x, y, svgString, svgId) {
+  var obj = schema_svgRoot.firstChild.querySelector("#"+svgId);
+  if(obj != null){
+    return null;
+  }
   var parser = new DOMParser();
   var doc = parser.parseFromString(svgString, "image/svg+xml");
   var svgNode = doc.documentElement;
