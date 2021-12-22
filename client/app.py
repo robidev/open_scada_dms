@@ -142,7 +142,7 @@ def get_svg_for_schema(data):
   data['y'] *= -1.0
   logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_schema(data['x'], data['y'], data['x']+820,data['y']+720, data['z'])
+  in_view_new = query_schema(data['x'], data['y'], data['x'] + data['width'], data['y'] + data['height'], data['z'])
 
   # remove old items that should not be in view anymore
   for item in data['in_view']:
@@ -156,28 +156,74 @@ def get_svg_for_schema(data):
   
 
 # load svg gis data
-def query_gis(x1,y1,x2,y2,z):
+def query_gis_geojson(w,n,e,s,z):
   global mongoclient
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
-  cursor = db.gis_objects.find({})
-  return cursor
+  cursor = db.gis_objects.find({ 
+    "geometry": {
+     "$geoIntersects": {
+        "$geometry": {
+           "type": "Polygon" ,
+           "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+        }
+      }
+    }
+  })
+  data = []
+  for item in cursor:
+    item['_id'] = str(item['_id'])
+    data.append(item)
+  return data
+
+
+# load svg gis data
+def query_gis_svg(w,n,e,s,z):
+  global mongoclient
+  # perform a query, based on a x/y box, and z-depth
+  # return list of svg items that fall within that box, thus should be drawn
+  db = mongoclient.scada
+  cursor = db.schema_objects.find({ 
+    "location": {
+     "$geoIntersects": {
+        "$geometry": {
+           "type": "Polygon" ,
+           "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+        }
+      }
+    }
+  })
+
+  data = []
+  for object in cursor:
+    svg = db.svg_templates.find_one({"name":object["svg"]})
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+    data.append(object)
+
+  return data
 
 
 @socketio.on('get_svg_for_gis', namespace='')
 def get_svg_for_gis(data):
-  logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_gis(data['x'], data['y'], data['x']+100,data['y']+100, data['z'])
-  data = []
+  in_view_new = query_gis_svg(data['w'], data['n'], data['e'], data['s'], data['z'])
+  # remove old items that should not be in view anymore
+  for item in data['in_view']:
+    if not any(d['id'] == item for d in in_view_new):
+      socketio.emit("svg_object_remove_from_gis",item)
+
+  # add new items that should be in view
   for item in in_view_new:
-    item['_id'] = str(item['_id'])
-    data.append(item)
-  geojson = [{"type": "FeatureCollection", "features": data }]
+    if not item['id'] in data['in_view']:
+      socketio.emit("svg_object_add_to_gis",item )
+
+  in_view_geojson = query_gis_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
+  geojson = [{"type": "FeatureCollection", "features": in_view_geojson }]
   socketio.emit("geojson_object_add_to_gis",geojson )
 
-#socketio.emit("geojson_object_update",{})
 
 # callbacks from libiec61850client
 # called by client.poll

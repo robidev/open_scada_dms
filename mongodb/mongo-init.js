@@ -74,8 +74,8 @@ db.schema_objects.insert([
     { "svg": "ptr",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
     { "svg": "ct",   "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"bb" } },
     { "svg": "vt",   "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"cc" } },
-    { "svg": "cbr",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"111", "datapoint_2":"222", "datapoint_3":"333" } },
-    { "svg": "swi",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"444", "datapoint_2":"555", "datapoint_3":"666" } },
+    { "svg": "cbr",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"iec60870://111", "datapoint_2":"iec60870://222", "datapoint_3":"iec60870://333" }, "location": { "type": "Point", "coordinates": [ 5.84366, 51.978708 ], "height": 0.001, "width": 0.001 } },
+    { "svg": "swi",  "x":0, "y":0, "x2":552, "y2":512, "datapoints": { "datapoint_1":"iec60870://444", "datapoint_2":"555", "iec60870://datapoint_3":"iec60870://666" } },
     { "svg": "load", "x":0, "y":0, "x2":552, "y2":512, "datapoints": {} },
 ]);
 

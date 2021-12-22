@@ -277,7 +277,7 @@ $(document).ready(function() {
 
   socket.on('svg_object_add_to_gis', function (data) {
     //add svg to object
-    var node = svg_add_to_gis(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id']);
+    var node = svg_add_to_gis(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id'],data['location']);
     if(node == null){
       return;
     }
@@ -295,7 +295,7 @@ $(document).ready(function() {
 
   socket.on('svg_object_remove_from_gis', function (data) {
     //remove svg from object
-    var obj = gis_svgRoot.querySelector("#"+data);
+    var obj = gis_svgRoot[data];
     if(obj != null){
       //unregister values in this svg
       $("g",obj).find("*").each(function(idx, el){
@@ -335,9 +335,9 @@ $(document).ready(function() {
 var update_schema = function(){ 
   pos = this.getPan();
   zoom = this.getZoom();
-  socket.emit('get_svg_for_schema', {'x': pos.x, 'y': pos.y, 'z': zoom, 'in_view': schema_in_view});
+  socket.emit('get_svg_for_schema', {'x': pos.x, 'y': pos.y, 'z': zoom, 'in_view': schema_in_view, 'width': this.getSizes().width, 'height': this.getSizes().height});
   //socket.emit('get_svg', {data: ''} );
-  console.log(zoom + " - " + pos.x + ", " + pos.y + ", in_view:" + schema_in_view); 
+  //console.log(zoom + " - " + pos.x + ", " + pos.y + ", in_view:" + schema_in_view + ", width:" + this.getSizes().width, ", height:" + this.getSizes().height); 
 } 
 
 function svg_add_to_schema(x, y, svgString, svgId) {
@@ -354,20 +354,34 @@ function svg_add_to_schema(x, y, svgString, svgId) {
   newNode.id = svgId;
   newNode.setAttribute("x", x.toString());
   newNode.setAttribute("y", y.toString());
+
+  //var dimension = "100 0 " + (300).toString() + " " + (500).toString();
+  //newNode.setAttribute('viewBox', dimension );
+  //newNode.setAttribute('preserveAspectRatio', 'none');
+  //newNode.setAttribute("width", 512);
+  //newNode.setAttribute("height", 100);
   return newNode;
 }
 
 var update_gis = function(){ 
   pos = gis_map.getCenter();
   zoom = gis_map.getZoom();
-  socket.emit('get_svg_for_gis', {'x': pos.lat, 'y': pos.lng, 'z': zoom, 'in_view': gis_in_view});
+  bounds = gis_map.getBounds();
+  
+  //socket.emit('get_svg_for_gis', {'x': pos.lat, 'y': pos.lng, 'z': zoom, 'in_view': gis_in_view, 'width': gis_map.getSize().x, 'height': gis_map.getSize().y});
+  socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
+  //console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth());
 } 
 
-function svg_add_to_gis(x, y, x2, y2, svgString, svgId) {
+function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
   gis_svgRoot[svgId] = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-  gis_svgRoot[svgId].setAttribute('viewBox', "0 0 1000 1000");
-
-  L.svgOverlay(gis_svgRoot[svgId], [ [ y,x], [ y2, x2 ] ]).addTo(gis_map);
+  var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();
+  gis_svgRoot[svgId].setAttribute('viewBox', dimension );
+  var la = location['height']/2;
+  var lo = location['width']/2;
+  var longtitude = location['coordinates'][0];
+  var latitude = location['coordinates'][1];
+  L.svgOverlay(gis_svgRoot[svgId], [ [ latitude-la,longtitude-lo], [ latitude+la,longtitude+lo ] ]).addTo(gis_map);
 
   gis_svgRoot[svgId].id = svgId;
   return gis_svgRoot[svgId];
