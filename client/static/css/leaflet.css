@@ -1,5 +1,6 @@
 /* required styles */
 #gis_map { height: 680px; }
+#mmi_svg { height: 680px; }
 
 .leaflet-pane,
 .leaflet-tile,
