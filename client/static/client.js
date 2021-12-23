@@ -8,18 +8,72 @@ function init_gis(){
   gis_div.style.display = "block";
 
   gis_map = L.map('gis_map', { renderer: L.svg()}).setView([51.980, 5.842], 17);
+  //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'openstreetmap',
     maxZoom: 20,
     id: 'openstreetmap',
     tileSize: 512,
     zoomOffset: -1,
-  }).addTo(gis_map);
+  }).addTo(gis_map);//*/
+
+
+  //https://codepen.io/mochaNate/pen/bWNveg
+  var editableLayers = new L.FeatureGroup();
+  gis_map.addLayer(editableLayers);
+
+  var options = {
+    position: 'topright',
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false, // Restricts shapes to simple polygons 
+        drawError: {
+          color: '#e1e100', // Color the shape will turn when intersects 
+          message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
+        }
+      },
+      circle: true, // Turns off this drawing tool 
+      rectangle: true,
+      marker: true
+    },
+    edit: {
+      featureGroup: editableLayers, //REQUIRED!! 
+      remove: true
+    }
+  };
+  
+  var drawControl = new L.Control.Draw(options);
+  gis_map.addControl(drawControl);
+
+  gis_map.on('draw:created', function(e) {
+  //gis_map.on(L.Draw.Event.CREATED, function(e) {
+    var type = e.layerType,
+      layer = e.layer;
+  
+    if (type === 'marker') {
+      layer.bindPopup('A popup!');
+    }
+  
+    editableLayers.addLayer(layer);
+  });//*/
+  
+
   geojsonlayer = L.geoJSON().addTo(gis_map);
   //register svg events
   gis_map.on('moveend', update_gis);
   gis_map.on('zoomend', update_gis);
   gis_map.setZoom(18);
+}
+
+function exportGeoJSON(featureGroup) {
+  // Extract GeoJson from featureGroup
+  var data = featureGroup.toGeoJSON();
+  // Stringify the GeoJson
+  var convertedData = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data));
+  // Create export
+  document.getElementById('export').setAttribute('href', 'data:' + convertedData);
+  document.getElementById('export').setAttribute('download','data.geojson');
 }
 
 function init_schema(){
@@ -206,7 +260,7 @@ $(document).ready(function() {
 
   socket.on('svg_object_add_to_schema', function (data) {
     //add svg to object
-    node = svg_add_to_schema(data['x'],data['y'],data['svg'],data['id']);
+    node = svg_add_to_schema(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id']);
     if(node == null){
       return;
     }
@@ -340,7 +394,7 @@ var update_schema = function(){
   //console.log(zoom + " - " + pos.x + ", " + pos.y + ", in_view:" + schema_in_view + ", width:" + this.getSizes().width, ", height:" + this.getSizes().height); 
 } 
 
-function svg_add_to_schema(x, y, svgString, svgId) {
+function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
   var obj = schema_svgRoot.firstChild.querySelector("#"+svgId);
   if(obj != null){
     return null;
@@ -355,11 +409,12 @@ function svg_add_to_schema(x, y, svgString, svgId) {
   newNode.setAttribute("x", x.toString());
   newNode.setAttribute("y", y.toString());
 
-  //var dimension = "100 0 " + (300).toString() + " " + (500).toString();
-  //newNode.setAttribute('viewBox', dimension );
+  //var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();
   //newNode.setAttribute('preserveAspectRatio', 'none');
-  //newNode.setAttribute("width", 512);
-  //newNode.setAttribute("height", 100);
+  //newNode.setAttribute('viewBox', dimension );
+  //newNode.setAttribute('transform',"scale(0.5,1)");
+  //newNode.setAttribute("width", x2-x);
+  //newNode.setAttribute("height", (y2-y));
   return newNode;
 }
 

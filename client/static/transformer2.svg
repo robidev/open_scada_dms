@@ -1,0 +1,14 @@
+<svg width="77" height="165" xmlns="http://www.w3.org/2000/svg">
+
+ <g id="S12/D1/T1">
+  <title>PTR</title>
+  <ellipse fill="none" stroke="#ffffff" stroke-width="1.5" fill-opacity="null" cx="18.75" cy="79.06829" rx="18" ry="18" id="svg_T1_a"/>
+  <text fill="#ffffff" stroke-width="null" x="48.75" y="93.97727" font-size="24" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" stroke="#ffffff" id="svg_T1_name">T1</text>
+  <ellipse fill="none" stroke="#ffffff" stroke-width="1.5" fill-opacity="null" cx="18.75" cy="103.60618" rx="18" ry="18" id="svg_T1_b"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <line fill="none" stroke="#ffffff" stroke-width="1.5" x1="18.75" y1="0.75" x2="18.75" y2="61.25" stroke-linejoin="undefined" stroke-linecap="undefined" class="LINE" id="S12/D1/Q1/L1"/>
+  <line fill="none" stroke-width="1.5" x1="18.75" y1="122.25014" x2="18.75" y2="163.75011" stroke-linejoin="undefined" stroke-linecap="undefined" stroke="#ffffff" class="LINE" id="S12/E1/Q1/L2"/>
+ </g>
+</svg>
