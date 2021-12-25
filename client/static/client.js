@@ -1,4 +1,4 @@
-var socket, schema_leafletmap, schema_svgRoot, schema_in_view, svglayer, gis_svgRoot, gis_in_view, gis_map, geojsonlayer;
+var socket, schema_leafletmap, schema_svgRoot, schema_in_view, svglayer, gis_svgRoot, gis_in_view, gis_map, geojsonlayer, editableLayers;
 
 function init_gis(){
   geojsonlayer = {};
@@ -19,7 +19,7 @@ function init_gis(){
 
 
   //https://codepen.io/mochaNate/pen/bWNveg
-  var editableLayers = new L.FeatureGroup();
+  editableLayers = new L.FeatureGroup();
   gis_map.addLayer(editableLayers);
 
   var options = {
@@ -76,19 +76,68 @@ function exportGeoJSON(featureGroup) {
   document.getElementById('export').setAttribute('download','data.geojson');
 }
 
+//https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
+var CRSPixel = L.Util.extend(L.CRS.Simple, {
+	transformation: new L.Transformation(1,0,1,0)
+});
+
 function init_schema(){
   svglayer = {};
   schema_svgRoot = {};
   schema_in_view = [];
   var schema_div = document.getElementById("mmi_svg");
   schema_div.style.display = "block";
+  
+  schema_leafletmap = L.map('mmi_svg', { 
+    renderer: L.svg(), 
+    crs: CRSPixel,
+    minZoom: -5,
+    maxZoom: 10
+  }).setView([0,0], 1);
 
-  schema_leafletmap = L.map('mmi_svg', { renderer: L.svg(), crs: L.CRS.Simple }).setView([0,0], -10);
-  var bounds = [[0,0], [1000,1000]];
-  svglayer = L.geoJSON().addTo(schema_leafletmap,bounds);
+  editableLayers = new L.FeatureGroup();
+  schema_leafletmap.addLayer(editableLayers);
+
+  var options = {
+    position: 'topright',
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false, // Restricts shapes to simple polygons 
+        drawError: {
+          color: '#e1e100', // Color the shape will turn when intersects 
+          message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
+        }
+      },
+      circle: false, // Turns off this drawing tool 
+      rectangle: true,
+      marker: true
+    },
+    edit: {
+      featureGroup: editableLayers, //REQUIRED!! 
+      remove: true
+    }
+  };
+  
+  var drawControl = new L.Control.Draw(options);
+  schema_leafletmap.addControl(drawControl);
+
+  schema_leafletmap.on('draw:created', function(e) {
+  //gis_map.on(L.Draw.Event.CREATED, function(e) {
+    var type = e.layerType,
+      layer = e.layer;
+  
+    if (type === 'marker') {
+      layer.bindPopup('A popup!');
+    }
+  
+    editableLayers.addLayer(layer);
+  });//*/
+
+
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
-  schema_leafletmap.setZoom(-9);
+  schema_leafletmap.setZoom(0);
   //schema_leafletmap.fitBounds(bounds);
 }
 
@@ -244,35 +293,27 @@ $(document).ready(function() {
 
 
 var update_schema = function(){ 
-  pos = schema_leafletmap.getCenter();
-  zoom = 100 + schema_leafletmap.getZoom();
+  //pos = schema_leafletmap.getCenter();
+  zoom = schema_leafletmap.getZoom();
   bounds = schema_leafletmap.getBounds();
-
-  socket.emit('get_svg_for_schema', {'x': bounds.getWest(), 'y': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'width': bounds.getEast()-bounds.getWest(), 'height': bounds.getNorth()- bounds.getSouth()});
-  //socket.emit('get_svg', {data: ''} );
-  console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth());
-  console.log(schema_leafletmap.getZoom())
+  socket.emit('get_svg_for_schema', {'x': bounds.getWest(), 'y': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'x2': bounds.getEast(), 'y2': bounds.getNorth()});
+  //console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth() + ' z:' + schema_leafletmap.getZoom());
 } 
 
 function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
   schema_svgRoot[svgId] = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-  var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();
+  var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();// dimension matches svgOverlay size, to create 1-to-1 pixel mapping
   schema_svgRoot[svgId].setAttribute('viewBox', dimension );
-
   L.svgOverlay(schema_svgRoot[svgId], [ [ y,x], [ y2,x2 ] ]).addTo(schema_leafletmap);
-
+  //console.log("x:" + x + " y:" + y + " x2:" + x2 + " y2:" + y2); 
   schema_svgRoot[svgId].id = svgId;
   return schema_svgRoot[svgId];
-
-
 }
 
 var update_gis = function(){ 
-  pos = gis_map.getCenter();
+  //pos = gis_map.getCenter();
   zoom = gis_map.getZoom();
   bounds = gis_map.getBounds();
-  
-  //socket.emit('get_svg_for_gis', {'x': pos.lat, 'y': pos.lng, 'z': zoom, 'in_view': gis_in_view, 'width': gis_map.getSize().x, 'height': gis_map.getSize().y});
   socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
   //console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth());
 } 

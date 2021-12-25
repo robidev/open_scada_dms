@@ -1,0 +1,12 @@
+make drawing-addtions saveable to database
+enable adding of templates
+optimise schema def (size of svg should be in svg-template, not in instance)
+enable dynamic data retrieval from redis/mongo+ subscribe/unsub.
+add info/metadata retrieve+popup display
+lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
+alarm-window
+click to go to location, from alarm-window
+event-window
+switch from gis to schema object view
+grafana dashboard?
+iccp-connector?

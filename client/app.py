@@ -79,18 +79,7 @@ def query_schema(x1,y1,x2,y2,z):
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
-  zoom = 1/z
-  x1 = x1*zoom
-  x2 = x2*zoom
-  y1 = y1*zoom
-  y2 = y2*zoom
 
-  # viewport coordinate:
-  # x1 = 512 x2 = 512+850 any object where r1 or r2 is bigger then 512 and less then 1362
-  # x1 = -810 x2 = 0
-
-  # object coordinate:
-  # r1=0,r2=512
   cursor = db.schema_objects.find(
     {
       '$and':[{
@@ -138,11 +127,9 @@ def query_schema(x1,y1,x2,y2,z):
 
 @socketio.on('get_svg_for_schema', namespace='')
 def get_svg_for_schema(data):
-  data['x'] *= -1.0
-  data['y'] *= -1.0
-  logger.info("x: %i, y: %i, z: %i", data['x'],data['y'],data['z'])
+  logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['x'],data['y'],data['x2'],data['y2'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_schema(data['x'], data['y'], data['x'] + data['width'], data['y'] + data['height'], data['z'])
+  in_view_new = query_schema(data['x'], data['y'], data['x2'], data['y2'], data['z'])
 
   # remove old items that should not be in view anymore
   for item in data['in_view']:
