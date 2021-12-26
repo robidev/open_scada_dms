@@ -2,26 +2,34 @@
 <html lang='en'>
 <head>
 <title>webclient</title>
+
+<link rel="icon" href="static/favicon.svg">
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="static/css/layout.css" rel="stylesheet" type="text/css"></link>
 
+<link href="static/css/layout.css" rel="stylesheet" type="text/css"></link>
 <!--Add leaflet -->
 <link href="static/css/leaflet.css" rel="stylesheet" crossorigin=""/>
 <script src="static/lib/leaflet.js" crossorigin=""></script>
 
 <!--Add draw plugin -->
-<link rel='stylesheet' href='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.2/leaflet.draw.css' />
-<script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.2/leaflet.draw.js'></script>
+<link href='static/css/leaflet.draw.css' rel='stylesheet' crossorigin=""/>
+<script src='static/lib/leaflet.draw.js' crossorigin=""></script>
 
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" crossorigin=""></script>
-<script>
-if (typeof jQuery == 'undefined') {
-    document.write(unescape("%3Cscript type='text/javascript' src='static/lib/jquery-3.5.1.min.js' crossorigin=''%3E%3C/script%3E"));
-}
-</script>
-<script type="text/javascript" src="static/lib/socket.io.js"></script>
-<script type="text/javascript" src="static/client.js"></script>
+<script type="text/javascript" src="static/lib/jquery-3.5.1.min.js" crossorigin=""></script>
+<script type="text/javascript" src="static/lib/socket.io.js" crossorigin=""></script>
+<script type="text/javascript" src="static/client.js" crossorigin=""></script>
+
+<style>
+  #gis_map { 
+    height: 680px; 
+  }
+  #mmi_svg { 
+    height: 680px; 
+  }
+</style>
+
 
 </head>
 <body><!--onload="draw()"-->

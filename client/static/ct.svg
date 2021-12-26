@@ -1,6 +1,0 @@
-<svg width="550" height="510" xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
-  <g id="S12/D1/Q1/I1">
-    <title>CTR</title>
-    <text id="iec61850://127.0.0.1:10102/IED4_SMVMUnn/MMXU1.AvAPhs.mag.f" class="MEAS" data-text="Current: {value} A" fill="#ffffff" stroke="#ffffff" x="291.851085" y="125.166792" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">current: {value} A</text>
-  </g>
-</svg>

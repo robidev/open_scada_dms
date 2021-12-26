@@ -56,6 +56,7 @@ function init_gis(){
     }
   
     editableLayers.addLayer(layer);
+    exportGeoJSON(editableLayers);
   });//*/
   
 
@@ -99,14 +100,14 @@ function init_schema(){
   schema_leafletmap.addLayer(editableLayers);
 
   var options = {
-    position: 'topright',
+    position: 'topleft',
     draw: {
       polyline: true,
       polygon: {
         allowIntersection: false, // Restricts shapes to simple polygons 
         drawError: {
           color: '#e1e100', // Color the shape will turn when intersects 
-          message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
+          message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
         }
       },
       circle: false, // Turns off this drawing tool 
@@ -134,6 +135,7 @@ function init_schema(){
     editableLayers.addLayer(layer);
   });//*/
 
+  geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
