@@ -23,10 +23,10 @@
 
 <style>
   #gis_map { 
-    height: 680px; 
+    height: 800px; 
   }
   #mmi_svg { 
-    height: 680px; 
+    height: 800px; 
   }
 </style>
 
@@ -36,7 +36,11 @@
 
 <main id='main_content'>
 <div class='wrap'>
-
+  <div class="column leftside">
+    <h2 class='h2 magenta'>Tabs</h2>	
+    <button onclick="toggle_view()" class="controlBtn">toggle schema/gis view</button>
+    <button onclick="exportGeoJSON(editableLayers);" class="controlBtn">export</button>
+  </div>
   <div class="column middle">
     <h2 class='h2 teal'>HMI</h2>	
     <div class='content'>
@@ -45,7 +49,6 @@
         <div id="gis_map" style="display:none;"></div>
       </div>
     </div>
-    <button onclick="toggle_view()">toggle schema/gis view</button>
   </div>
 </div>
 </main>

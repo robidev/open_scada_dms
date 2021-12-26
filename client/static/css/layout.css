@@ -65,7 +65,7 @@ body {
   width: auto;
 
   display: grid;
-  grid-template-columns: 800px auto; /* 100px auto 200px*/
+  grid-template-columns: 300px auto; /* 100px auto 200px*/
   grid-template-rows: auto 600px;
   height: 100vh;
 }
@@ -82,23 +82,23 @@ body {
   margin-right: 10px;
 }
 
-/* Left column
+/* Left column*/
 .column.leftside {
   border: 1px solid rgba(255, 0, 255, 0.692);
   display: inline;
   grid-column: 1;
-} */
+} 
 
 /* Middle column */
 .column.middle {
   display: inline;
-  grid-column: 1; /* 2 */
+  grid-column: 2; /* 1 */
 }
 
 /* right column */
 .column.rightside {
   display: inline;
-  grid-column: 2; /* 3 */
+  grid-column: 3; /* 2 */
   resize: both;
   overflow: auto;
   /*display: none;*/

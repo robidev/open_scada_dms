@@ -46,22 +46,11 @@ function init_gis(){
   var drawControl = new L.Control.Draw(options);
   gis_map.addControl(drawControl);
 
-  gis_map.on('draw:created', function(e) {
-  //gis_map.on(L.Draw.Event.CREATED, function(e) {
-    var type = e.layerType,
-      layer = e.layer;
-  
-    if (type === 'marker') {
-      layer.bindPopup('A popup!');
-    }
-  
-    editableLayers.addLayer(layer);
-    exportGeoJSON(editableLayers);
-  });//*/
-  
 
+  
   geojsonlayer = L.geoJSON().addTo(gis_map);
   //register svg events
+  gis_map.on(L.Draw.Event.CREATED, addItem);//*/
   gis_map.on('moveend', update_gis);
   gis_map.on('zoomend', update_gis);
   gis_map.setZoom(18);
@@ -73,8 +62,10 @@ function exportGeoJSON(featureGroup) {
   // Stringify the GeoJson
   var convertedData = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data));
   // Create export
-  document.getElementById('export').setAttribute('href', 'data:' + convertedData);
-  document.getElementById('export').setAttribute('download','data.geojson');
+  let linkElement = document.createElement('a');
+  linkElement.setAttribute('href', 'data:' + convertedData);
+  linkElement.setAttribute('download','data.geojson');
+  linkElement.click();
 }
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
@@ -86,8 +77,7 @@ function init_schema(){
   svglayer = {};
   schema_svgRoot = {};
   schema_in_view = [];
-  var schema_div = document.getElementById("mmi_svg");
-  schema_div.style.display = "block";
+  document.getElementById("mmi_svg").style.display = "block";
   
   schema_leafletmap = L.map('mmi_svg', { 
     renderer: L.svg(), 
@@ -100,7 +90,7 @@ function init_schema(){
   schema_leafletmap.addLayer(editableLayers);
 
   var options = {
-    position: 'topleft',
+    position: 'topright',
     draw: {
       polyline: true,
       polygon: {
@@ -110,7 +100,7 @@ function init_schema(){
           message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
         }
       },
-      circle: false, // Turns off this drawing tool 
+      circle: true, // Turns off this drawing tool 
       rectangle: true,
       marker: true
     },
@@ -123,58 +113,93 @@ function init_schema(){
   var drawControl = new L.Control.Draw(options);
   schema_leafletmap.addControl(drawControl);
 
-  schema_leafletmap.on('draw:created', function(e) {
-  //gis_map.on(L.Draw.Event.CREATED, function(e) {
-    var type = e.layerType,
-      layer = e.layer;
-  
-    if (type === 'marker') {
-      layer.bindPopup('A popup!');
-    }
-  
-    editableLayers.addLayer(layer);
-  });//*/
-
   geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
+  schema_leafletmap.on(L.Draw.Event.CREATED, addItem);
+  schema_leafletmap.on(L.Draw.Event.EDITED, function(e){
+    console.log(e);
+  });
+  schema_leafletmap.on(L.Draw.Event.DRAWSTART, function(e){
+    console.log(e);
+  });
+  schema_leafletmap.on(L.Draw.Event.EDITMOVE, function(e){
+    console.log(e);
+  });
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
   schema_leafletmap.setZoom(0);
   //schema_leafletmap.fitBounds(bounds);
 }
 
+function addItem(e) {
+  //gis_map.on(L.Draw.Event.CREATED, function(e) {
+  var type = e.layerType, layer = e.layer;
+
+  if (type === 'marker') {
+    layer.bindPopup('A popup!');
+  }
+  //svg_add_to_schema(0,0,100,100,"<>","aaa");
+  editableLayers.addLayer(layer);
+}
+
 function deinit_schema(){
+
+  schema_leafletmap.off('draw:created',addItem)
+  schema_leafletmap.off('moveend', update_schema);
+  schema_leafletmap.off('zoomend', update_schema);
+
   var schema_map = document.getElementById("mmi_svg");
   schema_map.style.display = "none";
   schema_leafletmap.remove();
   schema_svgRoot.innerHTML = "";
+  schema_map.innerHTML = "";
+
   delete svglayer;
   delete schema_leafletmap;
   delete schema_svgRoot;
   delete schema_in_view;
+
+  svglayer = null;
+  schema_leafletmap = null;
+  schema_svgRoot = null;
+  schema_in_view = null;
 }
 
 function deinit_gis(){
+  gis_map.off('draw:created', addItem);//*/
+  gis_map.off('moveend', update_gis);
+  gis_map.off('zoomend', update_gis);
+
   var gis_div = document.getElementById("gis_map");
   gis_div.style.display = "none";
   gis_map.remove();
   gis_svgRoot.innerHTML = "";
+  gis_div.innerHTML = "";
 
   delete gis_svgRoot;
   delete gis_in_view;
   delete gis_map;
   delete geojsonlayer;
+
+  gis_svgRoot = null;
+  gis_in_view = null;
+  gis_map = null;
+  geojsonlayer = null;
 }
 
 function toggle_view() {
   var gis = document.getElementById("gis_map");
   var schema_div = document.getElementById("mmi_svg");
   if (gis.style.display === "none") {
-    deinit_schema();
-    init_gis();
+    document.getElementById("mmi_svg").style.display = "none";
+    document.getElementById("gis_map").style.display = "block";
+    //deinit_schema();
+    //init_gis();
   } else {
-    deinit_gis();
-    init_schema();
+    document.getElementById("mmi_svg").style.display = "block";
+    document.getElementById("gis_map").style.display = "none";
+    //deinit_gis();
+    //init_schema();
   }
 } 
 
@@ -184,10 +209,11 @@ $(document).ready(function() {
 
   socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
 
+
+  init_gis();
   init_schema();
-  //init_gis();
-  //deinit_gis();
-  //deinit_schema();
+  document.getElementById("mmi_svg").style.display = "block";
+  document.getElementById("gis_map").style.display = "none";
 
   //add info to the ied/datamodel tab
   socket.on('svg_value_update_event_on_schema', function (data) {
