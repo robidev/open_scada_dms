@@ -1,4 +1,5 @@
 var socket, schema_leafletmap, schema_svgRoot, schema_in_view, svglayer, gis_svgRoot, gis_in_view, gis_map, geojsonlayer, editableLayers;
+var moving_object;
 
 function init_gis(){
   geojsonlayer = {};
@@ -116,19 +117,36 @@ function init_schema(){
   geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
   schema_leafletmap.on(L.Draw.Event.CREATED, addItem);
-  schema_leafletmap.on(L.Draw.Event.EDITED, function(e){
-    console.log(e);
-  });
-  schema_leafletmap.on(L.Draw.Event.DRAWSTART, function(e){
-    console.log(e);
-  });
-  schema_leafletmap.on(L.Draw.Event.EDITMOVE, function(e){
-    console.log(e);
-  });
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
   schema_leafletmap.setZoom(0);
   //schema_leafletmap.fitBounds(bounds);
+
+  moving_object = null;
+
+  schema_leafletmap.on('click', function(a){
+    if(moving_object != null && a.originalEvent.ignore !== true)
+    {
+      moving_object.enable_move = false;
+      schema_leafletmap.off('mousemove',moveobj);
+      moving_object = null;
+    }
+  });
+}
+
+//var wrap_moveobj = function(e){ moveobj(e,aa);};
+var moveobj = function (d) {
+  if(this.enable_move == true){
+    bounds = this._bounds;
+    var g1 = (bounds._northEast.lat - bounds._southWest.lat)/2;
+    var g2 = (bounds._northEast.lng - bounds._southWest.lng)/2;
+    var dif1 = d.latlng.lat - g1;
+    var dif2 = d.latlng.lat + g1;
+    var dif3 = d.latlng.lng - g2;
+    var dif4 = d.latlng.lng + g2;
+    
+    this.setBounds([[dif1,dif3],[dif2,dif4]]);
+  }
 }
 
 function addItem(e) {
@@ -215,7 +233,6 @@ $(document).ready(function() {
   document.getElementById("mmi_svg").style.display = "block";
   document.getElementById("gis_map").style.display = "none";
 
-  //add info to the ied/datamodel tab
   socket.on('svg_value_update_event_on_schema', function (data) {
     //event gets called from server when svg data is updated, so update the svg
     var element = data['element'];
@@ -332,11 +349,47 @@ function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
   schema_svgRoot[svgId] = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
   var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();// dimension matches svgOverlay size, to create 1-to-1 pixel mapping
   schema_svgRoot[svgId].setAttribute('viewBox', dimension );
-  L.svgOverlay(schema_svgRoot[svgId], [ [ y,x], [ y2,x2 ] ]).addTo(schema_leafletmap);
+
+  options = {
+    'interactive': true,
+  };
+  var aa = L.svgOverlay(schema_svgRoot[svgId], [ [ y,x], [ y2,x2 ] ], options).addTo(schema_leafletmap);
   //console.log("x:" + x + " y:" + y + " x2:" + x2 + " y2:" + y2); 
   schema_svgRoot[svgId].id = svgId;
+  schema_svgRoot[svgId].svgOverlay = aa;
+  aa.enable_move = false;
+  aa.on('click', function(d) {
+    if(d.target.enable_move != null && moving_object == null){
+      if(d.target.enable_move == false){
+        d.target.enable_move = true;
+        moving_object = aa;
+        schema_leafletmap.on('mousemove',moveobj.bind(aa));
+        d.originalEvent.ignore = true;  //custom propery for this event, to prevent triggering the global one
+      } else {
+        d.target.enable_move = false;
+        moving_object = null;
+        schema_leafletmap.off('mousemove',moveobj);
+      }
+    }
+  }); 
   return schema_svgRoot[svgId];
 }
+
+
+function newSchemaObject(){
+  if(moving_object != null)
+  {
+    moving_object.enable_move = false;
+    schema_leafletmap.off('mousemove',moveobj);
+    moving_object = null;
+  }
+  var aa = svg_add_to_schema(0, 0, 100, 100, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', "_12345");
+  aa.svgOverlay.enable_move = true;
+  moving_object = aa.svgOverlay;
+  schema_leafletmap.on('mousemove',moveobj.bind(aa.svgOverlay));
+
+}
+
 
 var update_gis = function(){ 
   //pos = gis_map.getCenter();
@@ -354,7 +407,35 @@ function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
   var lo = location['width']/2;
   var longtitude = location['coordinates'][0];
   var latitude = location['coordinates'][1];
-  L.svgOverlay(gis_svgRoot[svgId], [ [ latitude-la,longtitude-lo], [ latitude+la,longtitude+lo ] ]).addTo(gis_map);
+
+  options = {
+    'interactive': true,
+  };
+  var aa = L.svgOverlay(gis_svgRoot[svgId], [ [ latitude-la,longtitude-lo], [ latitude+la,longtitude+lo ] ], options).addTo(gis_map);
+  
+  aa.enable_move = false;
+
+  aa.on('click', function(d) {
+    if(d.target.enable_move == false){
+      d.target.enable_move = true;
+    } else {
+      d.target.enable_move = false;
+    }
+  });
+
+  aa.on('mousemove', function(d) {
+    if(d.target.enable_move == true){
+      bounds = this._bounds;
+      var g1 = (bounds._northEast.lat - bounds._southWest.lat)/2;
+      var g2 = (bounds._northEast.lng - bounds._southWest.lng)/2;
+      var dif1 = d.latlng.lat - g1;
+      var dif2 = d.latlng.lat + g1;
+      var dif3 = d.latlng.lng - g2;
+      var dif4 = d.latlng.lng + g2;
+      
+      this.setBounds([[dif1,dif3],[dif2,dif4]]);
+    }
+  });
 
   gis_svgRoot[svgId].id = svgId;
   return gis_svgRoot[svgId];
