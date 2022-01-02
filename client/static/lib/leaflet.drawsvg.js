@@ -1,10 +1,72 @@
-L.drawLocal.draw.handlers.svg = {
-									tooltip: {
-										start: 'Add SVG.'
-									},
-								};
-L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
+/**
+ * @class L.SvgObject
+ * @aka SvgObject
+ * @inherits L.SVGOverlay
+ */
+ L.SvgObject = L.SVGOverlay.extend({
 
+	initialize: function (svgString, bounds, options) {
+		options = options || {};
+		options.interactive = true;
+
+		this._docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
+		this._docObj.setAttribute('viewBox', 
+			"0 0 " + 
+			(bounds._northEast.lng - bounds._southWest.lng).toString() + 
+			" " + 
+			(bounds._northEast.lat - bounds._southWest.lat).toString() );
+
+		L.SVGOverlay.prototype.initialize.call(this, this._docObj, bounds, options);
+		this._latlng = this.getLatLng();
+	},
+
+	// @method setLatLng(latLng: LatLng): this
+	// Sets the position of a SvgObject to a new location.
+	setLatLng: function (latlng) {
+		var oldLatLng = this._latlng;
+		var bounds = this.getBounds();
+		this.setBounds([
+			[
+				latlng.lat - (bounds._northEast.lat - bounds._southWest.lat)/2,
+				latlng.lng - (bounds._northEast.lng - bounds._southWest.lng)/2
+			],
+			[
+				latlng.lat + (bounds._northEast.lat - bounds._southWest.lat)/2,
+				latlng.lng + (bounds._northEast.lng - bounds._southWest.lng)/2
+			]
+		]);
+		this._latlng = this.getLatLng();
+
+		// @event move: Event
+		// Fired when the SvgObject is moved, Old and new coordinates are included in event arguments as `oldLatLng`, `latlng`.
+		return this.fire('move', {oldLatLng: oldLatLng, latlng: this._latlng});
+	},
+
+	// @method getLatLng(): LatLng
+	// Returns the current geographical position of the SvgObject
+	getLatLng: function () {
+		var bounds = this.getBounds();
+		var latlng = L.latLng(0,0);
+		latlng.lat = bounds._southWest.lat + (bounds._northEast.lat - bounds._southWest.lat)/2;
+		latlng.lng = bounds._southWest.lng + (bounds._northEast.lng - bounds._southWest.lng)/2;
+		this._latlng = latlng;
+		return this._latlng;
+	},
+
+	redraw: function () {
+
+	}
+});
+
+//ensure draw exists
+L.Draw = L.Draw || {};
+
+L.drawLocal.draw.handlers.svg = {
+	tooltip: {
+		start: 'Add SVG.'
+	},
+};
+L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 
 /**
  * @class L.Draw.Svg
@@ -23,36 +85,6 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 	},
 
 
-	//svg_obj(0, 0, 100, 100, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', "_12345");
-	svg_obj: function (x, y, x2, y2, svgString) {
-		var obj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-		obj.setAttribute('viewBox', "0 0 " + (x2-x).toString() + " " + (y2-y).toString() );
-		var svg = L.svgOverlay(obj, [ [ y,x], [ y2,x2 ] ], {'interactive': true });//.addTo(this._map);
-		svg.getLatLng = function(){
-			var bounds = this.getBounds();
-			var center = L.latLng(0,0);
-			center.lat = bounds._southWest.lat + (bounds._northEast.lat - bounds._southWest.lat)/2;
-			center.lng = bounds._southWest.lng + (bounds._northEast.lng - bounds._southWest.lng)/2;
-			return center;
-		}
-		svg.setLatLng = function(latlng){
-			var bounds = this.getBounds();
-			this.setBounds([
-				[
-					latlng.lat - (bounds._northEast.lat - bounds._southWest.lat)/2,
-					latlng.lng - (bounds._northEast.lng - bounds._southWest.lng)/2
-				],
-				[
-					latlng.lat + (bounds._northEast.lat - bounds._southWest.lat)/2,
-					latlng.lng + (bounds._northEast.lng - bounds._southWest.lng)/2
-				]
-			]);
-		}
-		svg.redraw = function(){
-
-		}
-		return svg;
-	},
 	// @method initialize(): void
 	initialize: function (map, options) {
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
@@ -65,8 +97,9 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 
 
 	_fireCreatedEvent: function () {
-		var svg = this.svg_obj(this._startLatLng.lng-50, this._startLatLng.lat-50, this._startLatLng.lng+50, this._startLatLng.lat+50, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>');
-		svg.editing = new L.Edit.Svg(svg);
+		var svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', 
+			L.latLngBounds([this._startLatLng.lat-50, this._startLatLng.lng-50], [this._startLatLng.lat+50, this._startLatLng.lng+50]));
+		//svg.editing = new L.Edit.Svg(svg);
 		L.Draw.SimpleShape.prototype._fireCreatedEvent.call(this, svg);
 	},
 
@@ -76,7 +109,8 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 		this._tooltip.updatePosition(latlng);
 
 		if (!this._shape) {
-			this._shape = this.svg_obj(latlng.lng-50, latlng.lat-50, latlng.lng+50, latlng.lat+50, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>');
+			this._shape = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', 
+				L.latLngBounds([latlng.lat-50, latlng.lng-50], [latlng.lat+50, latlng.lng+50]));
 			this._map.addLayer(this._shape);
 		}
 		else {
@@ -91,7 +125,7 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 	}
 });
 
-
+//ensure edit exists
 L.Edit = L.Edit || {};
 /**
  * @class L.Edit.CircleMarker
@@ -139,7 +173,16 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 	},
 });
 
+//add Edit.Svg to SvgObject, so that it can be edited
+L.SvgObject.addInitHook(function () {
+	if (L.Edit.Svg) {
+		this.editing = new L.Edit.Svg(this);
 
+		if (this.options.editable) {
+			this.editing.enable();
+		}
+	}
+});
 
 
 /** overrides
@@ -226,7 +269,7 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 				this._uneditedLayerProps[id] = {
 					latlng: L.LatLngUtil.cloneLatLng(layer.getLatLng())
 				};
-			} else if(layer instanceof L.SVGOverlay ){
+			} else if(layer instanceof L.SvgObject ){
 				this._uneditedLayerProps[id] = {
 					bounds: layer.getBounds()
 				};
@@ -255,3 +298,5 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 	},
 
 });
+
+
