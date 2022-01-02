@@ -185,6 +185,10 @@
 	background-position: -122px -2px;
 }
 
+.leaflet-draw-toolbar .leaflet-draw-draw-svg {
+	background-position: -122px -2px;
+}
+
 .leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-marker {
 	background-position: -120px -1px;
 }
@@ -306,6 +310,10 @@
 	-webkit-border-radius: 4px;
 	border-radius: 4px;
 	box-sizing: content-box;
+}
+
+.leaflet-edit-svg-selected {
+	outline:2px dashed rgba(254, 87, 161, 0.6);
 }
 
 .leaflet-edit-move {

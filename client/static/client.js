@@ -90,6 +90,7 @@ function init_schema(){
   editableLayers = new L.FeatureGroup();
   schema_leafletmap.addLayer(editableLayers);
 
+
   var options = {
     position: 'topright',
     draw: {
@@ -103,7 +104,8 @@ function init_schema(){
       },
       circle: true, // Turns off this drawing tool 
       rectangle: true,
-      marker: true
+      marker: true,
+      svg: true
     },
     edit: {
       featureGroup: editableLayers, //REQUIRED!! 
@@ -113,6 +115,10 @@ function init_schema(){
   
   var drawControl = new L.Control.Draw(options);
   schema_leafletmap.addControl(drawControl);
+
+  //var drawSvgControl = new L.Control.DrawSvg({position: 'topright', draw: { }, edit: { featureGroup: editableLayers, remove: true  }});
+  //schema_leafletmap.addControl(drawSvgControl);
+
 
   geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
@@ -125,8 +131,7 @@ function init_schema(){
   moving_object = null;
 
   schema_leafletmap.on('click', function(a){
-    if(moving_object != null && a.originalEvent.ignore !== true)
-    {
+    if(moving_object != null && a.originalEvent.ignore !== true) {
       moving_object.enable_move = false;
       schema_leafletmap.off('mousemove',moveobj);
       moving_object = null;
@@ -364,6 +369,7 @@ function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
         d.target.enable_move = true;
         moving_object = aa;
         schema_leafletmap.on('mousemove',moveobj.bind(aa));
+        //L.DomEvent.on(aa, 'click', L.DomEvent.stopPropagation);
         d.originalEvent.ignore = true;  //custom propery for this event, to prevent triggering the global one
       } else {
         d.target.enable_move = false;

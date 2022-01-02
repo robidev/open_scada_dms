@@ -183,12 +183,15 @@ def query_gis_svg(w,n,e,s,z):
   })
 
   data = []
-  for object in cursor:
-    svg = db.svg_templates.find_one({"name":object["svg"]})
-    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
-    object["id"] = "_" + str(object["_id"])
-    object.pop("_id")
-    data.append(object)
+  try:
+    for object in cursor:
+      svg = db.svg_templates.find_one({"name":object["svg"]})
+      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
+      object["id"] = "_" + str(object["_id"])
+      object.pop("_id")
+      data.append(object)
+  except e:
+    return None
 
   return data
 
@@ -197,6 +200,8 @@ def query_gis_svg(w,n,e,s,z):
 def get_svg_for_gis(data):
   # query database for svg objects, based on coordinates
   in_view_new = query_gis_svg(data['w'], data['n'], data['e'], data['s'], data['z'])
+  if in_view_new == None:
+    return
   # remove old items that should not be in view anymore
   for item in data['in_view']:
     if not any(d['id'] == item for d in in_view_new):
