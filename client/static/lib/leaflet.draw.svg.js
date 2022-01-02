@@ -5,18 +5,19 @@
  */
  L.SvgObject = L.SVGOverlay.extend({
 
-	initialize: function (svgString, bounds, options) {
+	initialize: function (svgString, bounds, uuid, options) {
+		this.uuid = uuid;
 		options = options || {};
 		options.interactive = true;
 
-		this._docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-		this._docObj.setAttribute('viewBox', 
+		var docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
+		docObj.setAttribute('viewBox', 
 			"0 0 " + 
 			(bounds._northEast.lng - bounds._southWest.lng).toString() + 
 			" " + 
 			(bounds._northEast.lat - bounds._southWest.lat).toString() );
 
-		L.SVGOverlay.prototype.initialize.call(this, this._docObj, bounds, options);
+		L.SVGOverlay.prototype.initialize.call(this, docObj, bounds, options);
 		this._latlng = this.getLatLng();
 	},
 
@@ -89,16 +90,18 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 	initialize: function (map, options) {
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
 		this.type = L.Draw.Svg.TYPE;
-
 		this._initialLabelText = L.drawLocal.draw.handlers.svg.tooltip.start;
-
 		L.Draw.SimpleShape.prototype.initialize.call(this, map, options);
+		this._template = '<rect width="100" height="100" />';
+		this._templateBounds = [[0,0],[100,100]];
 	},
 
-
 	_fireCreatedEvent: function () {
-		var svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', 
-			L.latLngBounds([this._startLatLng.lat-50, this._startLatLng.lng-50], [this._startLatLng.lat+50, this._startLatLng.lng+50]));
+		var mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
+		var mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
+		var svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
+			L.latLngBounds([this._startLatLng.lat-mlat, this._startLatLng.lng-mlng], [this._startLatLng.lat+mlat, this._startLatLng.lng+mlng]),
+			null);
 		//svg.editing = new L.Edit.Svg(svg);
 		L.Draw.SimpleShape.prototype._fireCreatedEvent.call(this, svg);
 	},
@@ -109,8 +112,11 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 		this._tooltip.updatePosition(latlng);
 
 		if (!this._shape) {
-			this._shape = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', 
-				L.latLngBounds([latlng.lat-50, latlng.lng-50], [latlng.lat+50, latlng.lng+50]));
+			var mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
+			var mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
+			this._shape = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
+				L.latLngBounds([latlng.lat-mlat, latlng.lng-mlng], [latlng.lat+mlat, latlng.lng+mlng]), 
+				null);
 			this._map.addLayer(this._shape);
 		}
 		else {
@@ -122,8 +128,9 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 			text: this._endLabelText,
 			subtext: subtext
 		});
-	}
+	},
 });
+
 
 //ensure edit exists
 L.Edit = L.Edit || {};
@@ -241,8 +248,14 @@ L.SvgObject.addInitHook(function () {
 				title: L.drawLocal.draw.toolbar.buttons.svg
 			}
 		];
+	},
+
+	drawDialog: function(){
+		
 	}
+	
 });
+
 
 
 /**
