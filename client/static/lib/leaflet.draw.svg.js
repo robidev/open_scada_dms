@@ -10,7 +10,7 @@
 		options = options || {};
 		options.interactive = true;
 
-		var docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
+		let docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
 		docObj.setAttribute('viewBox', 
 			"0 0 " + 
 			(bounds._northEast.lng - bounds._southWest.lng).toString() + 
@@ -24,8 +24,8 @@
 	// @method setLatLng(latLng: LatLng): this
 	// Sets the position of a SvgObject to a new location.
 	setLatLng: function (latlng) {
-		var oldLatLng = this._latlng;
-		var bounds = this.getBounds();
+		let oldLatLng = this._latlng;
+		let bounds = this.getBounds();
 		this.setBounds([
 			[
 				latlng.lat - (bounds._northEast.lat - bounds._southWest.lat)/2,
@@ -46,8 +46,8 @@
 	// @method getLatLng(): LatLng
 	// Returns the current geographical position of the SvgObject
 	getLatLng: function () {
-		var bounds = this.getBounds();
-		var latlng = L.latLng(0,0);
+		let bounds = this.getBounds();
+		let latlng = L.latLng(0,0);
 		latlng.lat = bounds._southWest.lat + (bounds._northEast.lat - bounds._southWest.lat)/2;
 		latlng.lng = bounds._southWest.lng + (bounds._northEast.lng - bounds._southWest.lng)/2;
 		this._latlng = latlng;
@@ -97,9 +97,9 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 	},
 
 	_fireCreatedEvent: function () {
-		var mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
-		var mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
-		var svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
+		let mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
+		let mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
+		let svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
 			L.latLngBounds([this._startLatLng.lat-mlat, this._startLatLng.lng-mlng], [this._startLatLng.lat+mlat, this._startLatLng.lng+mlng]),
 			null);
 		//svg.editing = new L.Edit.Svg(svg);
@@ -107,13 +107,13 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 	},
 
 	_onMouseMove: function (e) {
-		var latlng = e.latlng;
+		let latlng = e.latlng;
 
 		this._tooltip.updatePosition(latlng);
 
 		if (!this._shape) {
-			var mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
-			var mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
+			let mlat = (this._templateBounds[1][0] - this._templateBounds[0][0])/2
+			let mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
 			this._shape = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
 				L.latLngBounds([latlng.lat-mlat, latlng.lng-mlng], [latlng.lat+mlat, latlng.lng+mlng]), 
 				null);
@@ -123,7 +123,7 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 			this._shape.setLatLng(latlng);
 		}
 
-		var subtext = '';
+		let subtext = '';
 		this._tooltip.updateContent({
 			text: this._endLabelText,
 			subtext: subtext
@@ -143,14 +143,14 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 
 	addHooks: function () {
 		L.Edit.SimpleShape.prototype.addHooks.call(this);
-		var icon = this._shape._image;
+		let icon = this._shape._image;
 		icon.style.display = 'none';
 		L.DomUtil.addClass(icon, 'leaflet-edit-svg-selected');
 		icon.style.display = '';
 	},
 
 	removeHooks: function () {
-		var icon = this._shape._image;
+		let icon = this._shape._image;
 		icon.style.display = 'none';
 		L.DomUtil.removeClass(icon, 'leaflet-edit-svg-selected');
 		icon.style.display = '';
@@ -158,7 +158,7 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 	},
 
 	_createMoveMarker: function () {
-		var center = this._shape.getLatLng();
+		let center = this._shape.getLatLng();
 		this._moveMarker = this._createMarker(center, this.options.moveIcon);
 	},
 
@@ -169,7 +169,7 @@ L.Edit.Svg = L.Edit.SimpleShape.extend({
 
 	_move: function (latlng) {
 		if (this._resizeMarkers.length) {
-			var resizemarkerPoint = this._getResizeMarkerPoint(latlng);
+			let resizemarkerPoint = this._getResizeMarkerPoint(latlng);
 			// Move the resize marker
 			this._resizeMarkers[0].setLatLng(resizemarkerPoint);
 		}
@@ -265,7 +265,7 @@ L.SvgObject.addInitHook(function () {
  L.EditToolbar.Edit.include({
 
 	_backupLayer: function (layer) {
-		var id = L.Util.stamp(layer);
+		let id = L.Util.stamp(layer);
 
 		if (!this._uneditedLayerProps[id]) {
 			// Polyline, Polygon or Rectangle
@@ -291,7 +291,7 @@ L.SvgObject.addInitHook(function () {
 	},
 
 	_revertLayer: function (layer) {
-		var id = L.Util.stamp(layer);
+		let id = L.Util.stamp(layer);
 		layer.edited = false;
 		if (this._uneditedLayerProps.hasOwnProperty(id)) {
 			// Polyline, Polygon or Rectangle

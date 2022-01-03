@@ -170,27 +170,28 @@ def query_gis_svg(w,n,e,s,z):
   global mongoclient
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
-  db = mongoclient.scada
-  cursor = db.schema_objects.find({ 
-    "location": {
-     "$geoIntersects": {
-        "$geometry": {
-           "type": "Polygon" ,
-           "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+  try:
+    db = mongoclient.scada
+    cursor = db.schema_objects.find({ 
+      "location": {
+      "$geoIntersects": {
+          "$geometry": {
+            "type": "Polygon" ,
+            "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+          }
         }
       }
-    }
-  })
+    })
 
-  data = []
-  try:
+    data = []
+
     for object in cursor:
       svg = db.svg_templates.find_one({"name":object["svg"]})
       object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
       object["id"] = "_" + str(object["_id"])
       object.pop("_id")
       data.append(object)
-  except e:
+  except Exception as inst:
     return None
 
   return data

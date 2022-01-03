@@ -1,14 +1,13 @@
-var socket, schema_leafletmap, schema_svgRoot, schema_in_view, svglayer, gis_svgRoot, gis_in_view, gis_map, geojsonlayer, editableLayers;
-var moving_object;
+var socket;
+var schema_leafletmap, schema_in_view, schema_editableLayers; 
+var gis_leafletmap, geojsonlayer,gis_in_view, gis_editableLayers;
 
 function init_gis(){
-  geojsonlayer = {};
-  gis_svgRoot = {};
   gis_in_view = [];
-  var gis_div = document.getElementById("gis_map");
-  gis_div.style.display = "block";
 
-  gis_map = L.map('gis_map', { renderer: L.svg()}).setView([51.980, 5.842], 17);
+  document.getElementById("gis_map").style.display = "block";
+
+  gis_leafletmap = L.map('gis_map', { renderer: L.svg()}).setView([51.980, 5.842], 17);
   //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'openstreetmap',
@@ -16,14 +15,16 @@ function init_gis(){
     id: 'openstreetmap',
     tileSize: 512,
     zoomOffset: -1,
-  }).addTo(gis_map);//*/
+  }).addTo(gis_leafletmap);//*/
 
+  geojsonlayer = L.geoJSON().addTo(gis_leafletmap);
 
+  
   //https://codepen.io/mochaNate/pen/bWNveg
-  editableLayers = new L.FeatureGroup();
-  gis_map.addLayer(editableLayers);
+  gis_editableLayers = new L.FeatureGroup();
+  gis_leafletmap.addLayer(gis_editableLayers);
 
-  var options = {
+  let options = {
     position: 'topright',
     draw: {
       polyline: true,
@@ -39,29 +40,25 @@ function init_gis(){
       marker: true
     },
     edit: {
-      featureGroup: editableLayers, //REQUIRED!! 
+      featureGroup: gis_editableLayers, //REQUIRED!! 
       remove: true
     }
   };
-  
-  var drawControl = new L.Control.Draw(options);
-  gis_map.addControl(drawControl);
+  let drawControl = new L.Control.Draw(options);
+  gis_leafletmap.addControl(drawControl);
 
-
-  
-  geojsonlayer = L.geoJSON().addTo(gis_map);
   //register svg events
-  gis_map.on(L.Draw.Event.CREATED, addItem);//*/
-  gis_map.on('moveend', update_gis);
-  gis_map.on('zoomend', update_gis);
-  gis_map.setZoom(18);
+  gis_leafletmap.on(L.Draw.Event.CREATED, gis_addItem);//*/
+  gis_leafletmap.on('moveend', update_gis);
+  gis_leafletmap.on('zoomend', update_gis);
+  gis_leafletmap.setZoom(18);
 }
 
 function exportGeoJSON(featureGroup) {
   // Extract GeoJson from featureGroup
-  var data = featureGroup.toGeoJSON();
+  let data = featureGroup.toGeoJSON();
   // Stringify the GeoJson
-  var convertedData = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data));
+  let convertedData = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data));
   // Create export
   let linkElement = document.createElement('a');
   linkElement.setAttribute('href', 'data:' + convertedData);
@@ -75,9 +72,8 @@ var CRSPixel = L.Util.extend(L.CRS.Simple, {
 });
 
 function init_schema(){
-  svglayer = {};
-  schema_svgRoot = {};
   schema_in_view = [];
+
   document.getElementById("mmi_svg").style.display = "block";
   
   schema_leafletmap = L.map('mmi_svg', { 
@@ -87,11 +83,12 @@ function init_schema(){
     maxZoom: 10
   }).setView([0,0], 1);
 
-  editableLayers = new L.FeatureGroup();
-  schema_leafletmap.addLayer(editableLayers);
+  schema_editableLayers = new L.FeatureGroup();
+  schema_leafletmap.addLayer(schema_editableLayers);
 
+    //geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
-  var options = {
+  let options = {
     position: 'topright',
     draw: {
       polyline: true,
@@ -108,55 +105,24 @@ function init_schema(){
       svg: true
     },
     edit: {
-      featureGroup: editableLayers, //REQUIRED!! 
+      featureGroup: schema_editableLayers, //REQUIRED!! 
       remove: true
     }
   };
   
-  var drawControl = new L.Control.Draw(options);
+  let drawControl = new L.Control.Draw(options);
   schema_leafletmap.addControl(drawControl);
 
-  //var drawSvgControl = new L.Control.DrawSvg({position: 'topright', draw: { }, edit: { featureGroup: editableLayers, remove: true  }});
-  //schema_leafletmap.addControl(drawSvgControl);
-
-
-  geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
-
-  schema_leafletmap.on(L.Draw.Event.CREATED, addItem);
+  schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
   schema_leafletmap.setZoom(0);
-  //schema_leafletmap.fitBounds(bounds);
-
-  moving_object = null;
-
-  schema_leafletmap.on('click', function(a){
-    if(moving_object != null && a.originalEvent.ignore !== true) {
-      moving_object.enable_move = false;
-      schema_leafletmap.off('mousemove',moveobj);
-      moving_object = null;
-    }
-  });
 }
 
-//var wrap_moveobj = function(e){ moveobj(e,aa);};
-var moveobj = function (d) {
-  if(this.enable_move == true){
-    bounds = this._bounds;
-    var g1 = (bounds._northEast.lat - bounds._southWest.lat)/2;
-    var g2 = (bounds._northEast.lng - bounds._southWest.lng)/2;
-    var dif1 = d.latlng.lat - g1;
-    var dif2 = d.latlng.lat + g1;
-    var dif3 = d.latlng.lng - g2;
-    var dif4 = d.latlng.lng + g2;
-    
-    this.setBounds([[dif1,dif3],[dif2,dif4]]);
-  }
-}
 
-function addItem(e) {
+function schema_addItem(e) {
   //gis_map.on(L.Draw.Event.CREATED, function(e) {
-  var type = e.layerType, layer = e.layer;
+  let type = e.layerType, layer = e.layer;
 
   if (type === 'marker') {
     layer.bindPopup('A popup!');
@@ -166,78 +132,41 @@ function addItem(e) {
       layer.uuid = "_123";
     }
   }
-  //svg_add_to_schema(0,0,100,100,"<>","aaa");
-  editableLayers.addLayer(layer);
+  schema_editableLayers.addLayer(layer);
 }
 
-function deinit_schema(){
+function gis_addItem(e) {
+  //gis_map.on(L.Draw.Event.CREATED, function(e) {
+  let type = e.layerType, layer = e.layer;
 
-  schema_leafletmap.off('draw:created',addItem)
-  schema_leafletmap.off('moveend', update_schema);
-  schema_leafletmap.off('zoomend', update_schema);
-
-  var schema_map = document.getElementById("mmi_svg");
-  schema_map.style.display = "none";
-  schema_leafletmap.remove();
-  schema_svgRoot.innerHTML = "";
-  schema_map.innerHTML = "";
-
-  delete svglayer;
-  delete schema_leafletmap;
-  delete schema_svgRoot;
-  delete schema_in_view;
-
-  svglayer = null;
-  schema_leafletmap = null;
-  schema_svgRoot = null;
-  schema_in_view = null;
+  if (type === 'marker') {
+    layer.bindPopup('A popup!');
+  }
+  if (type === 'svg') {
+    if (layer.uuid === null){
+      layer.uuid = "_123";
+    }
+  }
+  gis_editableLayers.addLayer(layer);
 }
 
-function deinit_gis(){
-  gis_map.off('draw:created', addItem);//*/
-  gis_map.off('moveend', update_gis);
-  gis_map.off('zoomend', update_gis);
 
-  var gis_div = document.getElementById("gis_map");
-  gis_div.style.display = "none";
-  gis_map.remove();
-  gis_svgRoot.innerHTML = "";
-  gis_div.innerHTML = "";
-
-  delete gis_svgRoot;
-  delete gis_in_view;
-  delete gis_map;
-  delete geojsonlayer;
-
-  gis_svgRoot = null;
-  gis_in_view = null;
-  gis_map = null;
-  geojsonlayer = null;
-}
 
 function toggle_view() {
-  var gis = document.getElementById("gis_map");
-  var schema_div = document.getElementById("mmi_svg");
+  let gis = document.getElementById("gis_map");
+  let schema_div = document.getElementById("mmi_svg");
   if (gis.style.display === "none") {
     document.getElementById("mmi_svg").style.display = "none";
     document.getElementById("gis_map").style.display = "block";
-    //deinit_schema();
-    //init_gis();
   } else {
     document.getElementById("mmi_svg").style.display = "block";
     document.getElementById("gis_map").style.display = "none";
-    //deinit_gis();
-    //init_schema();
   }
 } 
 
 $(document).ready(function() {
   namespace = '';
-
-
   socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
-
-
   init_gis();
   init_schema();
   document.getElementById("mmi_svg").style.display = "block";
@@ -245,13 +174,16 @@ $(document).ready(function() {
 
   socket.on('svg_value_update_event_on_schema', function (data) {
     //event gets called from server when svg data is updated, so update the svg
-    var element = data['element'];
-    var value = data['data']['value'];
-    var type = data['data']['type'];
+    let element = data['element'];
+    let value = data['data']['value'];
+    let type = data['data']['type'];
   });
 
   socket.on('svg_object_add_to_schema', function (data) {
     //add svg to object
+    if(schema_in_view.includes(data['id'])){
+      return;
+    }
     node = svg_add_to_schema(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id']);
     if(node == null){
       return;
@@ -260,8 +192,8 @@ $(document).ready(function() {
     schema_in_view.push(data['id']);
 
       //register for all values in loaded svg
-    $("g",node).find("*").each(function(idx, el){
-      var cl = el.classList.toString();
+    $("g",node._image).find("*").each(function(idx, el){
+      let cl = el.classList.toString();
       //console.log("el.id:" + el.id + " cl:"+cl);
       if(el.id.startsWith("iec60870://") == true){    
         if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
@@ -272,17 +204,23 @@ $(document).ready(function() {
 
   socket.on('svg_object_remove_from_schema', function (data) {
     //remove svg from object
-    var obj = schema_svgRoot[data];
+    let obj = null
+    for(let item in schema_editableLayers._layers){
+      if(schema_editableLayers._layers[item].uuid === data){
+          obj = schema_editableLayers._layers[item];
+          break; // If you want to break out of the loop once you've found a match
+      }
+    }
     if(obj != null){
       //unregister values in this svg
-      $("g",obj).find("*").each(function(idx, el){
-        var cl = el.classList.toString();
+      $("g",obj._image).find("*").each(function(idx, el){
+        let cl = el.classList.toString();
         if(el.id.startsWith("iec60870://") == true){    
           //unregister
         }
       });
-      obj.remove();
-      var index = schema_in_view.indexOf(data);
+      schema_editableLayers.removeLayer(obj);
+      let index = schema_in_view.indexOf(data);
       if (index > -1) {
         schema_in_view.splice(index, 1);
       }
@@ -292,14 +230,17 @@ $(document).ready(function() {
 
   socket.on('svg_object_add_to_gis', function (data) {
     //add svg to object
-    var node = svg_add_to_gis(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id'],data['location']);
+    if(gis_in_view.includes(data['id'])){
+      return;
+    }
+    let node = svg_add_to_gis(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id'],data['location']);
     if(node == null){
       return;
     }
     gis_in_view.push(data['id']);
       //register for all values in loaded svg
-    $("g",node).find("*").each(function(idx, el){
-      var cl = el.classList.toString();
+    $("g",node._image).find("*").each(function(idx, el){
+      let cl = el.classList.toString();
       //console.log("el.id:" + el.id + " cl:"+cl);
       if(el.id.startsWith("iec60870://") == true){    
         if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
@@ -310,17 +251,23 @@ $(document).ready(function() {
 
   socket.on('svg_object_remove_from_gis', function (data) {
     //remove svg from object
-    var obj = gis_svgRoot[data];
+    let obj = null
+    for(let item in gis_editableLayers._layers){
+      if(gis_editableLayers._layers[item].uuid === data){
+          obj = gis_editableLayers._layers[item];
+          break; // If you want to break out of the loop once you've found a match
+      }
+    }
     if(obj != null){
       //unregister values in this svg
       $("g",obj).find("*").each(function(idx, el){
-        var cl = el.classList.toString();
+        let cl = el.classList.toString();
         if(el.id.startsWith("iec60870://") == true){    
           //unregister
         }
       });
-      obj.remove();
-      var index = gis_in_view.indexOf(data);
+      gis_editableLayers.removeLayer(obj);
+      let index = gis_in_view.indexOf(data);
       if (index > -1) {
         gis_in_view.splice(index, 1);
       }
@@ -330,12 +277,28 @@ $(document).ready(function() {
   socket.on('geojson_object_add_to_gis', function (json) {
     //add geojson to object
     if (json) {
-      gis_map.removeLayer(geojsonlayer);
-      geojsonlayer = L.geoJSON().addTo(gis_map);
-      // Add the data to the layer
-      geojsonlayer.addData(json);
+      let local_geojsonlayer = L.geoJSON();
 
-      geojsonlayer.setStyle(geoStyle);
+      // parse the json into leaflet layers
+      local_geojsonlayer.addData(json);
+      local_geojsonlayer.setStyle(geoStyle);
+
+      //find what layer allready exist
+      for(let local_geoitem in local_geojsonlayer._layers){
+        let found = false;
+        for(let edititem in gis_editableLayers._layers){
+          if(gis_editableLayers._layers[edititem].feature && 
+              gis_editableLayers._layers[edititem].feature._id === local_geojsonlayer._layers[local_geoitem].feature._id){
+            found = true;
+            break;
+          }
+        }
+        if(found == false){// if geojson is not found,
+          // add geojson objects to edit and geojson-layer
+          gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
+          geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
+        }
+      }
 		}
   });
 
@@ -348,108 +311,37 @@ $(document).ready(function() {
 
 
 var update_schema = function(){ 
-  //pos = schema_leafletmap.getCenter();
   zoom = schema_leafletmap.getZoom();
   bounds = schema_leafletmap.getBounds();
   socket.emit('get_svg_for_schema', {'x': bounds.getWest(), 'y': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'x2': bounds.getEast(), 'y2': bounds.getNorth()});
-  //console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth() + ' z:' + schema_leafletmap.getZoom());
+} 
+
+var update_gis = function(){ 
+  zoom = gis_leafletmap.getZoom();
+  bounds = gis_leafletmap.getBounds();
+  socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
 } 
 
 function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
-  schema_svgRoot[svgId] = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-  var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();// dimension matches svgOverlay size, to create 1-to-1 pixel mapping
-  schema_svgRoot[svgId].setAttribute('viewBox', dimension );
-
-  options = {
-    'interactive': true,
-  };
-  var aa = L.svgOverlay(schema_svgRoot[svgId], [ [ y,x], [ y2,x2 ] ], options).addTo(schema_leafletmap);
-  //console.log("x:" + x + " y:" + y + " x2:" + x2 + " y2:" + y2); 
-  schema_svgRoot[svgId].id = svgId;
-  schema_svgRoot[svgId].svgOverlay = aa;
-  aa.enable_move = false;
-  aa.on('click', function(d) {
-    if(d.target.enable_move != null && moving_object == null){
-      if(d.target.enable_move == false){
-        d.target.enable_move = true;
-        moving_object = aa;
-        schema_leafletmap.on('mousemove',moveobj.bind(aa));
-        //L.DomEvent.on(aa, 'click', L.DomEvent.stopPropagation);
-        d.originalEvent.ignore = true;  //custom propery for this event, to prevent triggering the global one
-      } else {
-        d.target.enable_move = false;
-        moving_object = null;
-        schema_leafletmap.off('mousemove',moveobj);
-      }
-    }
-  }); 
-  return schema_svgRoot[svgId];
+  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId);
+  schema_editableLayers.addLayer(svg);
+  return svg;
 }
-
-
-function newSchemaObject(){
-  if(moving_object != null)
-  {
-    moving_object.enable_move = false;
-    schema_leafletmap.off('mousemove',moveobj);
-    moving_object = null;
-  }
-  var aa = svg_add_to_schema(0, 0, 100, 100, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" /></svg>', "_12345");
-  aa.svgOverlay.enable_move = true;
-  moving_object = aa.svgOverlay;
-  schema_leafletmap.on('mousemove',moveobj.bind(aa.svgOverlay));
-
-}
-
-
-var update_gis = function(){ 
-  //pos = gis_map.getCenter();
-  zoom = gis_map.getZoom();
-  bounds = gis_map.getBounds();
-  socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
-  //console.log('w:' + bounds.getWest() + ' n:' + bounds.getNorth() + ' e:' + bounds.getEast() + ' s:' + bounds.getSouth());
-} 
 
 function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
-  gis_svgRoot[svgId] = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-  var dimension = "0 0 " + (x2-x).toString() + " " + (y2-y).toString();
-  gis_svgRoot[svgId].setAttribute('viewBox', dimension );
-  var la = location['height']/2;
-  var lo = location['width']/2;
-  var longtitude = location['coordinates'][0];
-  var latitude = location['coordinates'][1];
+  // set svg viewbox with x,y,x2,y2 (i.e. 0,0,512,512). as a side-effect, the leaflet bounds on map are also set to this by default
+  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId);
 
-  options = {
-    'interactive': true,
-  };
-  var aa = L.svgOverlay(gis_svgRoot[svgId], [ [ latitude-la,longtitude-lo], [ latitude+la,longtitude+lo ] ], options).addTo(gis_map);
-  
-  aa.enable_move = false;
+  // correct leaflet size+latlng based on gis coordinate system (by ajusting bounds)
+  let hheight = location['height']/2;
+  let hwidth = location['width']/2;
+  let longtitude = location['coordinates'][0];
+  let latitude = location['coordinates'][1];
+  svg.setBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]);
 
-  aa.on('click', function(d) {
-    if(d.target.enable_move == false){
-      d.target.enable_move = true;
-    } else {
-      d.target.enable_move = false;
-    }
-  });
-
-  aa.on('mousemove', function(d) {
-    if(d.target.enable_move == true){
-      bounds = this._bounds;
-      var g1 = (bounds._northEast.lat - bounds._southWest.lat)/2;
-      var g2 = (bounds._northEast.lng - bounds._southWest.lng)/2;
-      var dif1 = d.latlng.lat - g1;
-      var dif2 = d.latlng.lat + g1;
-      var dif3 = d.latlng.lng - g2;
-      var dif4 = d.latlng.lng + g2;
-      
-      this.setBounds([[dif1,dif3],[dif2,dif4]]);
-    }
-  });
-
-  gis_svgRoot[svgId].id = svgId;
-  return gis_svgRoot[svgId];
+  // add to gis layer
+  gis_editableLayers.addLayer(svg);
+  return svg;
 }
 
 var geoStyle = function(feature){
@@ -463,6 +355,11 @@ var geoStyle = function(feature){
   };
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 var get_svg_templates = function()
 {
   return [["PTR",[[0,0],[550,514]],"<line id=\"S12/D1/Q1/L1\" class=\"LINE\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"153.934719\" x2=\"266\" y1=\"93.434721\" x1=\"266\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n\n<g id=\"S12/D1/T1\">\n<title>PTR</title>\n<ellipse id=\"svg_T1_a\" ry=\"18\" rx=\"18\" cy=\"171.753014\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n<text    id=\"svg_T1_name\" stroke=\"#ffffff\"  xml:space=\"preserve\" text-anchor=\"start\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"186.66199\" x=\"296\" stroke-width=\"null\" fill=\"#ffffff\">T1</text>\n<ellipse id=\"svg_T1_b\" ry=\"18\" rx=\"18\" cy=\"196.290907\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n</g>\n\n<line id=\"S12/E1/Q1/L2\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"256.43483\" x2=\"266\" y1=\"214.934859\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n"],
@@ -475,11 +372,11 @@ var get_svg_templates = function()
 	//.leaflet-modal
 L.Draw.Svg.include({
 	  enable: function(){
-      var drawsvg = this;
+      let drawsvg = this;
+      let templates = get_svg_templates();
 
-      var templates = get_svg_templates();
-      var options = "";
-      for(var i = 0; i < templates.length; i++){
+      let options = "";
+      for(let i = 0; i < templates.length; i++){
         options += '<option value="'+i.toString()+'"> '+ templates[i][0] +' </option>';
       }
       
@@ -507,10 +404,10 @@ L.Draw.Svg.include({
         width: 300,
       
         onShow: function(evt) {
-          var modal = evt.modal;
+          let modal = evt.modal;
           L.DomEvent
           .on(modal._container.querySelector('.modal-ok'), 'click', function() {
-            var sel = modal._container.querySelector('select[name="SVG-templates"]');
+            let sel = modal._container.querySelector('select[name="SVG-templates"]');
             drawsvg._templateBounds = templates[sel.value][1];
             drawsvg._template = templates[sel.value][2];
 
