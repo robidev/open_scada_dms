@@ -7,7 +7,10 @@ function init_gis(){
 
   document.getElementById("gis_map").style.display = "block";
 
-  gis_leafletmap = L.map('gis_map', { renderer: L.svg()}).setView([51.980, 5.842], 17);
+  gis_leafletmap = L.map('gis_map', { 
+    renderer: L.svg(),
+    mapType: "gis"
+  }).setView([51.980, 5.842], 17);
   //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'openstreetmap',
@@ -24,7 +27,7 @@ function init_gis(){
   gis_editableLayers = new L.FeatureGroup();
   gis_leafletmap.addLayer(gis_editableLayers);
 
-  let options = {
+  let gis_options = {
     position: 'topright',
     draw: {
       polyline: true,
@@ -44,11 +47,13 @@ function init_gis(){
       remove: true
     }
   };
-  let drawControl = new L.Control.Draw(options);
-  gis_leafletmap.addControl(drawControl);
+  let gis_drawControl = new L.Control.Draw(gis_options);
+  gis_leafletmap.addControl(gis_drawControl);
 
   //register svg events
   gis_leafletmap.on(L.Draw.Event.CREATED, gis_addItem);//*/
+  gis_leafletmap.on(L.Draw.Event.EDITED, gis_editedItems);
+  gis_leafletmap.on(L.Draw.Event.DELETED, gis_removeItems);
   gis_leafletmap.on('moveend', update_gis);
   gis_leafletmap.on('zoomend', update_gis);
   gis_leafletmap.setZoom(18);
@@ -66,6 +71,34 @@ function exportGeoJSON(featureGroup) {
   linkElement.click();
 }
 
+function gis_addItem(e) {
+  //gis_map.on(L.Draw.Event.CREATED, function(e) {
+  let type = e.layerType, layer = e.layer;
+
+  if (type === 'marker') {
+    layer.bindPopup('A popup!');
+  }
+  if (type === 'svg') {
+    if (layer.uuid === null){
+      layer.uuid = "_123";
+    }
+  }
+  gis_editableLayers.addLayer(layer);
+}
+
+function gis_editedItems(items){
+    //items.layers.{}
+    //check feature._id->geojson or uuid->svg
+}
+
+function gis_removeItems(items){
+  //items.layers.{}
+  //check feature._id->geojson or uuid->svg
+  //result = mongo.db.xxx.delete_one({'_id': ObjectId(_id)})
+}
+
+
+
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
 var CRSPixel = L.Util.extend(L.CRS.Simple, {
 	transformation: new L.Transformation(1,0,1,0)
@@ -80,7 +113,8 @@ function init_schema(){
     renderer: L.svg(), 
     crs: CRSPixel,
     minZoom: -5,
-    maxZoom: 10
+    maxZoom: 10,
+    mapType: "schema"
   }).setView([0,0], 1);
 
   schema_editableLayers = new L.FeatureGroup();
@@ -88,7 +122,7 @@ function init_schema(){
 
     //geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
-  let options = {
+  let schema_options = {
     position: 'topright',
     draw: {
       polyline: true,
@@ -110,14 +144,19 @@ function init_schema(){
     }
   };
   
-  let drawControl = new L.Control.Draw(options);
-  schema_leafletmap.addControl(drawControl);
+  let schema_drawControl = new L.Control.Draw(schema_options);
+  schema_leafletmap.addControl(schema_drawControl);
 
   schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
+  schema_leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
+  schema_leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
   schema_leafletmap.on('moveend', update_schema);
   schema_leafletmap.on('zoomend', update_schema);
   schema_leafletmap.setZoom(0);
 }
+
+
+
 
 
 function schema_addItem(e) {
@@ -133,24 +172,19 @@ function schema_addItem(e) {
     }
   }
   schema_editableLayers.addLayer(layer);
+  //mydict = { "name": "Peter", "address": "Lowstreet 27" }
+  //x = mycol.insert_one(mydict)
 }
 
-function gis_addItem(e) {
-  //gis_map.on(L.Draw.Event.CREATED, function(e) {
-  let type = e.layerType, layer = e.layer;
-
-  if (type === 'marker') {
-    layer.bindPopup('A popup!');
-  }
-  if (type === 'svg') {
-    if (layer.uuid === null){
-      layer.uuid = "_123";
-    }
-  }
-  gis_editableLayers.addLayer(layer);
+function schema_editedItems(items){
+  //items.layers.{}
+  //mycollection.update({'_id':mongo_id}, {"$set": post}, upsert=False)
 }
 
-
+function schema_removeItems(items){
+  //items.layers.{}
+  //result = mongo.db.xxx.delete_one({'_id': ObjectId(_id)})
+}
 
 function toggle_view() {
   let gis = document.getElementById("gis_map");
@@ -323,21 +357,27 @@ var update_gis = function(){
 } 
 
 function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
-  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId);
+  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId,{ svgViewBox:{ viewBox: "calculate", fitBounds: true, scaleBounds: 1.0 }});
   schema_editableLayers.addLayer(svg);
   return svg;
 }
 
 function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
-  // set svg viewbox with x,y,x2,y2 (i.e. 0,0,512,512). as a side-effect, the leaflet bounds on map are also set to this by default
-  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId);
-
   // correct leaflet size+latlng based on gis coordinate system (by ajusting bounds)
   let hheight = location['height']/2;
   let hwidth = location['width']/2;
   let longtitude = location['coordinates'][0];
   let latitude = location['coordinates'][1];
-  svg.setBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]);
+
+  // set svg viewbox with x,y,x2,y2 (i.e. 0,0,512,512). as a side-effect, the leaflet bounds on map are also set to this by default
+  let svg = new L.SvgObject(
+    svgString, 
+    L.latLngBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]), 
+    svgId,  
+    { svgViewBox:{ viewBox: "calculate", fitBounds: true, scaleBounds: 0.000005 }}
+  );
+
+  //svg.setBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]);
 
   // add to gis layer
   gis_editableLayers.addLayer(svg);
@@ -383,14 +423,26 @@ L.Draw.Svg.include({
       this._map.fire('modal', {
         title: 'Select SVG template',
 
-        content: ['<select name="SVG-templates">',
-        options,
-        '</select><br><br>'].join(''),
+        content: [
+          '<table cellpadding="1" cellspacing="1">',
+          '  <tr>',
+          '    <td width="50%">',
+          '      <select name="SVG-templates" style="width:150px;">',
+                   options,
+          '      </select>',
+          '    </td>',
+          '    <td>',
+          '      <svg id="preview" width="250" height="250" xmlns=\'http://www.w3.org/2000/svg\'></svg>',
+          '    </td>',
+          '  </tr>',
+          '</table>',
+          '<br><br>'].join(''),
 
         template: ['<div class="modal-header"><h2>{title}</h2></div>',
           '<hr>',
           '<div class="modal-body">{content}</div>',
           '<div class="modal-footer">',
+          '<input type="file" id="file-input" />',
           '<button class="topcoat-button--large {OK_CLS}">{okText}</button>',
           '<button class="topcoat-button--large {CANCEL_CLS}">{cancelText}</button>',
           '</div>'
@@ -401,23 +453,84 @@ L.Draw.Svg.include({
         OK_CLS: 'modal-ok',
         CANCEL_CLS: 'modal-cancel',
       
-        width: 300,
+        width: 700,
       
         onShow: function(evt) {
           let modal = evt.modal;
+          let imported = null;
+
+          fitSvg(templates[0][2], modal._container.querySelector('#preview'));
+
           L.DomEvent
           .on(modal._container.querySelector('.modal-ok'), 'click', function() {
             let sel = modal._container.querySelector('select[name="SVG-templates"]');
-            drawsvg._templateBounds = templates[sel.value][1];
-            drawsvg._template = templates[sel.value][2];
+
+            if(imported == null){
+              let bbox = fitSvg(templates[sel.value][2], modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
+              drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
+              drawsvg._svgFitBounds = true;
+              if(drawsvg._map.options.mapType === "schema"){
+                drawsvg._scale = 1.0;
+              }
+              if(drawsvg._map.options.mapType === "gis"){
+                drawsvg._scale = 0.000005;
+              }
+
+              drawsvg._template = templates[sel.value][2];
+            } else {
+              let bbox = fitSvg(imported, modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
+              drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
+              drawsvg._svgFitBounds = true;
+              if(drawsvg._map.options.mapType === "schema"){
+                drawsvg._scale = 1.0;
+              }
+              if(drawsvg._map.options.mapType === "gis"){
+                drawsvg._scale = 0.000005;
+              }
+              drawsvg._template = imported;
+            }
 
             L.Draw.SimpleShape.prototype.enable.call(drawsvg);
             modal.hide();
           })
           .on(modal._container.querySelector('.modal-cancel'), 'click', function() {
             modal.hide();
+          })
+          .on(modal._container.querySelector('select[name="SVG-templates"]'), 'change', function() {
+            imported = null;
+            fitSvg(templates[parseInt(this.value)][2],  modal._container.querySelector('#preview'));
+          })
+          .on(modal._container.querySelector('#file-input'), 'change', function(e) {
+            let file = e.target.files[0];
+            if (!file) {
+              return;
+            }
+            let reader = new FileReader();
+            reader.onload = function(e) {
+              let contents = e.target.result;
+              fitSvg(contents,  modal._container.querySelector('#preview'));
+              imported = contents;
+            };
+            reader.readAsText(file);
           });
         }
       });
 	}
 });
+
+function fitSvg(contents, preview){
+  let element = new DOMParser().parseFromString("<svg xmlns=\"http://www.w3.org/2000/svg\">" + contents + "</svg>", "image/svg+xml").documentElement;
+  preview.innerHTML = "";
+  preview.appendChild(element);
+  // get bounding box of svg
+  let bbox = preview.getBBox();
+  // set viewbox to fit bounding box
+  preview.firstChild.setAttribute('viewBox',
+    (bbox.x - 4).toString() + " " + (bbox.y - 4).toString() + " " + (bbox.width + 8).toString() + " " + (bbox.height + 8).toString());
+  // set parent viewbox to x=0,y=0 and width/heigth to match child
+  preview.setAttribute('viewBox',
+    (0).toString() + " " + (0).toString() + " " + (bbox.width + 8).toString() + " " + (bbox.height + 8).toString());
+  //set black background
+  preview.innerHTML = "<rect x=\'"+ (0).toString() +"\' y=\'"+ (0).toString() +"\' width=\'"+(bbox.width + 8).toString()+"\' height=\'"+(bbox.height + 8).toString()+"\'/>" + preview.innerHTML;
+  return bbox;
+}

@@ -27,3 +27,13 @@ event/alarm schermen:
  
 
 grafana voor trending datapunten
+
+
+
+-----------------------------
+add, update, delete svg/geo items in db -> call to backend
+import svg, calculate bounds -> frontend dialog, call to backend
+
+multi-session support
+
+animate values, gotten from backend

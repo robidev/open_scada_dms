@@ -5,20 +5,77 @@
  */
  L.SvgObject = L.SVGOverlay.extend({
 
+	options:{
+		svgViewBox:{
+			viewBox: false, // viewbox can be "x y w h" to directly set viewBox attribute of svg, 'false' to use bounds instead, or "calculate" to derive from svg bbox
+			fitBounds: false, // false means bounds are used directly, true means only center latlng of bounds are used, and actual bounds are fit to bbox of svg
+			scaleBounds: 1.0 // scale the size of the svg bounds on the map
+		},
+	},
+
 	initialize: function (svgString, bounds, uuid, options) {
 		this.uuid = uuid;
-		options = options || {};
+		
+		options = options || this.options;
 		options.interactive = true;
+		this._svgViewBox = null;
 
 		let docObj = new DOMParser().parseFromString(svgString, "image/svg+xml").documentElement;
-		docObj.setAttribute('viewBox', 
-			"0 0 " + 
-			(bounds._northEast.lng - bounds._southWest.lng).toString() + 
-			" " + 
-			(bounds._northEast.lat - bounds._southWest.lat).toString() );
 
+		//set viewbox specific (independent from bounds)
+		if(options.svgViewBox && (typeof options.svgViewBox.viewBox === 'string' || options.svgViewBox.viewBox instanceof String)){
+			if(options.svgViewBox.viewBox === "calculate"){
+				document.body.appendChild(docObj);//svg needs to be visible
+				let bbox = docObj.getBBox();
+				document.body.removeChild(docObj);//remove it before anyone can see
+				this._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
+			}
+			else { //set viewbox to bounds-width/height
+				this._svgViewBox  = options.svgViewBox.viewBox;
+			}
+			//set bounds to viewbox
+			let bbox_s = this._svgViewBox.split(" ");
+			if(options.svgViewBox.fitBounds == true && bbox_s.length == 4){
+				let latlng = L.latLng(0,0);
+				latlng.lat = bounds._southWest.lat + (bounds._northEast.lat - bounds._southWest.lat)/2;
+				latlng.lng = bounds._southWest.lng + (bounds._northEast.lng - bounds._southWest.lng)/2;
+
+				//set scale of bounds
+				let scale = 1.0;
+				if(options.svgViewBox.scaleBounds){
+					scale = options.svgViewBox.scaleBounds;
+				}
+				
+				bounds = [[
+					latlng.lat - ((bbox_s[3] / 2)*scale), 
+					latlng.lng - ((bbox_s[2] / 2)*scale)
+				], [latlng.lat + ((bbox_s[3] / 2)*scale), 
+					latlng.lng + ((bbox_s[2] / 2)*scale)
+				]];//size on map
+			}
+			options.svgViewBox.viewBox = this._svgViewBox;
+		}
+		// use bounds if no viewbox was set
+		if(this._svgViewBox == null){ 
+			this._svgViewBox = "0 0 " +  (bounds._northEast.lng - bounds._southWest.lng).toString() + " " + (bounds._northEast.lat - bounds._southWest.lat).toString();
+		}
+		// set the viewbox
+		docObj.setAttribute('viewBox',this._svgViewBox );
+
+		// call actual initializer of SVGOverlay
 		L.SVGOverlay.prototype.initialize.call(this, docObj, bounds, options);
+
+		// initialize latlng to center of bounds
 		this._latlng = this.getLatLng();
+	},
+
+	fitBounds: function(){
+		let latlng = this.getLatLng();
+		let bbox = this._svgViewBox.split(" ");
+		if(bbox.length != 4){
+			return
+		}
+		this.setBounds([[latlng.lat - (bbox[3] / 2), latlng.lng - (bbox[2] / 2)], [latlng.lat + (bbox[3] / 2), latlng.lng + (bbox[2] / 2)]]);// size on map
 	},
 
 	// @method setLatLng(latLng: LatLng): this
@@ -85,15 +142,19 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 		},
 	},
 
-
 	// @method initialize(): void
 	initialize: function (map, options) {
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
 		this.type = L.Draw.Svg.TYPE;
 		this._initialLabelText = L.drawLocal.draw.handlers.svg.tooltip.start;
 		L.Draw.SimpleShape.prototype.initialize.call(this, map, options);
-		this._template = '<rect width="100" height="100" />';
-		this._templateBounds = [[0,0],[100,100]];
+
+		//default settings to override before enable() is called
+		this._template = '<rect width="100" height="100" />';//svg object template
+		this._templateBounds = [[0,0],[100,100]];// size on map, in latlng. only center is used if bounds are calculated by fitBounds
+		this._svgViewBox = false;// x y w h of svg viewBox attribute. value can be:"0 0 100 100", "calulated" or false
+		this._svgFitBounds = false;// property to make the bounds fit the viewbox. value can be false or true;
+		this._scale = 1.0;// scale of svg object on map
 	},
 
 	_fireCreatedEvent: function () {
@@ -101,7 +162,8 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 		let mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
 		let svg = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
 			L.latLngBounds([this._startLatLng.lat-mlat, this._startLatLng.lng-mlng], [this._startLatLng.lat+mlat, this._startLatLng.lng+mlng]),
-			null);
+			null, {svgViewBox: {viewBox: this._svgViewBox, fitBounds: this._svgFitBounds, scaleBounds: this._scale}});
+			
 		//svg.editing = new L.Edit.Svg(svg);
 		L.Draw.SimpleShape.prototype._fireCreatedEvent.call(this, svg);
 	},
@@ -116,7 +178,7 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 			let mlng = (this._templateBounds[1][1] - this._templateBounds[0][1])/2
 			this._shape = new L.SvgObject('<svg xmlns="http://www.w3.org/2000/svg">'+this._template+'</svg>', 
 				L.latLngBounds([latlng.lat-mlat, latlng.lng-mlng], [latlng.lat+mlat, latlng.lng+mlng]), 
-				null);
+				null,  {svgViewBox: {viewBox: this._svgViewBox, fitBounds: this._svgFitBounds, scaleBounds: this._scale}});
 			this._map.addLayer(this._shape);
 		}
 		else {
@@ -196,7 +258,6 @@ L.SvgObject.addInitHook(function () {
  * @class L.DrawToolbar
  * @aka Toolbar
  */
-
  L.DrawToolbar.include({
 
 	options: {
@@ -249,11 +310,6 @@ L.SvgObject.addInitHook(function () {
 			}
 		];
 	},
-
-	drawDialog: function(){
-		
-	}
-	
 });
 
 
@@ -309,7 +365,6 @@ L.SvgObject.addInitHook(function () {
 			layer.fire('revert-edited', {layer: layer});
 		}
 	},
-
 });
 
 
