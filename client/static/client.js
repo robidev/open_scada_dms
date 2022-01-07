@@ -206,12 +206,20 @@ $(document).ready(function() {
   document.getElementById("mmi_svg").style.display = "block";
   document.getElementById("gis_map").style.display = "none";
 
+  //////////////////////////////////////////////////////////////////////////
+
   socket.on('svg_value_update_event_on_schema', function (data) {
     //event gets called from server when svg data is updated, so update the svg
     let element = data['element'];
     let value = data['data']['value'];
     let type = data['data']['type'];
   });
+
+  socket.on('updateDataPoint', function (data) { 
+    console.log("called:" + data.toString());
+  });
+
+  //////////////////////////////////////////////////////////////////////////
 
   socket.on('svg_object_add_to_schema', function (data) {
     //add svg to object
@@ -229,7 +237,9 @@ $(document).ready(function() {
     $("g",node._image).find("*").each(function(idx, el){
       let cl = el.classList.toString();
       //console.log("el.id:" + el.id + " cl:"+cl);
-      if(el.id.startsWith("iec60870://") == true){    
+      if(el.id.startsWith("iec60870://") == true){ 
+        //register  
+        socket.emit('register_datapoint', el.id); 
         if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
         if(cl == "XSWI"){ $("#open",el)[0].beginElementAt(1.0); }
       }
@@ -251,6 +261,7 @@ $(document).ready(function() {
         let cl = el.classList.toString();
         if(el.id.startsWith("iec60870://") == true){    
           //unregister
+          socket.emit('unregister_datapoint', el.id);
         }
       });
       schema_editableLayers.removeLayer(obj);

@@ -20,10 +20,57 @@ thread = None
 tick = 0.001
 mongoclient = None
 logger = None
+clients = {}
 
 #webserver
 app = Flask(__name__, template_folder='templates', static_folder='static')
 socketio = SocketIO(app, async_mode=async_mode)
+
+
+################################################
+def add_listener(point):
+  #check redis for point, and subscribe
+  #check mongodb for point and subscribe
+  return
+
+def remove_listener(point):
+  #check redis for point, and unsubscribe
+  #check mongodb for point and unsubscribe
+  return
+
+def redis_dataUpdate(point, data):
+  updateDataPoint(point,data) # emit to clients
+
+def mongodb_dataUpdate(point, data):
+  updateDataPoint(point,data) # emit to clients
+
+###############################################
+
+@socketio.on('schema_addItems', namespace='')
+def add_to_schema_database():
+  return
+
+@socketio.on('schema_editedItems', namespace='')
+def update_schema_database():
+  return
+
+@socketio.on('schema_removeItems', namespace='')
+def remove_from_schema_database():
+  return
+
+@socketio.on('gis_addItems', namespace='')
+def add_to_gis_database():
+  return
+
+@socketio.on('gis_editedItems', namespace='')
+def update_gis_database():
+  return
+
+@socketio.on('gis_removeItems', namespace='')
+def remove_from_gis_database():
+  return
+
+###############################################
 
 #http calls
 @app.route('/', methods = ['GET'])
@@ -33,7 +80,7 @@ def index():
 
 # web UI: event when client connects
 @socketio.on('connect', namespace='')
-def test_connect():
+def connect(data):
   global thread
   if thread is None:
     thread = socketio.start_background_task(target=worker)
@@ -60,17 +107,54 @@ def write_value(data):
 # register datapoint for polling/reporting
 @socketio.on('register_datapoint', namespace='')
 def register_datapoint(data):
-  logger.debug("register datapoint:" + str(data) )
+  client = request.sid
+  print("client:" + client)
+  logger.info("register datapoint:" + str(data) )
+  if not client in clients:
+    clients[client] = []
+  
+  add_listener(data)
+  # add to client list
+  clients[client].append(data)
+  ##########
+  # send data update, for testing only!
+  #updateDataPoint(data,"test")
+
+def updateDataPoint(point, data_l):
+  recepients = []
+  # send data to all subscribed clients
+  for client in clients:
+    if point in clients[client]:
+      recepients.append(client)
+  socketio.emit("updateDataPoint",data={'d':data_l},to=recepients)
+
 
 # register datapoint for polling/reporting
 @socketio.on('unregister_datapoint', namespace='')
-def register_datapoint(data):
-  logger.debug("unregister datapoint:" + str(data) )
+def unregister_datapoint(data):
+  print("client:" + request.sid)
+  client = request.sid
+  logger.info("unregister datapoint:" + str(data) )
+  if not client in clients:
+    clients[client] = []
+
+  if data in clients[client]:
+    remove_listener(data)
+    # remove item from client list
+    clients[client].remove(data)
+
+@socketio.on('disconnect')
+def disconnect():
+  print('Client disconnected: ' + request.sid )
+  client = request.sid
+  if client in clients:
+    del clients[client]
 
 
 # web UI: load datamodels for registered IED's
 @socketio.on('register_datapoint_finished', namespace='')
 def register_datapoint_finished(data):
+  print(request.sid)
   logger.info("register datapoint finished")
 
 # load svg schema data
@@ -125,8 +209,9 @@ def query_schema(x1,y1,x2,y2,z):
   return data
 
 
-@socketio.on('get_svg_for_schema', namespace='')
+@socketio.on('get_svg_for_schema')#, namespace='')
 def get_svg_for_schema(data):
+
   logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['x'],data['y'],data['x2'],data['y2'],data['z'])
   # query database for svg objects, based on coordinates
   in_view_new = query_schema(data['x'], data['y'], data['x2'], data['y2'], data['z'])
