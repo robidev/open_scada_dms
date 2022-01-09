@@ -12,15 +12,33 @@ IFS_NAME = "IFS_A"
 LIMIT = 100
 
 
+def getAsduName(ASDU):
+    if ASDU == 1:
+        return "singlepointinformation" # 	M_SP_NA_1; 1
+    if ASDU == 3:
+        return "doublepointinformation" #	M_DP_NA_1; 3
+    if ASDU == 11:
+        return "measuredvaluescaled" #		M_ME_NB_1; 11
+    if ASDU == 35:
+        return "measuredvaluescaled_CP56Time2a" #M_ME_TE_1; 35
+    if ASDU == 45:
+        return "singlepointcommand" #		C_SC_NA_1; 45
+    if ASDU == 46:
+        return "doublepointcommand" #		C_DC_NA_1; 46
+    if ASDU == 107:
+        return "testcommand_CP56Time2a" #	C_TS_TA_1; 107
+
+
+
 def callback(tupl, data):
     global rt_db
     global db
     print("RTU:" + tupl + " - update:" + str(data))
     for key, value in data.items():
-        rt_db.set("data:"+tupl+"-"+str(key)+".value", int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
-        rt_db.set("data:"+tupl+"-"+str(key)+".ASDU", value['ASDU'])  # {rtu, type, ioa}{value, timestamp, quality}
+        rt_db.set("data:"+tupl+"."+getAsduName(value['ASDU'])+"."+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
         # push timeseries data to mongodb 
         data = {
+            "id":           "iec60870://" + tupl + "." + getAsduName(value['ASDU']) + "." + str(key)
             "rtu":          tupl,
             "ioa":          key,
             "value":        int(value['value']),

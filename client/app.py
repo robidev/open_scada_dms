@@ -4,12 +4,6 @@ from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 
 import string
-import socket
-import json
-import subprocess
-import time
-import sys
-import os
 import logging
 
 import pymongo
@@ -21,6 +15,11 @@ tick = 0.001
 mongoclient = None
 logger = None
 clients = {}
+rt_pubsub = None
+redis_event_thread = None
+rt_db = None
+
+poll_datapoint = {}
 
 #webserver
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -28,46 +27,99 @@ socketio = SocketIO(app, async_mode=async_mode)
 
 
 ################################################
+
 def add_listener(point):
-  #check redis for point, and subscribe
-  #check mongodb for point and subscribe
-  return
+  global rt_db
+  #check redis for point,
+  if rt_db.exists("data".point) > 0:
+    # we allready get all redis data update events, so nothing to be done
+    # possibly add psub for point in the future to limit amount of events
+    # and/or increase reference count for subscribed data points
+    return "rt"
+
+  #else subscribe for mongodb poll(keep reference count)
+  if not point in poll_datapoint:
+    poll_datapoint[point] = {}
+    poll_datapoint[point]['refCount'] = 0
+    poll_datapoint[point]['value'] = None
+
+  poll_datapoint[point]['refCount'] += 1
+
+  return "poll"
+
 
 def remove_listener(point):
-  #check redis for point, and unsubscribe
-  #check mongodb for point and unsubscribe
-  return
+  #check redis for point
+  if rt_db.exists("data".point) > 0:
+    # possibly remove psub for point
+    # and/or decrease reference count
+    return "rt"
 
-def redis_dataUpdate(point, data):
-  updateDataPoint(point,data) # emit to clients
+  #else unsubscribe for mongodb poll(keep reference count)
+  if point in poll_datapoint:
+    if poll_datapoint[point] > 0:
+      poll_datapoint[point]['refCount'] -= 1
 
-def mongodb_dataUpdate(point, data):
+  return "poll"
+
+
+def redis_dataUpdate(msg):
+  global rt_db
+  key = msg['channel'][15:]
+  data = rt_db.get(key)
+  print("update",key[5:-6], data)
+  updateDataPoint("iec60870://" + str(key),str(data)) # emit to clients
+
+
+def poll_dataUpdate(point, data):
   updateDataPoint(point,data) # emit to clients
 
 ###############################################
 
 @socketio.on('schema_addItems', namespace='')
 def add_to_schema_database():
+  global mongoclient
+  db = mongoclient.scada
+  db.schema_objects.insert_one({})
   return
 
 @socketio.on('schema_editedItems', namespace='')
 def update_schema_database():
+  global mongoclient
+  db = mongoclient.scada
   return
 
 @socketio.on('schema_removeItems', namespace='')
 def remove_from_schema_database():
+  global mongoclient
+  db = mongoclient.scada
   return
 
 @socketio.on('gis_addItems', namespace='')
 def add_to_gis_database():
+  global mongoclient
+  db = mongoclient.scada
+  db.gis_objects.insert_one({})
   return
 
 @socketio.on('gis_editedItems', namespace='')
 def update_gis_database():
+  global mongoclient
+  db = mongoclient.scada
   return
 
 @socketio.on('gis_removeItems', namespace='')
 def remove_from_gis_database():
+  global mongoclient
+  db = mongoclient.scada
+  return
+
+@socketio.on('svg_addTemplate', namespace='')
+def svg_addTemplate(template):
+  global mongoclient
+  db = mongoclient.scada
+  # TODO: prevent nosql injection
+  db.svg_templates.insert_one(template)
   return
 
 ###############################################
@@ -312,11 +364,28 @@ def readvaluecallback(key,data):
 
 #background thread
 def worker():
+  global mongoclient
+  global rt_pubsub
   socketio.sleep(tick)
   logger.info("worker treat started")
   while True:
     socketio.sleep(1)
-    #logger.info("values polled")
+    for point in poll_datapoint:
+      if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
+        # query mongodb for possible update
+        db = mongoclient.scada
+        data = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
+        if data:
+          value = data['value']
+        else: # if value is not in mongodb, just give up (for now)
+          value = 'UNKNOWN'
+
+        # check if data changed since last check
+        oldValue = poll_datapoint[point]['value']
+        if oldValue != value: # update value, only if value was changed
+          poll_datapoint[point]['value'] = value
+          poll_dataUpdate(point, value)    
+    logger.info("values polled")
 
 
 if __name__ == '__main__':
@@ -329,5 +398,55 @@ if __name__ == '__main__':
   mongoclient = pymongo.MongoClient('localhost', 27017, username="aaa",password="bbb", authSource='scada', authMechanism='SCRAM-SHA-256')
   rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
 
+  rt_pubsub = rt_db.pubsub()
+  # TODO: should all keys be subscribed separately, and only when used, or filtered in python
+  rt_pubsub.psubscribe(**{'__keyspace@0__:*.value': redis_dataUpdate})
+  redis_event_thread = rt_pubsub.run_in_thread(sleep_time=0.01)
+
   socketio.run(app,host="0.0.0.0")
+
+""""
+  db = mongoclient.scada
+  stream = db.data_timeseries.watch() # [{'$match': {'operationType': 'insert'}}]
+
+https://pymongo.readthedocs.io/en/stable/api/pymongo/change_stream.html
+try:
+    resume_token = None
+    pipeline = [{'$match': {'operationType': 'insert'}}]
+    with db.collection.watch(pipeline) as stream:
+        for insert_change in stream:
+            print(insert_change)
+            resume_token = stream.resume_token
+except pymongo.errors.PyMongoError:
+    # The ChangeStream encountered an unrecoverable error or the
+    # resume attempt failed to recreate the cursor.
+    if resume_token is None:
+        # There is no usable resume token because there was a
+        # failure during ChangeStream initialization.
+        logging.error('...')
+    else:
+        # Use the interrupted ChangeStream's resume token to create
+        # a new ChangeStream. The new stream will continue from the
+        # last seen insert change without missing any events.
+        with db.collection.watch(
+                pipeline, resume_after=resume_token) as stream:
+            for insert_change in stream:
+                print(insert_change)
+
+# watch for changes in mongodb
+def mongo_watch_changes(stream):
+    if stream.alive:
+        change = stream.try_next()
+        # Note that the ChangeStream's resume token may be updated
+        # even when no changes are returned.
+        for insert_change in stream:
+            print(insert_change)
+            resume_token = stream.resume_token
+        print("Current resume token: %r" % (stream.resume_token,))
+        if change is not None:
+            print("Change document: %r" % (change,))
+            return True
+        else:
+            return False
+"""
 

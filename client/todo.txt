@@ -21,19 +21,16 @@ scada:
  push new svg to mongodb
 
 
-event/alarm schermen:
- alarm/ack/close op datapoint
- event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
+> event/alarm schermen:
+>  alarm/ack/close op datapoint
+>  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
  
 
-grafana voor trending datapunten
+> grafana voor trending datapunten
 
 
 
 -----------------------------
+
 add, update, delete svg/geo items in db -> call to backend
-import svg, calculate bounds -> frontend dialog, call to backend
-
-multi-session support
-
 animate values, gotten from backend

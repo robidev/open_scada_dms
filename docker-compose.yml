@@ -44,7 +44,7 @@ services:
     image: "redis:alpine"
     env_file:
       - .env
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --notify-keyspace-events K$$
     ports:
       - "6379:6379"
 

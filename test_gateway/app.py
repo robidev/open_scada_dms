@@ -16,9 +16,15 @@ hosts_info = {}
 async_msg = []
 async_rpt = {}
 INTERVAL = 2
+dp_info = 1
 
 def read_value(id):
   logger.debug("read value:" + str(id)  )
+  global dp_info
+  if dp_info == 1:
+    dp_info = 2
+  else:
+    dp_info = 1
   if id == config['measuredvaluescaled'][100]:
     readvaluecallback(id,{"value":"0"})
     return 0
@@ -29,10 +35,10 @@ def read_value(id):
     readvaluecallback(id,{"value":"1"})
     return 0
   elif id == config['doublepointinformation'][300]:
-    readvaluecallback(id,{"value":str(value)})
+    readvaluecallback(id,{"value":str(dp_info)})
     return 0
   elif id == config['doublepointinformation'][301]:
-    readvaluecallback(id,{"value":str(value)})
+    readvaluecallback(id,{"value":str(dp_info)})
     return 0
   logger.error("read value error:" + str(id)  )  
   return -1 #client.ReadValue(id)
