@@ -72,29 +72,66 @@ function exportGeoJSON(featureGroup) {
 }
 
 function gis_addItem(e) {
-  //gis_map.on(L.Draw.Event.CREATED, function(e) {
   let type = e.layerType, layer = e.layer;
 
   if (type === 'marker') {
     layer.bindPopup('A popup!');
   }
   if (type === 'svg') {
-    if (layer.uuid === null){
-      layer.uuid = "_123";
+    if(layer._newTemplate == true){
+      socket.emit('svg_addTemplate', {
+        'name':layer._templateName,
+        'viewBox': layer._svgViewBox,
+        'svg': layer._url.innerHTML,
+        'datapoint_amount':layer._dataPoints.length
+      });
     }
+    let latlng = layer.getLatLng();
+    let bounds = layer.getBounds();
+    socket.emit('gis_addItem', {
+      "location": { "type": "Point", 
+                    "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
+                    "height": bounds._northEast.lat - bounds._southWest.lat, 
+                    "width": bounds._northEast.lng - bounds._southWest.lng
+                  },
+      "properties": {
+                    'type': "Svg",
+                    'svg':layer._templateName, 
+                    'datapoints': layer._dataPoints
+                  } 
+      },
+      function(ret){
+        if (layer.uuid === null){
+          layer.uuid = ret;
+        }
+      }
+    );
   }
   gis_editableLayers.addLayer(layer);
 }
 
-function gis_editedItems(items){
-    //items.layers.{}
-    //check feature._id->geojson or uuid->svg
+function gis_editedItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    let latlng = layer.getLatLng();
+    let bounds = layer.getBounds();
+    socket.emit('gis_editedItems', {
+      '_id':layer.uuid,
+      "location": { "type": "Point", 
+                    "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
+                    "height": bounds._northEast.lat - bounds._southWest.lat, 
+                    "width": bounds._northEast.lng - bounds._southWest.lng, 
+                  },
+      "properties": {
+        'datapoints': layer._dataPoints
+      } 
+    });
+  }
 }
 
-function gis_removeItems(items){
-  //items.layers.{}
-  //check feature._id->geojson or uuid->svg
-  //result = mongo.db.xxx.delete_one({'_id': ObjectId(_id)})
+function gis_removeItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    socket.emit('gis_removeItems', layer.uuid);
+  }
 }
 
 
@@ -160,30 +197,57 @@ function init_schema(){
 
 
 function schema_addItem(e) {
-  //gis_map.on(L.Draw.Event.CREATED, function(e) {
   let type = e.layerType, layer = e.layer;
 
   if (type === 'marker') {
     layer.bindPopup('A popup!');
   }
   if (type === 'svg') {
-    if (layer.uuid === null){
-      layer.uuid = "_123";
+    if(layer._newTemplate == true){
+      socket.emit('svg_addTemplate', {
+        'name':layer._templateName,
+        'viewBox': layer._svgViewBox,
+        'svg': layer._url.innerHTML,
+        'datapoint_amount':layer._dataPoints.length
+      });
     }
+
+    let bounds = layer.getBounds();
+    socket.emit('schema_addItems', {
+      'w':bounds._northEast.lng,
+      'n':bounds._northEast.lat,
+      'e':bounds._southWest.lng,
+      's':bounds._southWest.lat,
+      'svg':layer._templateName, 
+      'dataPoints': layer._dataPoints }, 
+      function(ret){
+        if (layer.uuid === null){
+          layer.uuid = ret;
+        }
+      }
+    );
   }
   schema_editableLayers.addLayer(layer);
-  //mydict = { "name": "Peter", "address": "Lowstreet 27" }
-  //x = mycol.insert_one(mydict)
 }
 
-function schema_editedItems(items){
-  //items.layers.{}
-  //mycollection.update({'_id':mongo_id}, {"$set": post}, upsert=False)
+function schema_editedItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    let bounds = layer.getBounds();
+    socket.emit('schema_editedItems', {
+      '_id':layer.uuid,
+      'w':bounds._northEast.lng,
+      'n':bounds._northEast.lat,
+      'e':bounds._southWest.lng,
+      's':bounds._southWest.lat,
+      'dataPoints': layer._dataPoints
+    });
+  }
 }
 
-function schema_removeItems(items){
-  //items.layers.{}
-  //result = mongo.db.xxx.delete_one({'_id': ObjectId(_id)})
+function schema_removeItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    socket.emit('schema_removeItems', layer.uuid);
+  }
 }
 
 function toggle_view() {
@@ -226,7 +290,7 @@ $(document).ready(function() {
     if(schema_in_view.includes(data['id'])){
       return;
     }
-    node = svg_add_to_schema(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id']);
+    node = svg_add_to_schema(data['w'],data['n'],data['e'],data['s'],data['svg'],data['id']);
     if(node == null){
       return;
     }
@@ -278,7 +342,7 @@ $(document).ready(function() {
     if(gis_in_view.includes(data['id'])){
       return;
     }
-    let node = svg_add_to_gis(data['x'],data['y'],data['x2'],data['y2'],data['svg'],data['id'],data['location']);
+    let node = svg_add_to_gis(data['svg'],data['id'],data['location']);
     if(node == null){
       return;
     }
@@ -358,7 +422,7 @@ $(document).ready(function() {
 var update_schema = function(){ 
   zoom = schema_leafletmap.getZoom();
   bounds = schema_leafletmap.getBounds();
-  socket.emit('get_svg_for_schema', {'x': bounds.getWest(), 'y': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'x2': bounds.getEast(), 'y2': bounds.getNorth()});
+  socket.emit('get_svg_for_schema', {'w': bounds.getWest(), 'n': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'e': bounds.getEast(), 's': bounds.getNorth()});
 } 
 
 var update_gis = function(){ 
@@ -367,13 +431,13 @@ var update_gis = function(){
   socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
 } 
 
-function svg_add_to_schema(x, y, x2, y2, svgString, svgId) {
-  let svg = new L.SvgObject(svgString, L.latLngBounds([[y,x],[y2,x2]]), svgId,{ svgViewBox:{ viewBox: "calculate", fitBounds: true, scaleBounds: 1.0 }});
+function svg_add_to_schema(w, n, e, s, svgString, svgId) {
+  let svg = new L.SvgObject(svgString, L.latLngBounds([[n,w],[s,e]]), svgId,{ svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds: 1.0 }});
   schema_editableLayers.addLayer(svg);
   return svg;
 }
 
-function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
+function svg_add_to_gis(svgString, svgId, location) {
   // correct leaflet size+latlng based on gis coordinate system (by ajusting bounds)
   let hheight = location['height']/2;
   let hwidth = location['width']/2;
@@ -385,7 +449,7 @@ function svg_add_to_gis(x, y, x2, y2, svgString, svgId, location) {
     svgString, 
     L.latLngBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]), 
     svgId,  
-    { svgViewBox:{ viewBox: "calculate", fitBounds: true, scaleBounds: 0.000005 }}
+    { svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds: 0.000005 }}
   );
 
   //svg.setBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]);
@@ -411,120 +475,127 @@ var geoStyle = function(feature){
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
-var get_svg_templates = function()
+/*var get_svg_templates = function()
 {
   return [["PTR",[[0,0],[550,514]],"<line id=\"S12/D1/Q1/L1\" class=\"LINE\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"153.934719\" x2=\"266\" y1=\"93.434721\" x1=\"266\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n\n<g id=\"S12/D1/T1\">\n<title>PTR</title>\n<ellipse id=\"svg_T1_a\" ry=\"18\" rx=\"18\" cy=\"171.753014\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n<text    id=\"svg_T1_name\" stroke=\"#ffffff\"  xml:space=\"preserve\" text-anchor=\"start\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"186.66199\" x=\"296\" stroke-width=\"null\" fill=\"#ffffff\">T1</text>\n<ellipse id=\"svg_T1_b\" ry=\"18\" rx=\"18\" cy=\"196.290907\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n</g>\n\n<line id=\"S12/E1/Q1/L2\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"256.43483\" x2=\"266\" y1=\"214.934859\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n"],
           ["CBR",[[0,0],[550,514]],"<g id=\"S12/E1/Q1/QA1\" class=\"draggable-group\">\n<title>CBR</title>\n<text id=\"$datapoint_1\"     class=\"MEAS\" data-text=\"CBR: QA1=\\{value\\}\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"272.166593\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\"></text>\n<rect id=\"$datapoint_2\"     class=\"XCBR\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"#ffffff\">\n  <animate id=\"open\" attributeName=\"fill\" attributeType=\"XML\" to=\"black\" dur=\"100ms\" fill=\"freeze\" />\n  <animate id=\"transition\" attributeName=\"fill\" attributeType=\"XML\" to=\"green\" dur=\"10ms\" fill=\"freeze\" />\n  <animate id=\"close\" attributeName=\"fill\" attributeType=\"XML\"  to=\"white\" dur=\"100ms\" fill=\"freeze\" /> \n  <animate id=\"error\" attributeName=\"fill\" attributeType=\"XML\"  to=\"red\" dur=\"10ms\" fill=\"freeze\" />           \n</rect>\n<rect id=\"$datapoint_3\"     class=\"CSWI\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"none\" fill=\"none\"/>\n</g>"],
           ["SWI",[[0,0],[550,514]],"<g id=\"S12/E1/Q1/QB1\" class=\"draggable-group\">\n<title>SWI</title>\n<text id=\"$datapoint_1\"     class=\"MEAS\" data-text=\"DIS: QB1=\\{value\\}\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"314.666538\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\"></text>\n<rect id=\"$datapoint_2\"    class=\"CSWI\" height=\"19\" width=\"19\" y=\"300.49959\" x=\"256.864387\" stroke=\"#ffffff\" fill=\"#000000\"/> \n<line id=\"$datapoint_3\"     class=\"XSWI\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"320\" x2=\"266\" y1=\"300\" x1=\"266\" stroke-width=\"4\" fill=\"none\">\n    <animateTransform id=\"open\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"90 266 310 \" dur=\"100ms\" fill=\"freeze\" />\n    <animateTransform id=\"close\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"0 266 310 \" dur=\"100ms\" fill=\"freeze\" />\n    <animateTransform id=\"transition\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"45 266 310 \" dur=\"100ms\" fill=\"freeze\" />\n    <animateTransform id=\"error\" attributeName=\"stroke\" attributeType=\"XML\" to=\"red\" dur=\"100ms\" fill=\"freeze\" />\n</line>\n</g>"],
           ["Load",[[0,0],[550,514]],"<line id=\"S12/E1/W1/BB1\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"360\" x2=\"266\" y1=\"320.436511\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n<text id=\"LOAD\" class=\"LOAD\" stroke=\"#ffffff\"  xml:space=\"preserve\" text-anchor=\"middle\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"380\" x=\"266\" fill=\"#ffffff\">Load</text>\n"],
           ["Feed",[[0,0],[550,514]],"<title>Bay 1</title>\n<text id=\"IFL\" class=\"IFL\" stroke=\"#ffffff\" xml:space=\"preserve\" text-anchor=\"middle\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"80\" x=\"266\" fill=\"#ffffff\">220KV Feed</text>\n<ellipse id=\"svg_top\" stroke=\"#ffffff\" ry=\"2.424242\" rx=\"2.121212\" cy=\"91.858974\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" fill=\"none\"/>\n"]];
-}
+}*/
 
 	//.leaflet-modal
 L.Draw.Svg.include({
 	  enable: function(){
       let drawsvg = this;
-      let templates = get_svg_templates();
+      socket.emit('svg_getTemplates',{},function(result){
+        templates = result;
 
-      let options = "";
-      for(let i = 0; i < templates.length; i++){
-        options += '<option value="'+i.toString()+'"> '+ templates[i][0] +' </option>';
-      }
-      
-      this._map.fire('modal', {
-        title: 'Select SVG template',
-
-        content: [
-          '<table cellpadding="1" cellspacing="1">',
-          '  <tr>',
-          '    <td width="50%">',
-          '      <select name="SVG-templates" style="width:150px;">',
-                   options,
-          '      </select>',
-          '    </td>',
-          '    <td>',
-          '      <svg id="preview" width="250" height="250" xmlns=\'http://www.w3.org/2000/svg\'></svg>',
-          '    </td>',
-          '  </tr>',
-          '</table>',
-          '<br><br>'].join(''),
-
-        template: ['<div class="modal-header"><h2>{title}</h2></div>',
-          '<hr>',
-          '<div class="modal-body">{content}</div>',
-          '<div class="modal-footer">',
-          '<input type="file" id="file-input" />',
-          '<button class="topcoat-button--large {OK_CLS}">{okText}</button>',
-          '<button class="topcoat-button--large {CANCEL_CLS}">{cancelText}</button>',
-          '</div>'
-        ].join(''),
-      
-        okText: 'Ok',
-        cancelText: 'Cancel',
-        OK_CLS: 'modal-ok',
-        CANCEL_CLS: 'modal-cancel',
-      
-        width: 700,
-      
-        onShow: function(evt) {
-          let modal = evt.modal;
-          let imported = null;
-
-          fitSvg(templates[0][2], modal._container.querySelector('#preview'));
-
-          L.DomEvent
-          .on(modal._container.querySelector('.modal-ok'), 'click', function() {
-            let sel = modal._container.querySelector('select[name="SVG-templates"]');
-
-            if(imported == null){
-              let bbox = fitSvg(templates[sel.value][2], modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
-              drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
-              drawsvg._svgFitBounds = true;
-              if(drawsvg._map.options.mapType === "schema"){
-                drawsvg._scale = 1.0;
-              }
-              if(drawsvg._map.options.mapType === "gis"){
-                drawsvg._scale = 0.000005;
-              }
-
-              drawsvg._template = templates[sel.value][2];
-            } else {
-              let bbox = fitSvg(imported, modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
-              drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
-              drawsvg._svgFitBounds = true;
-              if(drawsvg._map.options.mapType === "schema"){
-                drawsvg._scale = 1.0;
-              }
-              if(drawsvg._map.options.mapType === "gis"){
-                drawsvg._scale = 0.000005;
-              }
-              drawsvg._template = imported;
-            }
-
-            L.Draw.SimpleShape.prototype.enable.call(drawsvg);
-            modal.hide();
-          })
-          .on(modal._container.querySelector('.modal-cancel'), 'click', function() {
-            modal.hide();
-          })
-          .on(modal._container.querySelector('select[name="SVG-templates"]'), 'change', function() {
-            imported = null;
-            fitSvg(templates[parseInt(this.value)][2],  modal._container.querySelector('#preview'));
-          })
-          .on(modal._container.querySelector('#file-input'), 'change', function(e) {
-            let file = e.target.files[0];
-            if (!file) {
-              return;
-            }
-            let reader = new FileReader();
-            reader.onload = function(e) {
-              let contents = e.target.result;
-              fitSvg(contents,  modal._container.querySelector('#preview'));
-              imported = contents;
-            };
-            reader.readAsText(file);
-          });
+        let options = "";
+        for(let i = 0; i < templates.length; i++){
+          options += '<option value="'+i.toString()+'"> '+ templates[i]['name'] +' </option>';
         }
+        
+        drawsvg._map.fire('modal', {
+          title: 'Select SVG template',
+
+          content: [
+            '<table cellpadding="1" cellspacing="1">',
+            '  <tr>',
+            '    <td width="50%">',
+            '      <select name="SVG-templates" style="width:150px;">',
+                    options,
+            '      </select>',
+            '    </td>',
+            '    <td>',
+            '      <svg id="preview" width="250" height="250" xmlns=\'http://www.w3.org/2000/svg\'></svg>',
+            '    </td>',
+            '  </tr>',
+            '</table>',
+            '<br><br>'].join(''),
+
+          template: ['<div class="modal-header"><h2>{title}</h2></div>',
+            '<hr>',
+            '<div class="modal-body">{content}</div>',
+            '<div class="modal-footer">',
+            '<label for="file-input">Import:</label><input type="file" id="file-input" /><br>',
+            '<label for="template_name">Template name:</label><input type="text" id="template_name" /><br>',
+            '<button class="topcoat-button--large {OK_CLS}">{okText}</button>',
+            '<button class="topcoat-button--large {CANCEL_CLS}">{cancelText}</button>',
+            '</div>'
+          ].join(''),
+        
+          okText: 'Ok',
+          cancelText: 'Cancel',
+          OK_CLS: 'modal-ok',
+          CANCEL_CLS: 'modal-cancel',
+        
+          width: 700,
+        
+          onShow: function(evt) {
+            let modal = evt.modal;
+            let imported = null;
+
+            fitSvg(templates[0]['svg'], modal._container.querySelector('#preview'));
+
+            L.DomEvent
+            .on(modal._container.querySelector('.modal-ok'), 'click', function() {
+              let sel = modal._container.querySelector('select[name="SVG-templates"]');
+
+              if(imported == null){
+                let bbox = fitSvg(templates[sel.value]['svg'], modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
+                drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
+                drawsvg._svgFitBounds = true;
+                drawsvg._newTemplate = false;
+                if(drawsvg._map.options.mapType === "schema"){
+                  drawsvg._scale = 1.0;
+                }
+                if(drawsvg._map.options.mapType === "gis"){
+                  drawsvg._scale = 0.000005;
+                }
+                drawsvg._templateName = templates[sel.value]['name'];
+                drawsvg._template = templates[sel.value]['svg'];
+              } else {
+                let bbox = fitSvg(imported, modal._container.querySelector('#preview'));//to retrieve the bounds, and write to current_bbox
+                drawsvg._svgViewBox = (bbox.x).toString() + " " + (bbox.y).toString() + " " + (bbox.width).toString() + " " + (bbox.height).toString();
+                drawsvg._svgFitBounds = true;
+                drawsvg._newTemplate = true;
+                drawsvg._templateName =  modal._container.querySelector('#template_name').value;
+                if(drawsvg._map.options.mapType === "schema"){
+                  drawsvg._scale = 1.0;
+                }
+                if(drawsvg._map.options.mapType === "gis"){
+                  drawsvg._scale = 0.000005;
+                }
+                drawsvg._template = imported;
+              }
+
+              L.Draw.SimpleShape.prototype.enable.call(drawsvg);
+              modal.hide();
+            })
+            .on(modal._container.querySelector('.modal-cancel'), 'click', function() {
+              modal.hide();
+            })
+            .on(modal._container.querySelector('select[name="SVG-templates"]'), 'change', function() {
+              imported = null;
+              fitSvg(templates[parseInt(this.value)]['svg'],  modal._container.querySelector('#preview'));
+              modal._container.querySelector('#template_name').value = "";
+            })
+            .on(modal._container.querySelector('#file-input'), 'change', function(e) {
+              let file = e.target.files[0];
+              if (!file) {
+                return;
+              }
+              let reader = new FileReader();
+              reader.onload = function(e) {
+                let contents = e.target.result;
+                fitSvg(contents,  modal._container.querySelector('#preview'));
+                imported = contents;
+              };
+              reader.readAsText(file);
+            });
+          }
+        });
       });
 	}
 });

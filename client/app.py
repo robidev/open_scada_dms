@@ -7,6 +7,7 @@ import string
 import logging
 
 import pymongo
+from bson import ObjectId
 import redis
 
 async_mode = None #"threading" #"eventlet" None
@@ -77,41 +78,62 @@ def poll_dataUpdate(point, data):
 ###############################################
 
 @socketio.on('schema_addItems', namespace='')
-def add_to_schema_database():
+def add_to_schema_database(data):
   global mongoclient
   db = mongoclient.scada
-  db.schema_objects.insert_one({})
-  return
+  _id = db.schema_objects.insert_one(
+    {'w':data['w'],
+      'n':data['n'],
+      'e':data['e'],
+      's':data['s'],
+      'svg':data['svg'], 
+      'datapoints': data['dataPoints'] }
+      )
+  # ensure _id gets retrieved
+  return "_" + str(_id.inserted_id)
 
 @socketio.on('schema_editedItems', namespace='')
-def update_schema_database():
+def update_schema_database(data):
   global mongoclient
   db = mongoclient.scada
+  myquery = {'_id':ObjectId(data['_id'][1:])} # _id
+  newvalues = {'w':data['w'],
+      'n':data['n'],
+      'e':data['e'],
+      's':data['s'],
+      'datapoints': data['dataPoints'] }
+  db.schema_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
   return
 
 @socketio.on('schema_removeItems', namespace='')
-def remove_from_schema_database():
+def remove_from_schema_database(uuid):
   global mongoclient
   db = mongoclient.scada
+  db.schema_objects.delete_one({'_id':ObjectId(uuid[1:])})
   return
 
-@socketio.on('gis_addItems', namespace='')
-def add_to_gis_database():
+@socketio.on('gis_addItem', namespace='')
+def add_to_gis_database(data):
   global mongoclient
   db = mongoclient.scada
-  db.gis_objects.insert_one({})
-  return
+  _id = db.gis_objects.insert_one({"location": data["location"], "properties": data["properties"]})
+  # ensure _id gets retrieved
+  return "_" + str(_id.inserted_id)
 
 @socketio.on('gis_editedItems', namespace='')
-def update_gis_database():
+def update_gis_database(data):
   global mongoclient
   db = mongoclient.scada
+  myquery = {'_id':ObjectId(data['_id'][1:])} # _id
+  newvalues = {"location": data["location"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+  db.gis_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
   return
 
 @socketio.on('gis_removeItems', namespace='')
-def remove_from_gis_database():
+def remove_from_gis_database(uuid):
   global mongoclient
   db = mongoclient.scada
+  db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
   return
 
 @socketio.on('svg_addTemplate', namespace='')
@@ -121,6 +143,19 @@ def svg_addTemplate(template):
   # TODO: prevent nosql injection
   db.svg_templates.insert_one(template)
   return
+
+@socketio.on('svg_getTemplates', namespace='')
+def svg_getTemplate(_):
+  global mongoclient
+  db = mongoclient.scada
+  cursor = db.svg_templates.find({})
+  data = []
+  for object in cursor:
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+    data.append(object)
+
+  return data
 
 ###############################################
 
@@ -222,13 +257,13 @@ def query_schema(x1,y1,x2,y2,z):
         '$and':[
           { 
             '$or': [ 
-              {'x':  {'$gte':x1 }},  
-              {'x2': {'$gte':x1 }}, 
+              {'w':  {'$gte':x1 }},  
+              {'e': {'$gte':x1 }}, 
             ]
           },{
             '$or':[
-              {'x':  {'$lte':x2 }},
-              {'x2': {'$lte':x2 }} 
+              {'w':  {'$lte':x2 }},
+              {'e': {'$lte':x2 }} 
             ] 
           }
         ]
@@ -236,13 +271,13 @@ def query_schema(x1,y1,x2,y2,z):
         '$and':[
           { 
             '$or': [ 
-              {'y':  {'$gte':y1 }},  
-              {'y2': {'$gte':y1 }}, 
+              {'n':  {'$gte':y1 }},  
+              {'s': {'$gte':y1 }}, 
             ]
           },{
             '$or':[
-              {'y':  {'$lte':y2 }},
-              {'y2': {'$lte':y2 }} 
+              {'n':  {'$lte':y2 }},
+              {'s': {'$lte':y2 }} 
             ] 
           }
         ]
@@ -264,9 +299,9 @@ def query_schema(x1,y1,x2,y2,z):
 @socketio.on('get_svg_for_schema')#, namespace='')
 def get_svg_for_schema(data):
 
-  logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['x'],data['y'],data['x2'],data['y2'],data['z'])
+  logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['w'],data['n'],data['e'],data['s'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_schema(data['x'], data['y'], data['x2'], data['y2'], data['z'])
+  in_view_new = query_schema(data['w'],data['n'],data['e'],data['s'], data['z'])
 
   # remove old items that should not be in view anymore
   for item in data['in_view']:
@@ -309,7 +344,7 @@ def query_gis_svg(w,n,e,s,z):
   # return list of svg items that fall within that box, thus should be drawn
   try:
     db = mongoclient.scada
-    cursor = db.schema_objects.find({ 
+    cursor = db.gis_objects.find({ 
       "location": {
       "$geoIntersects": {
           "$geometry": {
@@ -323,8 +358,8 @@ def query_gis_svg(w,n,e,s,z):
     data = []
 
     for object in cursor:
-      svg = db.svg_templates.find_one({"name":object["svg"]})
-      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
+      svg = db.svg_templates.find_one({"name":object["properties"]["svg"]})
+      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object["properties"]['datapoints']) + "</svg>"
       object["id"] = "_" + str(object["_id"])
       object.pop("_id")
       data.append(object)

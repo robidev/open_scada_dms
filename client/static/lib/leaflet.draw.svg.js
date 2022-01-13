@@ -15,7 +15,11 @@
 
 	initialize: function (svgString, bounds, uuid, options) {
 		this.uuid = uuid;
-		
+		////
+		this._dataPoints = {};
+		this._templateName = "";
+		this._newTemplate = false;
+		////
 		options = options || this.options;
 		options.interactive = true;
 		this._svgViewBox = null;
@@ -155,6 +159,8 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 		this._svgViewBox = false;// x y w h of svg viewBox attribute. value can be:"0 0 100 100", "calulated" or false
 		this._svgFitBounds = false;// property to make the bounds fit the viewbox. value can be false or true;
 		this._scale = 1.0;// scale of svg object on map
+		this._newTemplate = false;
+		this._templateName = "";
 	},
 
 	_fireCreatedEvent: function () {
@@ -164,7 +170,9 @@ L.drawLocal.draw.toolbar.buttons.svg = "Draw an svg";
 			L.latLngBounds([this._startLatLng.lat-mlat, this._startLatLng.lng-mlng], [this._startLatLng.lat+mlat, this._startLatLng.lng+mlng]),
 			null, {svgViewBox: {viewBox: this._svgViewBox, fitBounds: this._svgFitBounds, scaleBounds: this._scale}});
 			
-		//svg.editing = new L.Edit.Svg(svg);
+		svg._newTemplate = this._newTemplate;
+		svg._templateName = this._templateName;
+
 		L.Draw.SimpleShape.prototype._fireCreatedEvent.call(this, svg);
 	},
 
