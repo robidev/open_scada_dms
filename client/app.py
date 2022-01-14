@@ -116,7 +116,10 @@ def remove_from_schema_database(uuid):
 def add_to_gis_database(data):
   global mongoclient
   db = mongoclient.scada
-  _id = db.gis_objects.insert_one({"location": data["location"], "properties": data["properties"]})
+  if data['type'] == 'Svg':
+    _id = db.gis_objects.insert_one({"type": data['type'], "location": data["location"], "properties": data["properties"]})
+  else:
+    _id = db.gis_objects.insert_one({"type": data['type'], "geometry": data["geometry"], "properties": data["properties"]})
   # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
 
@@ -125,7 +128,10 @@ def update_gis_database(data):
   global mongoclient
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
-  newvalues = {"location": data["location"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+  if data['type'] == 'Svg':
+    newvalues = {"location": data["location"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+  else:
+    newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.gis_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
   return
 
@@ -321,18 +327,25 @@ def query_gis_geojson(w,n,e,s,z):
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
   cursor = db.gis_objects.find({ 
-    "geometry": {
-     "$geoIntersects": {
-        "$geometry": {
-           "type": "Polygon" ,
-           "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+    '$and':[
+      {
+        'type': 'Feature'
+      },
+      {
+        "geometry": {
+        "$geoIntersects": {
+            "$geometry": {
+              "type": "Polygon" ,
+              "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+            }
+          }
         }
       }
-    }
+    ]
   })
   data = []
   for item in cursor:
-    item['_id'] = str(item['_id'])
+    item['_id'] = "_" + str(item['_id'])
     data.append(item)
   return data
 
@@ -345,14 +358,21 @@ def query_gis_svg(w,n,e,s,z):
   try:
     db = mongoclient.scada
     cursor = db.gis_objects.find({ 
-      "location": {
-      "$geoIntersects": {
-          "$geometry": {
-            "type": "Polygon" ,
-            "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+      '$and':[
+        {
+          'type': 'Svg'
+        },
+        {
+          "location": {
+          "$geoIntersects": {
+              "$geometry": {
+                "type": "Polygon" ,
+                "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+              }
+            }
           }
         }
-      }
+      ]
     })
 
     data = []

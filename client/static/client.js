@@ -78,6 +78,7 @@ function gis_addItem(e) {
     layer.bindPopup('A popup!');
   }
   if (type === 'svg') {
+    layer.type = "Svg";
     if(layer._newTemplate == true){
       socket.emit('svg_addTemplate', {
         'name':layer._templateName,
@@ -89,16 +90,16 @@ function gis_addItem(e) {
     let latlng = layer.getLatLng();
     let bounds = layer.getBounds();
     socket.emit('gis_addItem', {
+      'type': "Svg",
       "location": { "type": "Point", 
                     "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
                     "height": bounds._northEast.lat - bounds._southWest.lat, 
                     "width": bounds._northEast.lng - bounds._southWest.lng
                   },
       "properties": {
-                    'type': "Svg",
                     'svg':layer._templateName, 
                     'datapoints': layer._dataPoints
-                  } 
+                  }
       },
       function(ret){
         if (layer.uuid === null){
@@ -107,24 +108,50 @@ function gis_addItem(e) {
       }
     );
   }
+  else if (layer.toGeoJSON){ //geojson item
+    layer.type = "Feature";
+    let geojson = layer.toGeoJSON();
+    geojson["properties"]['type'] = "geojson";
+    geojson["properties"]['datapoints'] = {};
+    socket.emit('gis_addItem', geojson ,
+    function(ret){
+      if (!layer.uuid){
+        layer.uuid = ret;
+      }
+    });
+  }
   gis_editableLayers.addLayer(layer);
 }
 
 function gis_editedItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
-    let latlng = layer.getLatLng();
-    let bounds = layer.getBounds();
-    socket.emit('gis_editedItems', {
-      '_id':layer.uuid,
-      "location": { "type": "Point", 
-                    "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
-                    "height": bounds._northEast.lat - bounds._southWest.lat, 
-                    "width": bounds._northEast.lng - bounds._southWest.lng, 
-                  },
-      "properties": {
-        'datapoints': layer._dataPoints
-      } 
-    });
+    if(layer.type && layer.type === "Feature"){
+      let geojson = layer.toGeoJSON();
+      geojson["properties"]['datapoints'] = {};
+
+      socket.emit('gis_editedItems', {
+        '_id':layer.uuid,
+        'type': layer.type,
+        'geometry':geojson['geometry'],
+        'properties':geojson['properties'],
+      });
+    }
+    else if(layer.type && layer.type === "Svg"){
+      let latlng = layer.getLatLng();
+      let bounds = layer.getBounds();
+      socket.emit('gis_editedItems', {
+        '_id':layer.uuid,
+        'type': layer.type,
+        "location": { "type": "Point", 
+                      "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
+                      "height": bounds._northEast.lat - bounds._southWest.lat, 
+                      "width": bounds._northEast.lng - bounds._southWest.lng, 
+                    },
+        "properties": {
+          'datapoints': layer._dataPoints
+        } 
+      });
+    }
   }
 }
 
@@ -226,6 +253,15 @@ function schema_addItem(e) {
         }
       }
     );
+  }
+  else if (layer.toGeoJSON){ //geojson item
+    let geojson = layer.toGeoJSON();
+    socket.emit('schema_addGeojsonItem', geojson ,
+    function(ret){
+      if (layer.uuid === null){
+        layer.uuid = ret;
+      }
+    });
   }
   schema_editableLayers.addLayer(layer);
 }
@@ -404,6 +440,9 @@ $(document).ready(function() {
         }
         if(found == false){// if geojson is not found,
           // add geojson objects to edit and geojson-layer
+          local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
+          local_geojsonlayer._layers[local_geoitem].type = "Feature";
+
           gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
         }
