@@ -92,6 +92,16 @@ def add_to_schema_database(data):
   # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
 
+
+@socketio.on('schema_addGeojsonItem', namespace='')
+def add_geojson_to_schema_database(data):
+  global mongoclient
+  db = mongoclient.scada
+  _id = db.schema_geojson.insert_one({"type": data['type'], "geometry": data["geometry"], "properties": data["properties"]})
+    # ensure _id gets retrieved
+  return "_" + str(_id.inserted_id)
+
+
 @socketio.on('schema_editedItems', namespace='')
 def update_schema_database(data):
   global mongoclient
@@ -105,12 +115,33 @@ def update_schema_database(data):
   db.schema_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
   return
 
+
+@socketio.on('schema_editedGeojsonItems', namespace='')
+def update_schema_geojson_database(data):
+  global mongoclient
+  db = mongoclient.scada
+  myquery = {'_id':ObjectId(data['_id'][1:])} # _id
+  newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+  db.schema_geojson.update_one(myquery, {"$set": newvalues}, False) # update_many()
+  return
+
+
 @socketio.on('schema_removeItems', namespace='')
 def remove_from_schema_database(uuid):
   global mongoclient
   db = mongoclient.scada
   db.schema_objects.delete_one({'_id':ObjectId(uuid[1:])})
   return
+
+
+@socketio.on('schema_removeGeojsonItems', namespace='')
+def remove_from_schema_geojson_database(uuid):
+  global mongoclient
+  db = mongoclient.scada
+  db.schema_geojson.delete_one({'_id':ObjectId(uuid[1:])})
+  return
+
+### GIS ###
 
 @socketio.on('gis_addItem', namespace='')
 def add_to_gis_database(data):
@@ -141,6 +172,8 @@ def remove_from_gis_database(uuid):
   db = mongoclient.scada
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
   return
+
+### templates ###
 
 @socketio.on('svg_addTemplate', namespace='')
 def svg_addTemplate(template):
@@ -318,7 +351,42 @@ def get_svg_for_schema(data):
   for item in in_view_new:
     if not item['id'] in data['in_view']:
       socketio.emit("svg_object_add_to_schema",item )
+
   
+  in_view_geojson_schema = query_schema_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
+  geojson = [{"type": "FeatureCollection", "features": in_view_geojson_schema }]
+  socketio.emit("geojson_object_add_to_schema",geojson )
+  
+
+# load svg gis data
+def query_schema_geojson(w,n,e,s,z):
+  global mongoclient
+  # perform a query, based on a x/y box, and z-depth
+  # return list of svg items that fall within that box, thus should be drawn
+  db = mongoclient.scada
+  cursor = db.schema_geojson.find({ 
+    '$and':[
+      {
+        'type': 'Feature'
+      },
+      {
+        "geometry": {
+        "$geoIntersects": {
+            "$geometry": {
+              "type": "Polygon" ,
+              "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
+            }
+          }
+        }
+      }
+    ]
+  })
+  data = []
+  for item in cursor:
+    item['_id'] = "_" + str(item['_id'])
+    data.append(item)
+  return data
+
 
 # load svg gis data
 def query_gis_geojson(w,n,e,s,z):
@@ -460,48 +528,5 @@ if __name__ == '__main__':
 
   socketio.run(app,host="0.0.0.0")
 
-""""
-  db = mongoclient.scada
-  stream = db.data_timeseries.watch() # [{'$match': {'operationType': 'insert'}}]
 
-https://pymongo.readthedocs.io/en/stable/api/pymongo/change_stream.html
-try:
-    resume_token = None
-    pipeline = [{'$match': {'operationType': 'insert'}}]
-    with db.collection.watch(pipeline) as stream:
-        for insert_change in stream:
-            print(insert_change)
-            resume_token = stream.resume_token
-except pymongo.errors.PyMongoError:
-    # The ChangeStream encountered an unrecoverable error or the
-    # resume attempt failed to recreate the cursor.
-    if resume_token is None:
-        # There is no usable resume token because there was a
-        # failure during ChangeStream initialization.
-        logging.error('...')
-    else:
-        # Use the interrupted ChangeStream's resume token to create
-        # a new ChangeStream. The new stream will continue from the
-        # last seen insert change without missing any events.
-        with db.collection.watch(
-                pipeline, resume_after=resume_token) as stream:
-            for insert_change in stream:
-                print(insert_change)
-
-# watch for changes in mongodb
-def mongo_watch_changes(stream):
-    if stream.alive:
-        change = stream.try_next()
-        # Note that the ChangeStream's resume token may be updated
-        # even when no changes are returned.
-        for insert_change in stream:
-            print(insert_change)
-            resume_token = stream.resume_token
-        print("Current resume token: %r" % (stream.resume_token,))
-        if change is not None:
-            print("Change document: %r" % (change,))
-            return True
-        else:
-            return False
-"""
 
