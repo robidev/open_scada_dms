@@ -21,6 +21,14 @@
 <link href='static/css/leaflet.modal.css' rel='stylesheet' crossorigin=""/>
 <script src='static/lib/L.Modal.js' crossorigin=""></script>
 
+<!--Add sidebar plugin -->
+<link href='static/css/L.Control.Sidebar.css' rel='stylesheet' crossorigin=""/>
+<script src='static/lib/L.Control.Sidebar.js' crossorigin=""></script>
+
+<!--Add easy-button plugin -->
+<link href='static/css/easy-button.css' rel='stylesheet' crossorigin=""/>
+<script src='static/lib/easy-button.js' crossorigin=""></script>
+
 <!--Add Svg plugin -->
 <script src='static/lib/leaflet.draw.svg.js' crossorigin=""></script>
 <link href='static/css/leaflet.draw.svg.css' rel='stylesheet' crossorigin=""/>
@@ -44,11 +52,6 @@
 
 <main id='main_content'>
 <div class='wrap'>
-  <div class="column leftside">
-    <h2 class='h2 magenta'>Tabs</h2>	
-    <button onclick="toggle_view()" class="controlBtn">toggle schema/gis view</button>
-    <button onclick="exportGeoJSON(editableLayers);" class="controlBtn">export</button>
-  </div>
   <div class="column middle">
     <h2 class='h2 teal'>HMI</h2>	
     <div class='content'>

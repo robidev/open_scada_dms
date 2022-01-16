@@ -121,7 +121,8 @@ def update_schema_geojson_database(data):
   global mongoclient
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
-  newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+  newvalues = {"geometry": data["geometry"], "properties": data["properties"]} # x,y etc.
+  #newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.schema_geojson.update_one(myquery, {"$set": newvalues}, False) # update_many()
   return
 

@@ -65,7 +65,7 @@ body {
   width: auto;
 
   display: grid;
-  grid-template-columns: 300px auto; /* 100px auto 200px*/
+  grid-template-columns: auto;/*300px auto; /* 100px auto 200px*/
   grid-template-rows: auto 600px;
   height: 100vh;
 }
@@ -92,7 +92,7 @@ body {
 /* Middle column */
 .column.middle {
   display: inline;
-  grid-column: 2; /* 1 */
+  grid-column: 1; /* 2 */
 }
 
 /* right column */

@@ -2,6 +2,71 @@ var socket;
 var schema_leafletmap, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
 var gis_leafletmap, gis_geojsonlayer,gis_in_view, gis_editableLayers;
 
+//https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
+var CRSPixel = L.Util.extend(L.CRS.Simple, {
+	transformation: new L.Transformation(1,0,1,0)
+});
+
+function init_schema(){
+  schema_in_view = [];
+
+  document.getElementById("mmi_svg").style.display = "block";
+  
+  schema_leafletmap = L.map('mmi_svg', { 
+    renderer: L.svg(), 
+    crs: CRSPixel,
+    minZoom: 0,//-5
+    maxZoom: 20,
+    mapType: "schema"
+  }).setView([0, 0], 17);//setView([0,0], 1);
+
+  L.easyButton('<span style="font-size: 1.5em;">&starf;</span>', toggle_view ).addTo( schema_leafletmap );
+
+  schema_editableLayers = new L.FeatureGroup();
+  schema_leafletmap.addLayer(schema_editableLayers);
+
+  schema_geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
+
+  let schema_options = {
+    position: 'topright',
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false, // Restricts shapes to simple polygons 
+        drawError: {
+          color: '#e1e100', // Color the shape will turn when intersects 
+          message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
+        }
+      },
+      circle: true, // Turns off this drawing tool 
+      rectangle: true,
+      marker: true,
+      svg: true
+    },
+    edit: {
+      featureGroup: schema_editableLayers, //REQUIRED!! 
+      remove: true
+    }
+  };
+  
+  let schema_drawControl = new L.Control.Draw(schema_options);
+  schema_leafletmap.addControl(schema_drawControl);
+
+  schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
+  schema_leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
+  schema_leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
+  schema_leafletmap.on('moveend', update_schema);
+  schema_leafletmap.on('zoomend', update_schema);
+
+  //do not update map when editing, to prevent layer modification from database during editing
+  schema_leafletmap.on('draw:editstart', function(){ schema_leafletmap.off('moveend', update_schema);  schema_leafletmap.off('zoomend', update_schema);} );
+  schema_leafletmap.on('draw:editstop', function(){schema_leafletmap.on('moveend', update_schema);  schema_leafletmap.on('zoomend', update_schema);} );
+  schema_leafletmap.on('draw:deletestart', function(){schema_leafletmap.off('moveend', update_schema);  schema_leafletmap.off('zoomend', update_schema);} );
+  schema_leafletmap.on('draw:deletestop', function(){schema_leafletmap.on('moveend', update_schema);  schema_leafletmap.on('zoomend', update_schema);} );
+  schema_leafletmap.setZoom(18);//-5
+}
+
+
 function init_gis(){
   gis_in_view = [];
 
@@ -19,6 +84,8 @@ function init_gis(){
     tileSize: 512,
     zoomOffset: -1,
   }).addTo(gis_leafletmap);//*/
+
+  L.easyButton('<span style="font-size: 1.5em;">&starf;</span>', toggle_view ).addTo( gis_leafletmap );
 
   gis_geojsonlayer = L.geoJSON().addTo(gis_leafletmap);
 
@@ -56,20 +123,63 @@ function init_gis(){
   gis_leafletmap.on(L.Draw.Event.DELETED, gis_removeItems);
   gis_leafletmap.on('moveend', update_gis);
   gis_leafletmap.on('zoomend', update_gis);
+
+  //ensure layers are not updated from database during editing or removing
+  gis_leafletmap.on('draw:editstart', function(){ gis_leafletmap.off('moveend', update_schema);  gis_leafletmap.off('zoomend', update_schema);} );
+  gis_leafletmap.on('draw:editstop', function(){gis_leafletmap.on('moveend', update_schema);  gis_leafletmap.on('zoomend', update_schema);} );
+  gis_leafletmap.on('draw:deletestart', function(){gis_leafletmap.off('moveend', update_schema);  gis_leafletmap.off('zoomend', update_schema);} );
+  gis_leafletmap.on('draw:deletestop', function(){gis_leafletmap.on('moveend', update_schema);  gis_leafletmap.on('zoomend', update_schema);} );
   gis_leafletmap.setZoom(18);
 }
 
-function exportGeoJSON(featureGroup) {
-  // Extract GeoJson from featureGroup
-  let data = featureGroup.toGeoJSON();
-  // Stringify the GeoJson
-  let convertedData = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data));
-  // Create export
-  let linkElement = document.createElement('a');
-  linkElement.setAttribute('href', 'data:' + convertedData);
-  linkElement.setAttribute('download','data.geojson');
-  linkElement.click();
+function schema_addItem(e) {
+  let type = e.layerType, layer = e.layer;
+
+  if (type === 'marker') {
+    layer.bindPopup('A popup!');
+  }
+  if (type === 'svg') {
+    layer.type = "Svg";
+    if(layer._newTemplate == true){
+      socket.emit('svg_addTemplate', {
+        'name':layer._templateName,
+        'viewBox': layer._svgViewBox,
+        'svg': layer._url.innerHTML,
+        'datapoint_amount':layer._dataPoints.length
+      });
+    }
+
+    let bounds = layer.getBounds();
+    socket.emit('schema_addItems', {
+      'w':bounds._northEast.lng,
+      'n':bounds._northEast.lat,
+      'e':bounds._southWest.lng,
+      's':bounds._southWest.lat,
+      'svg':layer._templateName, 
+      'dataPoints': layer._dataPoints }, 
+      function(ret){
+        if (layer.uuid === null){
+          layer.uuid = ret;
+        }
+      }
+    );
+  }
+  else if (layer.toGeoJSON){ //geojson item
+    layer.type = "Feature";
+    let geojson = layer.toGeoJSON();
+    geojson["properties"]['type'] = "geojson";
+    geojson["properties"]['datapoints'] = {};
+
+    socket.emit('schema_addGeojsonItem', geojson ,
+    function(ret){
+      if (layer.uuid === null){
+        layer.uuid = ret;
+      }
+    });
+  }
+  schema_editableLayers.addLayer(layer);
 }
+
 
 function gis_addItem(e) {
   let type = e.layerType, layer = e.layer;
@@ -123,6 +233,36 @@ function gis_addItem(e) {
   gis_editableLayers.addLayer(layer);
 }
 
+
+function schema_editedItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    if(layer.type && layer.type === "Feature"){
+      let geojson = layer.toGeoJSON();
+      geojson["properties"]['datapoints'] = {};
+
+      socket.emit('schema_editedGeojsonItems', {
+        '_id':layer.uuid,
+        'type': layer.type,
+        'geometry':geojson['geometry'],
+        'properties':geojson['properties'],
+      });
+    }
+    else if(layer.type && layer.type === "Svg"){
+      let bounds = layer.getBounds();
+      socket.emit('schema_editedItems', {
+        '_id':layer.uuid,
+        'w':bounds._northEast.lng,
+        'n':bounds._northEast.lat,
+        'e':bounds._southWest.lng,
+        's':bounds._southWest.lat,
+        'dataPoints': layer._dataPoints
+      });
+    }
+  }
+}
+
+
+
 function gis_editedItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
     if(layer.type && layer.type === "Feature"){
@@ -155,148 +295,7 @@ function gis_editedItems(e){
   }
 }
 
-function gis_removeItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    socket.emit('gis_removeItems', layer.uuid);
-  }
-}
 
-
-
-//https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
-var CRSPixel = L.Util.extend(L.CRS.Simple, {
-	transformation: new L.Transformation(1,0,1,0)
-});
-
-function init_schema(){
-  schema_in_view = [];
-
-  document.getElementById("mmi_svg").style.display = "block";
-  
-  schema_leafletmap = L.map('mmi_svg', { 
-    renderer: L.svg(), 
-    crs: CRSPixel,
-    minZoom: 0,//-5
-    maxZoom: 20,
-    mapType: "schema"
-  }).setView([0, 0], 17);//setView([0,0], 1);
-
-  schema_editableLayers = new L.FeatureGroup();
-  schema_leafletmap.addLayer(schema_editableLayers);
-
-  schema_geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
-
-  let schema_options = {
-    position: 'topright',
-    draw: {
-      polyline: true,
-      polygon: {
-        allowIntersection: false, // Restricts shapes to simple polygons 
-        drawError: {
-          color: '#e1e100', // Color the shape will turn when intersects 
-          message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
-        }
-      },
-      circle: true, // Turns off this drawing tool 
-      rectangle: true,
-      marker: true,
-      svg: true
-    },
-    edit: {
-      featureGroup: schema_editableLayers, //REQUIRED!! 
-      remove: true
-    }
-  };
-  
-  let schema_drawControl = new L.Control.Draw(schema_options);
-  schema_leafletmap.addControl(schema_drawControl);
-
-  schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
-  schema_leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
-  schema_leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
-  schema_leafletmap.on('moveend', update_schema);
-  schema_leafletmap.on('zoomend', update_schema);
-  schema_leafletmap.setZoom(18);//-5
-}
-
-
-
-
-
-function schema_addItem(e) {
-  let type = e.layerType, layer = e.layer;
-
-  if (type === 'marker') {
-    layer.bindPopup('A popup!');
-  }
-  if (type === 'svg') {
-    layer.type = "Svg";
-    if(layer._newTemplate == true){
-      socket.emit('svg_addTemplate', {
-        'name':layer._templateName,
-        'viewBox': layer._svgViewBox,
-        'svg': layer._url.innerHTML,
-        'datapoint_amount':layer._dataPoints.length
-      });
-    }
-
-    let bounds = layer.getBounds();
-    socket.emit('schema_addItems', {
-      'w':bounds._northEast.lng,
-      'n':bounds._northEast.lat,
-      'e':bounds._southWest.lng,
-      's':bounds._southWest.lat,
-      'svg':layer._templateName, 
-      'dataPoints': layer._dataPoints }, 
-      function(ret){
-        if (layer.uuid === null){
-          layer.uuid = ret;
-        }
-      }
-    );
-  }
-  else if (layer.toGeoJSON){ //geojson item
-    layer.type = "Feature";
-    let geojson = layer.toGeoJSON();
-    geojson["properties"]['type'] = "geojson";
-    geojson["properties"]['datapoints'] = {};
-
-    socket.emit('schema_addGeojsonItem', geojson ,
-    function(ret){
-      if (layer.uuid === null){
-        layer.uuid = ret;
-      }
-    });
-  }
-  schema_editableLayers.addLayer(layer);
-}
-
-function schema_editedItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    if(layer.type && layer.type === "Feature"){
-      let geojson = layer.toGeoJSON();
-      geojson["properties"]['datapoints'] = {};
-
-      socket.emit('schema_editedGeojsonItems', {
-        '_id':layer.uuid,
-        'type': layer.type,
-        'geometry':geojson['geometry'],
-        'properties':geojson['properties'],
-      });
-    }
-    else if(layer.type && layer.type === "Svg"){
-      let bounds = layer.getBounds();
-      socket.emit('schema_editedItems', {
-        '_id':layer.uuid,
-        'w':bounds._northEast.lng,
-        'n':bounds._northEast.lat,
-        'e':bounds._southWest.lng,
-        's':bounds._southWest.lat,
-        'dataPoints': layer._dataPoints
-      });
-    }
-  }
-}
 
 function schema_removeItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
@@ -308,6 +307,20 @@ function schema_removeItems(e){
     }
   }
 }
+
+
+function gis_removeItems(e){
+  for (const [key, layer] of Object.entries(e.layers._layers)) {
+    socket.emit('gis_removeItems', layer.uuid);
+  }
+}
+
+
+
+
+
+
+
 
 function toggle_view() {
   let gis = document.getElementById("gis_map");
@@ -516,7 +529,6 @@ $(document).ready(function() {
 
 });
 
-
 var update_schema = function(){ 
   zoom = schema_leafletmap.getZoom();
   bounds = schema_leafletmap.getBounds();
@@ -528,6 +540,7 @@ var update_gis = function(){
   bounds = gis_leafletmap.getBounds();
   socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
 } 
+
 
 function svg_add_to_schema(w, n, e, s, svgString, svgId) {
   let svg = new L.SvgObject(svgString, L.latLngBounds([[n,w],[s,e]]), svgId,{ svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds:  0.000005/*1.0*/ }});
@@ -555,19 +568,41 @@ function svg_add_to_gis(svgString, svgId, location) {
   return svg;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+//https://github.com/orfon/Leaflet.SLD/blob/master/leaflet.sld.js ????
 var geoStyle = function(feature){
   color = "#ff7800";
   //retrieve color from real-time database
   if(feature.properties.id == "one"){ color = "#ffff00"; }
+  if(!feature.properties.stroke){
+    return {
+      "color": color,
+      "weight": 5,
+      "opacity": 0.65
+    };
+  }
+
   return {
-    "color": color,
-    "weight": 5,
-    "opacity": 0.65
-  };
+    fillColor: feature.properties['fill'],
+    fillOpacity: feature.properties['fill-opacity'],
+    color: feature.properties['stroke'],
+    width: feature.properties['stroke-width'],
+    opacity: feature.properties['stroke-opacity']
+  };//*/
+}
+
+function setGeojsonStyle(layer){
+  //console.log(e);
+  layer.feature.properties['fill'] = layer.options.fillColor;
+  layer.feature.properties['fill-opacity'] = layer.options.fillOpacity;
+  layer.feature.properties['stroke'] = layer.options.color;
+  layer.feature.properties['stroke-width'] = layer.options.width;
+  layer.feature.properties['stroke-opacity'] = layer.options.opacity;
 }
 
 
-
+//////////////////////////////////////////////////////////////////////////
 	//.leaflet-modal
 L.Draw.Svg.include({
 	  enable: function(){
