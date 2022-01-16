@@ -1,5 +1,5 @@
 var socket;
-var schema_leafletmap, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
+var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
 var gis_leafletmap, gis_geojsonlayer,gis_in_view, gis_editableLayers;
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
@@ -51,6 +51,18 @@ function init_schema(){
   
   let schema_drawControl = new L.Control.Draw(schema_options);
   schema_leafletmap.addControl(schema_drawControl);
+
+
+  schema_sidebar = L.control.sidebar('sidebar', {
+    position: 'right',
+    autoPan: false,
+    closeButton: true,
+  });
+  schema_leafletmap.addControl(schema_sidebar);
+  L.DomEvent.on(schema_sidebar.getCloseButton(), 'click', function () {
+    schema_sidebar.hide();
+  });
+
 
   schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
   schema_leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
@@ -117,6 +129,7 @@ function init_gis(){
   let gis_drawControl = new L.Control.Draw(gis_options);
   gis_leafletmap.addControl(gis_drawControl);
 
+
   //register svg events
   gis_leafletmap.on(L.Draw.Event.CREATED, gis_addItem);//*/
   gis_leafletmap.on(L.Draw.Event.EDITED, gis_editedItems);
@@ -132,12 +145,16 @@ function init_gis(){
   gis_leafletmap.setZoom(18);
 }
 
+
 function schema_addItem(e) {
   let type = e.layerType, layer = e.layer;
 
   if (type === 'marker') {
     layer.bindPopup('A popup!');
   }
+
+  layer.on("click", function(){schema_sidebar.show();});
+
   if (type === 'svg') {
     layer.type = "Svg";
     if(layer._newTemplate == true){
@@ -167,7 +184,6 @@ function schema_addItem(e) {
   else if (layer.toGeoJSON){ //geojson item
     layer.type = "Feature";
     let geojson = layer.toGeoJSON();
-    geojson["properties"]['type'] = "geojson";
     geojson["properties"]['datapoints'] = {};
 
     socket.emit('schema_addGeojsonItem', geojson ,
@@ -221,7 +237,6 @@ function gis_addItem(e) {
   else if (layer.toGeoJSON){ //geojson item
     layer.type = "Feature";
     let geojson = layer.toGeoJSON();
-    geojson["properties"]['type'] = "geojson";
     geojson["properties"]['datapoints'] = {};
     socket.emit('gis_addItem', geojson ,
     function(ret){
@@ -366,6 +381,7 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
+    node.on("click", show_Sidebar);
 
     schema_in_view.push(data['id']);
 
@@ -432,6 +448,8 @@ $(document).ready(function() {
           // add geojson objects to edit and geojson-layer
           local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
           local_geojsonlayer._layers[local_geoitem].type = "Feature";
+          local_geojsonlayer._layers[local_geoitem].on("click", show_Sidebar);
+
 
           schema_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           schema_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -734,4 +752,29 @@ function fitSvg(contents, preview){
   //set black background
   preview.innerHTML = "<rect x=\'"+ (0).toString() +"\' y=\'"+ (0).toString() +"\' width=\'"+(bbox.width + 8).toString()+"\' height=\'"+(bbox.height + 8).toString()+"\'/>" + preview.innerHTML;
   return bbox;
+}
+
+
+
+function show_Sidebar(e){
+  let layer = e.target;
+  if(layer.type==="Svg"){
+    schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+    schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+    schema_sidebar.show();
+    L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
+      layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
+    });
+  }
+  else if(layer.type==="Feature"){
+    schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+    // + "\nproperties:" + JSON.stringify(layer.feature.properties, null, 2); // layer.options needs to be copied to feature.properties, and loaded back
+    schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer.feature.properties.datapoints, null, 2);
+    schema_sidebar.show();
+    L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
+      layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
+      layer.feature.properties.datapoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
+      layer.setStyle();//geoStyle);
+    });
+  }
 }
