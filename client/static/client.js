@@ -153,10 +153,10 @@ function schema_addItem(e) {
     layer.bindPopup('A popup!');
   }
 
-  layer.on("click", function(){schema_sidebar.show();});
-
   if (type === 'svg') {
     layer.type = "Svg";
+    layer.on("click", schema_show_Sidebar);
+    
     if(layer._newTemplate == true){
       socket.emit('svg_addTemplate', {
         'name':layer._templateName,
@@ -175,7 +175,7 @@ function schema_addItem(e) {
       'svg':layer._templateName, 
       'dataPoints': layer._dataPoints }, 
       function(ret){
-        if (layer.uuid === null){
+        if (!layer.uuid){
           layer.uuid = ret;
         }
       }
@@ -183,12 +183,17 @@ function schema_addItem(e) {
   }
   else if (layer.toGeoJSON){ //geojson item
     layer.type = "Feature";
-    let geojson = layer.toGeoJSON();
-    geojson["properties"]['datapoints'] = {};
+    layer._dataPoints = {};
+    layer.on("click", schema_show_Sidebar);
 
+    layer.feature = {"properties":{}};
+    setGeojsonStyle(layer, layer.feature);
+    let geojson = layer.toGeoJSON();
+    geojson["properties"]['datapoints'] = layer._dataPoints;
+    geojson['type'] = layer.type;
     socket.emit('schema_addGeojsonItem', geojson ,
     function(ret){
-      if (layer.uuid === null){
+      if (!layer.uuid){
         layer.uuid = ret;
       }
     });
@@ -205,6 +210,8 @@ function gis_addItem(e) {
   }
   if (type === 'svg') {
     layer.type = "Svg";
+    layer.on("click", gis_show_Sidebar);
+
     if(layer._newTemplate == true){
       socket.emit('svg_addTemplate', {
         'name':layer._templateName,
@@ -228,7 +235,7 @@ function gis_addItem(e) {
                   }
       },
       function(ret){
-        if (layer.uuid === null){
+        if (!layer.uuid){
           layer.uuid = ret;
         }
       }
@@ -236,8 +243,15 @@ function gis_addItem(e) {
   }
   else if (layer.toGeoJSON){ //geojson item
     layer.type = "Feature";
+    layer.on("click", gis_show_Sidebar);
+    layer._dataPoints = {};
+
+    layer.feature = {"properties":{}};
+    setGeojsonStyle(layer, layer.feature);
     let geojson = layer.toGeoJSON();
-    geojson["properties"]['datapoints'] = {};
+
+    geojson["properties"]['datapoints'] = layer._dataPoints;
+    geojson['type'] = layer.type;
     socket.emit('gis_addItem', geojson ,
     function(ret){
       if (!layer.uuid){
@@ -253,7 +267,8 @@ function schema_editedItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
     if(layer.type && layer.type === "Feature"){
       let geojson = layer.toGeoJSON();
-      geojson["properties"]['datapoints'] = {};
+      geojson["properties"]['datapoints'] = layer._dataPoints;
+      //setGeojsonStyle(layer, geojson);
 
       socket.emit('schema_editedGeojsonItems', {
         '_id':layer.uuid,
@@ -282,7 +297,8 @@ function gis_editedItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
     if(layer.type && layer.type === "Feature"){
       let geojson = layer.toGeoJSON();
-      geojson["properties"]['datapoints'] = {};
+      geojson["properties"]['datapoints'] = layer._dataPoints;
+      //setGeojsonStyle(layer, geojson);
 
       socket.emit('gis_editedItems', {
         '_id':layer.uuid,
@@ -381,7 +397,7 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
-    node.on("click", show_Sidebar);
+    node.on("click", schema_show_Sidebar);
 
     schema_in_view.push(data['id']);
 
@@ -448,8 +464,9 @@ $(document).ready(function() {
           // add geojson objects to edit and geojson-layer
           local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
           local_geojsonlayer._layers[local_geoitem].type = "Feature";
-          local_geojsonlayer._layers[local_geoitem].on("click", show_Sidebar);
-
+          local_geojsonlayer._layers[local_geoitem].on("click", schema_show_Sidebar);
+          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
+          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
 
           schema_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           schema_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -472,6 +489,7 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
+    node.on("click", gis_show_Sidebar);
     gis_in_view.push(data['id']);
       //register for all values in loaded svg
     $("g",node._image).find("*").each(function(idx, el){
@@ -532,6 +550,9 @@ $(document).ready(function() {
           // add geojson objects to edit and geojson-layer
           local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
           local_geojsonlayer._layers[local_geoitem].type = "Feature";
+          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
+          local_geojsonlayer._layers[local_geoitem].on("click", gis_show_Sidebar);
+          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
 
           gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           gis_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -610,13 +631,49 @@ var geoStyle = function(feature){
   };//*/
 }
 
-function setGeojsonStyle(layer){
+function setGeojsonStyle(layer, geojson){
   //console.log(e);
-  layer.feature.properties['fill'] = layer.options.fillColor;
-  layer.feature.properties['fill-opacity'] = layer.options.fillOpacity;
-  layer.feature.properties['stroke'] = layer.options.color;
-  layer.feature.properties['stroke-width'] = layer.options.width;
-  layer.feature.properties['stroke-opacity'] = layer.options.opacity;
+  geojson.properties['fillEnabled'] = layer.options.fill;//true/false
+  geojson.properties['fill'] = layer.options.fillColor;
+  geojson.properties['fill-opacity'] = layer.options.fillOpacity;
+  geojson.properties["fillRule"] = layer.options.fillRule;
+
+  geojson.properties['strokeEnabled' ] = layer.options.stroke;//true/false
+  geojson.properties['stroke'] = layer.options.color;
+  geojson.properties['stroke-width'] = layer.options.weight;
+  geojson.properties['stroke-opacity'] = layer.options.opacity;
+  
+  geojson.properties['stroke-cap'] = layer.options.lineCap;// "round",
+  geojson.properties['stroke-join'] = layer.options.lineJoin;// "round",
+  geojson.properties['stroke-dashArray'] = layer.options.dashArray;// null,
+  geojson.properties['stroke-dashOffset'] = layer.options.dashOffset;// null,
+
+  geojson.properties['smoothFactor'] = layer.options.smoothFactor;//": 1,
+  geojson.properties['noClip'] = layer.options.noClip;// false,
+  geojson = JSON.stringify(geojson);//make sure it is all valid geojson
+}
+
+function getGeojsonStyle(layer){
+  //console.log(e);
+  layer.options.fill = layer.feature.properties['fillEnabled'];//true/false
+  layer.options.fillColor = layer.feature.properties['fill']; 
+  layer.options.fillOpacity = layer.feature.properties['fill-opacity'];//"fillOpacity": 0.1,
+  layer.options.fillRule = layer.feature.properties["fillRule"]; //"evenodd",
+
+  layer.options.stroke = layer.feature.properties['strokeEnabled' ];//true/false
+  layer.options.color = layer.feature.properties['stroke']; 
+  layer.options.weight = layer.feature.properties['stroke-width'];//  "weight": 3,
+  layer.options.opacity = layer.feature.properties['stroke-opacity']; //  "opacity": 0.5,
+
+  layer.options.lineCap = layer.feature.properties['stroke-cap'];// "round",
+  layer.options.lineJoin = layer.feature.properties['stroke-join'];// "round",
+  layer.options.dashArray = layer.feature.properties['stroke-dashArray'];// null,
+  layer.options.dashOffset = layer.feature.properties['stroke-dashOffset'];// null,
+
+  layer.options.smoothFactor = layer.feature.properties['smoothFactor'];//": 1,
+  layer.options.noClip = layer.feature.properties['noClip'];// false,
+
+  layer.setStyle();
 }
 
 
@@ -756,25 +813,36 @@ function fitSvg(contents, preview){
 
 
 
-function show_Sidebar(e){
+function schema_show_Sidebar(e){
   let layer = e.target;
-  if(layer.type==="Svg"){
-    schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-    schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
-    schema_sidebar.show();
-    L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
-      layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
-    });
-  }
-  else if(layer.type==="Feature"){
-    schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-    // + "\nproperties:" + JSON.stringify(layer.feature.properties, null, 2); // layer.options needs to be copied to feature.properties, and loaded back
-    schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer.feature.properties.datapoints, null, 2);
-    schema_sidebar.show();
-    L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
+  schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  schema_sidebar.show();
+  L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
+    layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
+    if(layer.type==="Feature"){
       layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
-      layer.feature.properties.datapoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
       layer.setStyle();//geoStyle);
-    });
-  }
+      setGeojsonStyle(layer, layer.feature);
+
+      schema_editedItems({layers:{_layers:{0:layer}}});
+    }
+  });
+}
+
+function gis_show_Sidebar(e){
+  let layer = e.target;
+  gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  gis_sidebar.show();
+  L.DomEvent.on(gis_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
+    layer._dataPoints = JSON.parse(gis_sidebar._container.querySelector('#datapoints_field').value);
+    if(layer.type==="Feature"){
+      layer.options = JSON.parse(gis_sidebar._container.querySelector('#options_field').value);
+      layer.setStyle();//geoStyle);
+
+      setGeojsonStyle(layer, layer.feature);
+      gis_editedItems({layers:{_layers:{0:layer}}});
+    }
+  });
 }
