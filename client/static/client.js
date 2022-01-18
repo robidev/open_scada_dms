@@ -1,6 +1,6 @@
 var socket;
 var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
-var gis_leafletmap, gis_geojsonlayer,gis_in_view, gis_editableLayers;
+var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers;
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
 var CRSPixel = L.Util.extend(L.CRS.Simple, {
@@ -38,10 +38,10 @@ function init_schema(){
           message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
         }
       },
-      circle: true, // Turns off this drawing tool 
+      circle: false, // Turns off this drawing tool 
       rectangle: true,
-      marker: true,
-      svg: true
+      marker: false,
+      circlemarker: false
     },
     edit: {
       featureGroup: schema_editableLayers, //REQUIRED!! 
@@ -53,7 +53,7 @@ function init_schema(){
   schema_leafletmap.addControl(schema_drawControl);
 
 
-  schema_sidebar = L.control.sidebar('sidebar', {
+  schema_sidebar = L.control.sidebar('schema_sidebar', {
     position: 'right',
     autoPan: false,
     closeButton: true,
@@ -117,9 +117,10 @@ function init_gis(){
           message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
         }
       },
-      circle: true, // Turns off this drawing tool 
+      circle: false, // Turns off this drawing tool 
       rectangle: true,
-      marker: true
+      marker: false,
+      circlemarker: false
     },
     edit: {
       featureGroup: gis_editableLayers, //REQUIRED!! 
@@ -128,6 +129,17 @@ function init_gis(){
   };
   let gis_drawControl = new L.Control.Draw(gis_options);
   gis_leafletmap.addControl(gis_drawControl);
+
+
+  gis_sidebar = L.control.sidebar('gis_sidebar', {
+    position: 'right',
+    autoPan: false,
+    closeButton: true,
+  });
+  gis_leafletmap.addControl(gis_sidebar);
+  L.DomEvent.on(gis_sidebar.getCloseButton(), 'click', function () {
+    gis_sidebar.hide();
+  });
 
 
   //register svg events
@@ -349,10 +361,6 @@ function gis_removeItems(e){
 
 
 
-
-
-
-
 function toggle_view() {
   let gis = document.getElementById("gis_map");
   let schema_div = document.getElementById("mmi_svg");
@@ -375,18 +383,81 @@ $(document).ready(function() {
 
   //////////////////////////////////////////////////////////////////////////
 
-  socket.on('svg_value_update_event_on_schema', function (data) {
-    //event gets called from server when svg data is updated, so update the svg
-    let element = data['element'];
-    let value = data['data']['value'];
-    let type = data['data']['type'];
-  });
 
   socket.on('updateDataPoint', function (data) { 
     console.log("called:" + data.toString());
+    let key = data['key'];
+    let value = data['value'];
+    // update svg items and geojson in schema
+    updateLayers(schema_editableLayers._layers, key, value);
+    // update svg items and geojson in gis
+    updateLayers(gis_editableLayers._layers, key, value);
   });
 
+  var updateLayers = function(layers,key, value){
+    for(let layer in layers){
+      if (!(key in layer._dataPoints)){
+        continue;
+      }
+      template_item = layer._dataPoints[key];
+      //update
+      if(layer.type === "Svg"){
+        //template_item is id of svg element. class is used for type of display
+        $("g",layer._image).find("*").each(function(idx, el){
+          let cl = el.classList.toString();
+          if(el.id == template_item){ 
+            //register  
+            if(cl == "XCBR" || cl == "XSWI"){ 
+              if(value == 1) {
+                $("#close",el)[0].beginElementAt(0.1); 
+              }
+              else {
+                $("#open",el)[0].beginElementAt(0.1);
+              }
+            }
+            if(cl == "MEAS"){ 
+              if(el.dataset.size > 0 || typeof(el.dataset.text) === "undefined"){
+                var desc = el.innerHTML;
+                el.textContent = value;
+              }
+              else{
+                var val = abbreviate_number(parseFloat(value),0)
+                el.textContent = el.dataset.text.replace("{value}",val);
+              }
+            }
+          }
+        });
+      }
+      if(layer.type === "Feature"){
+        //template_item is property modification of geojson element. class is used for type of display
+        //template_item = {"1":["color","gt","10","#00ff00"]};
+        for (const [template_key, template_logic] of Object.entries(template_item)) {
+          let result = "";
+          if(template_logic[1] == ">" && value > template_logic[2]){ // greater then
+            result = template_logic[3];
+          }
+          if(template_logic[1] == "<" && value < template_logic[2]){ // less then
+            result = template_logic[3];
+          }
+          if(template_logic[1] == "==" && value == template_logic[2]){ // equal
+            result = template_logic[3];
+          }
+          if(template_logic[1] == "!=" && value != template_logic[2] ){ // not equal
+            result = template_logic[3];
+          }
+          if(template_logic[1] == "><" && value > template_logic[2] && value < template_logic[3]){ // within range (invert order for outside range)
+            result = template_logic[4];
+          }
+
+          layer.options[template_logic[0]] = result;
+          layer.setStyle();//update the layer style
+        }
+      }
+    }
+  }
+
   //////////////////////////////////////////////////////////////////////////
+
 
   socket.on('svg_object_add_to_schema', function (data) {
     //add svg to object
@@ -398,6 +469,9 @@ $(document).ready(function() {
       return;
     }
     node.on("click", schema_show_Sidebar);
+    for (const [key, point] of Object.entries(node._dataPoints)) {
+      socket.emit('register_datapoint', point);
+    }
 
     schema_in_view.push(data['id']);
 
@@ -406,8 +480,6 @@ $(document).ready(function() {
       let cl = el.classList.toString();
       //console.log("el.id:" + el.id + " cl:"+cl);
       if(el.id.startsWith("iec60870://") == true){ 
-        //register  
-        socket.emit('register_datapoint', el.id); 
         if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
         if(cl == "XSWI"){ $("#open",el)[0].beginElementAt(1.0); }
       }
@@ -420,18 +492,14 @@ $(document).ready(function() {
     for(let item in schema_editableLayers._layers){
       if(schema_editableLayers._layers[item].uuid === data){
           obj = schema_editableLayers._layers[item];
-          break; // If you want to break out of the loop once you've found a match
+          break; 
       }
     }
     if(obj != null){
       //unregister values in this svg
-      $("g",obj._image).find("*").each(function(idx, el){
-        let cl = el.classList.toString();
-        if(el.id.startsWith("iec60870://") == true){    
-          //unregister
-          socket.emit('unregister_datapoint', el.id);
-        }
-      });
+      for (const [key, point] of Object.entries(obj._dataPoints)) {
+        socket.emit('unregister_datapoint', point);
+      }
       schema_editableLayers.removeLayer(obj);
       let index = schema_in_view.indexOf(data);
       if (index > -1) {
@@ -448,8 +516,6 @@ $(document).ready(function() {
 
       // parse the json into leaflet layers
       local_geojsonlayer.addData(json);
-      local_geojsonlayer.setStyle(geoStyle);
-
       //find what layer allready exist
       for(let local_geoitem in local_geojsonlayer._layers){
         let found = false;
@@ -467,17 +533,15 @@ $(document).ready(function() {
           local_geojsonlayer._layers[local_geoitem].on("click", schema_show_Sidebar);
           local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
+          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+            socket.emit('register_datapoint', point);
+          }
 
           schema_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           schema_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
         }
       }
 		}
-  });
-
-  socket.on('geojson_object_update_schema', function () {
-    //add geojson to object
-    schema_geojsonlayer.setStyle(geoStyle);
   });
 
   socket.on('svg_object_add_to_gis', function (data) {
@@ -489,8 +553,13 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
+    for (const [key, point] of Object.entries(node._dataPoints)) {
+      socket.emit('register_datapoint', point);
+    }
     node.on("click", gis_show_Sidebar);
+
     gis_in_view.push(data['id']);
+
       //register for all values in loaded svg
     $("g",node._image).find("*").each(function(idx, el){
       let cl = el.classList.toString();
@@ -512,13 +581,10 @@ $(document).ready(function() {
       }
     }
     if(obj != null){
-      //unregister values in this svg
-      $("g",obj).find("*").each(function(idx, el){
-        let cl = el.classList.toString();
-        if(el.id.startsWith("iec60870://") == true){    
-          //unregister
-        }
-      });
+      for (const [key, point] of Object.entries(obj._dataPoints)) {
+        socket.emit('unregister_datapoint', point);
+      }
+
       gis_editableLayers.removeLayer(obj);
       let index = gis_in_view.indexOf(data);
       if (index > -1) {
@@ -534,8 +600,6 @@ $(document).ready(function() {
 
       // parse the json into leaflet layers
       local_geojsonlayer.addData(json);
-      local_geojsonlayer.setStyle(geoStyle);
-
       //find what layer allready exist
       for(let local_geoitem in local_geojsonlayer._layers){
         let found = false;
@@ -553,6 +617,9 @@ $(document).ready(function() {
           local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
           local_geojsonlayer._layers[local_geoitem].on("click", gis_show_Sidebar);
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
+          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+            socket.emit('register_datapoint', point);
+          }
 
           gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           gis_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -561,10 +628,9 @@ $(document).ready(function() {
 		}
   });
 
-  socket.on('geojson_object_update_gis', function () {
-    //add geojson to object
-    gis_geojsonlayer.setStyle(geoStyle);
-  });
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 });
 
@@ -609,27 +675,6 @@ function svg_add_to_gis(svgString, svgId, location) {
 
 /////////////////////////////////////////////////////////////////////////////
 
-//https://github.com/orfon/Leaflet.SLD/blob/master/leaflet.sld.js ????
-var geoStyle = function(feature){
-  color = "#ff7800";
-  //retrieve color from real-time database
-  if(feature.properties.id == "one"){ color = "#ffff00"; }
-  if(!feature.properties.stroke){
-    return {
-      "color": color,
-      "weight": 5,
-      "opacity": 0.65
-    };
-  }
-
-  return {
-    fillColor: feature.properties['fill'],
-    fillOpacity: feature.properties['fill-opacity'],
-    color: feature.properties['stroke'],
-    width: feature.properties['stroke-width'],
-    opacity: feature.properties['stroke-opacity']
-  };//*/
-}
 
 function setGeojsonStyle(layer, geojson){
   //console.log(e);
@@ -822,7 +867,7 @@ function schema_show_Sidebar(e){
     layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
     if(layer.type==="Feature"){
       layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
-      layer.setStyle();//geoStyle);
+      layer.setStyle();
       setGeojsonStyle(layer, layer.feature);
 
       schema_editedItems({layers:{_layers:{0:layer}}});
@@ -839,7 +884,7 @@ function gis_show_Sidebar(e){
     layer._dataPoints = JSON.parse(gis_sidebar._container.querySelector('#datapoints_field').value);
     if(layer.type==="Feature"){
       layer.options = JSON.parse(gis_sidebar._container.querySelector('#options_field').value);
-      layer.setStyle();//geoStyle);
+      layer.setStyle();
 
       setGeojsonStyle(layer, layer.feature);
       gis_editedItems({layers:{_layers:{0:layer}}});

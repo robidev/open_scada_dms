@@ -253,7 +253,7 @@ def updateDataPoint(point, data_l):
   for client in clients:
     if point in clients[client]:
       recepients.append(client)
-  socketio.emit("updateDataPoint",data={'d':data_l},to=recepients)
+  socketio.emit("updateDataPoint",data={'key':point,'value':data_l},to=recepients)
 
 
 # register datapoint for polling/reporting
