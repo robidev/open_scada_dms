@@ -1,0 +1,6 @@
+<svg width="550" height="510" xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
+  <g id="S12/E1/Q1/U1">
+    <title>VTR</title>
+    <text id="datapoint_1" class="MEAS" data-text="Voltage: {value} V" fill="#ffffff" stroke="#ffffff" x="296" y="244.499945" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">voltage: {value} V</text>
+  </g>
+</svg>

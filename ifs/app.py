@@ -35,10 +35,10 @@ def callback(tupl, data):
     global db
     print("RTU:" + tupl + " - update:" + str(data))
     for key, value in data.items():
-        rt_db.set("data:"+tupl+"."+getAsduName(value['ASDU'])+"."+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
+        rt_db.set("data:iec60870://"+tupl+"."+getAsduName(value['ASDU'])+"."+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
         # push timeseries data to mongodb 
         data = {
-            "id":           "iec60870://" + tupl + "." + getAsduName(value['ASDU']) + "." + str(key)
+            "id":           "iec60870://" + tupl + "." + getAsduName(value['ASDU']) + "." + str(key),
             "rtu":          tupl,
             "ioa":          key,
             "value":        int(value['value']),

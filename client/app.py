@@ -10,6 +10,7 @@ import pymongo
 from bson import ObjectId
 import redis
 
+
 async_mode = None #"threading" #"eventlet" None
 thread = None
 tick = 0.001
@@ -32,7 +33,7 @@ socketio = SocketIO(app, async_mode=async_mode)
 def add_listener(point):
   global rt_db
   #check redis for point,
-  if rt_db.exists("data".point) > 0:
+  if rt_db.exists("data:" + point) > 0:
     # we allready get all redis data update events, so nothing to be done
     # possibly add psub for point in the future to limit amount of events
     # and/or increase reference count for subscribed data points
@@ -68,8 +69,11 @@ def redis_dataUpdate(msg):
   global rt_db
   key = msg['channel'][15:]
   data = rt_db.get(key)
-  print("update",key[5:-6], data)
-  updateDataPoint("iec60870://" + str(key),str(data)) # emit to clients
+  key_u8 = key.decode("utf-8")[5:]
+  data_u8 = data.decode("utf-8")
+  
+  print("update",key_u8, data_u8)
+  updateDataPoint( key_u8,data_u8) # emit to clients
 
 
 def poll_dataUpdate(point, data):
@@ -218,24 +222,10 @@ def get_page_data(data):
   emit('page_reload', {'data': ""})
 
 
-#synchronous read call, returns dict with sub-elements
-@socketio.on('read_value', namespace='')
-def read_value(data):
-  logger.debug("read value:" + str(data['id'])  )
-  return -1
-
-
-# write call, only supports DA elements
-@socketio.on('write_value', namespace='')
-def write_value(data):
-  return "general error"
-
-
 # register datapoint for polling/reporting
 @socketio.on('register_datapoint', namespace='')
 def register_datapoint(data):
   client = request.sid
-  print("client:" + client)
   logger.info("register datapoint:" + str(data) )
   if not client in clients:
     clients[client] = []
@@ -490,6 +480,7 @@ def readvaluecallback(key,data):
 def worker():
   global mongoclient
   global rt_pubsub
+  global redis_event_thread
   socketio.sleep(tick)
   logger.info("worker treat started")
   while True:
@@ -498,7 +489,12 @@ def worker():
       if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
         # query mongodb for possible update
         db = mongoclient.scada
-        data = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
+        data = None
+        cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
+        for object in cursor:
+          data = object
+          break
+
         if data:
           value = data['value']
         else: # if value is not in mongodb, just give up (for now)
@@ -510,6 +506,16 @@ def worker():
           poll_datapoint[point]['value'] = value
           poll_dataUpdate(point, value)    
     logger.info("values polled")
+
+
+def redis_events():
+  global rt_pubsub
+  while True:
+    message = rt_pubsub.get_message()
+    if message:
+      print("missed event:" + str(message))
+    else:
+      socketio.sleep(0.01)
 
 
 if __name__ == '__main__':
@@ -524,8 +530,8 @@ if __name__ == '__main__':
 
   rt_pubsub = rt_db.pubsub()
   # TODO: should all keys be subscribed separately, and only when used, or filtered in python
-  rt_pubsub.psubscribe(**{'__keyspace@0__:*.value': redis_dataUpdate})
-  redis_event_thread = rt_pubsub.run_in_thread(sleep_time=0.01)
+  rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
+  redis_event_thread = socketio.start_background_task(target=redis_events)
 
   socketio.run(app,host="0.0.0.0")
 

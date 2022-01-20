@@ -385,9 +385,10 @@ $(document).ready(function() {
 
 
   socket.on('updateDataPoint', function (data) { 
-    console.log("called:" + data.toString());
+    //console.log("called:" + data.toString());
     let key = data['key'];
     let value = data['value'];
+    console.log("key:" + key.toString() + " value:" + value.toString());
     // update svg items and geojson in schema
     updateLayers(schema_editableLayers._layers, key, value);
     // update svg items and geojson in gis
@@ -395,62 +396,66 @@ $(document).ready(function() {
   });
 
   var updateLayers = function(layers,key, value){
-    for(let layer in layers){
-      if (!(key in layer._dataPoints)){
-        continue;
-      }
-      template_item = layer._dataPoints[key];
-      //update
-      if(layer.type === "Svg"){
-        //template_item is id of svg element. class is used for type of display
-        $("g",layer._image).find("*").each(function(idx, el){
-          let cl = el.classList.toString();
-          if(el.id == template_item){ 
-            //register  
-            if(cl == "XCBR" || cl == "XSWI"){ 
-              if(value == 1) {
-                $("#close",el)[0].beginElementAt(0.1); 
-              }
-              else {
-                $("#open",el)[0].beginElementAt(0.1);
-              }
-            }
-            if(cl == "MEAS"){ 
-              if(el.dataset.size > 0 || typeof(el.dataset.text) === "undefined"){
-                var desc = el.innerHTML;
-                el.textContent = value;
-              }
-              else{
-                var val = abbreviate_number(parseFloat(value),0)
-                el.textContent = el.dataset.text.replace("{value}",val);
-              }
-            }
-          }
-        });
-      }
-      if(layer.type === "Feature"){
-        //template_item is property modification of geojson element. class is used for type of display
-        //template_item = {"1":["color","gt","10","#00ff00"]};
-        for (const [template_key, template_logic] of Object.entries(template_item)) {
-          let result = "";
-          if(template_logic[1] == ">" && value > template_logic[2]){ // greater then
-            result = template_logic[3];
-          }
-          if(template_logic[1] == "<" && value < template_logic[2]){ // less then
-            result = template_logic[3];
-          }
-          if(template_logic[1] == "==" && value == template_logic[2]){ // equal
-            result = template_logic[3];
-          }
-          if(template_logic[1] == "!=" && value != template_logic[2] ){ // not equal
-            result = template_logic[3];
-          }
-          if(template_logic[1] == "><" && value > template_logic[2] && value < template_logic[3]){ // within range (invert order for outside range)
-            result = template_logic[4];
-          }
+    for(let layer_id in layers){
+      let layer = layers[layer_id]
+      for (const [d_key, point] of Object.entries(layer._dataPoints)) {
 
-          layer.options[template_logic[0]] = result;
-          layer.setStyle();//update the layer style
+        if (!(key in point)){
+          continue;
+        }
+        template_item = point[key];
+        //update
+        if(layer.type === "Svg"){
+          //template_item is id of svg element. class is used for type of display
+          $("g",layer._image).find("*").each(function(idx, el){
+            let cl = el.classList.toString();
+            if(el.id == template_item){ 
+              //register  
+              if(cl == "XCBR" || cl == "XSWI"){ 
+                if(value == 1) {
+                  $("#close",el)[0].beginElementAt(0.1); 
+                }
+                else {
+                  $("#open",el)[0].beginElementAt(0.1);
+                }
+              }
+              if(cl == "MEAS"){ 
+                if(el.dataset.size > 0 || typeof(el.dataset.text) === "undefined"){
+                  var desc = el.innerHTML;
+                  el.textContent = value;
+                }
+                else{
+                  var val = abbreviate_number(parseFloat(value),0)
+                  el.textContent = el.dataset.text.replace("{value}",val);
+                }
+              }
+            }
+          });
+        }
+        if(layer.type === "Feature"){
+          //template_item is property modification of geojson element. class is used for type of display
+          //template_item = {"1":["color","gt","10","#00ff00"]};
+          for (const [template_key, template_logic] of Object.entries(template_item)) {
+            let result = "";
+            if(template_logic[1] == ">" && value > template_logic[2]){ // greater then
+              result = template_logic[3];
+            }
+            if(template_logic[1] == "<" && value < template_logic[2]){ // less then
+              result = template_logic[3];
+            }
+            if(template_logic[1] == "==" && value == template_logic[2]){ // equal
+              result = template_logic[3];
+            }
+            if(template_logic[1] == "!=" && value != template_logic[2] ){ // not equal
+              result = template_logic[3];
+            }
+            if(template_logic[1] == "><" && value > template_logic[2] && value < template_logic[3]){ // within range (invert order for outside range)
+              result = template_logic[4];
+            }
+
+            layer.options[template_logic[0]] = result;
+            layer.setStyle();//update the layer style
+          }
         }
       }
     }
@@ -468,9 +473,12 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
+    node._dataPoints = data['datapoints'];
     node.on("click", schema_show_Sidebar);
     for (const [key, point] of Object.entries(node._dataPoints)) {
-      socket.emit('register_datapoint', point);
+      for (const [child_key, child_point] of Object.entries(point)) {
+        socket.emit('register_datapoint', child_key);
+      }
     }
 
     schema_in_view.push(data['id']);
@@ -497,8 +505,8 @@ $(document).ready(function() {
     }
     if(obj != null){
       //unregister values in this svg
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
-        socket.emit('unregister_datapoint', point);
+      for (const [key, point] of Object.entries(obj._dataPoints['0'])) {
+        socket.emit('unregister_datapoint', key);
       }
       schema_editableLayers.removeLayer(obj);
       let index = schema_in_view.indexOf(data);
@@ -533,9 +541,9 @@ $(document).ready(function() {
           local_geojsonlayer._layers[local_geoitem].on("click", schema_show_Sidebar);
           local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
-          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-            socket.emit('register_datapoint', point);
-          }
+          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+          //  socket.emit('register_datapoint', point);
+          //}
 
           schema_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           schema_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -553,10 +561,14 @@ $(document).ready(function() {
     if(node == null){
       return;
     }
-    for (const [key, point] of Object.entries(node._dataPoints)) {
-      socket.emit('register_datapoint', point);
-    }
     node.on("click", gis_show_Sidebar);
+    node._dataPoints = data["properties"]['datapoints'];
+    for (const [key, point] of Object.entries(node._dataPoints)) {
+      for (const [child_key, child_point] of Object.entries(point)) {
+        socket.emit('register_datapoint', child_key);
+      }
+    }
+    
 
     gis_in_view.push(data['id']);
 
@@ -581,8 +593,8 @@ $(document).ready(function() {
       }
     }
     if(obj != null){
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
-        socket.emit('unregister_datapoint', point);
+      for (const [key, point] of Object.entries(obj._dataPoints['0'])) {
+        socket.emit('unregister_datapoint', key);
       }
 
       gis_editableLayers.removeLayer(obj);
@@ -617,9 +629,9 @@ $(document).ready(function() {
           local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
           local_geojsonlayer._layers[local_geoitem].on("click", gis_show_Sidebar);
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
-          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-            socket.emit('register_datapoint', point);
-          }
+          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+          //  socket.emit('register_datapoint', point);
+          //}
 
           gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
           gis_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
@@ -668,6 +680,7 @@ function svg_add_to_gis(svgString, svgId, location) {
     svgId,  
     { svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds: 0.000005 }}
   );
+  svg.type = "Svg";
   // add to gis layer
   gis_editableLayers.addLayer(svg);
   return svg;
@@ -863,31 +876,63 @@ function schema_show_Sidebar(e){
   schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   schema_sidebar.show();
-  L.DomEvent.on(schema_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
-    layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
-    if(layer.type==="Feature"){
-      layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
-      layer.setStyle();
-      setGeojsonStyle(layer, layer.feature);
+  let schema_save_fnc_wrap = function(){schema_save_fnc(layer);};
 
-      schema_editedItems({layers:{_layers:{0:layer}}});
-    }
-  });
+  let save_btn = schema_sidebar._container.querySelector('#sidebar-save');
+  let new_save_btn = save_btn.cloneNode(true);
+  save_btn.parentNode.replaceChild(new_save_btn, save_btn);
+
+  L.DomEvent.on(new_save_btn, 'click', schema_save_fnc_wrap);
 }
+
+var schema_save_fnc = function(layer){ 
+  layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
+  if(layer.type==="Feature"){
+    layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
+    layer.setStyle();
+    setGeojsonStyle(layer, layer.feature);
+  }
+  schema_editedItems({"layers":{"_layers":{"0":layer}}});
+
+  schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+};
 
 function gis_show_Sidebar(e){
   let layer = e.target;
   gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   gis_sidebar.show();
-  L.DomEvent.on(gis_sidebar._container.querySelector('#sidebar-save'), 'click', function(){ 
-    layer._dataPoints = JSON.parse(gis_sidebar._container.querySelector('#datapoints_field').value);
-    if(layer.type==="Feature"){
-      layer.options = JSON.parse(gis_sidebar._container.querySelector('#options_field').value);
-      layer.setStyle();
+  let gis_save_fnc_wrap = function(){gis_save_fnc(layer);};
 
-      setGeojsonStyle(layer, layer.feature);
-      gis_editedItems({layers:{_layers:{0:layer}}});
-    }
-  });
+  let save_btn = gis_sidebar._container.querySelector('#sidebar-save');
+  let new_save_btn = save_btn.cloneNode(true);
+  save_btn.parentNode.replaceChild(new_save_btn, save_btn);
+
+  L.DomEvent.on(new_save_btn, 'click', gis_save_fnc_wrap);
+}
+
+var gis_save_fnc = function(layer){ 
+  layer._dataPoints = JSON.parse(gis_sidebar._container.querySelector('#datapoints_field').value);
+  if(layer.type==="Feature"){
+    layer.options = JSON.parse(gis_sidebar._container.querySelector('#options_field').value);
+    layer.setStyle();
+    setGeojsonStyle(layer, layer.feature);
+  }
+  gis_editedItems({"layers":{"_layers":{"0":layer}}});
+
+  gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+};
+
+function abbreviate_number(num, fixed) {
+  if (num === null) { return null; } // terminate early
+  if (num === 0) { return '0'; } // terminate early
+  fixed = (!fixed || fixed < 0) ? 0 : fixed; // number of decimal places to show
+  var b = (num).toPrecision(2).split("e"), // get power
+      k = b.length === 1 ? 0 : Math.floor(Math.min(b[1].slice(1), 14) / 3), // floor at decimals, ceiling at trillions
+      c = k < 1 ? num.toFixed(0 + fixed) : (num / Math.pow(10, k * 3) ).toFixed(1 + fixed), // divide by power
+      d = c < 0 ? c : Math.abs(c), // enforce -0 is 0
+      e = d + ['', 'K', 'M', 'B', 'T'][k]; // append power
+  return e;
 }

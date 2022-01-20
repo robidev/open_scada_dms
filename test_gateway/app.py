@@ -198,19 +198,30 @@ if __name__ == '__main__':
   val1 = 147
   val2 = 41
   val3 = 200
+  toggle = 0
   while True:
     time.sleep(INTERVAL)
     logger.debug("values polled")
     readvaluecallback(config['measuredvaluescaled'][100],{"value":str(val1)})
     readvaluecallback(config['measuredvaluescaled'][101],{"value":str(val2)})
     readvaluecallback(config['measuredvaluescaled'][102],{"value":str(val3)})
+    if (toggle % 4) & 0x01 > 0:
+      readvaluecallback(config['doublepointinformation'][300],{"value":str(1)})
+    else:
+      readvaluecallback(config['doublepointinformation'][300],{"value":str(2)})
+    if (toggle % 4) & 0x02 > 0:
+      readvaluecallback(config['doublepointinformation'][301],{"value":str(1)})
+    else:
+      readvaluecallback(config['doublepointinformation'][301],{"value":str(2)})
     val1 += 1
     val2 += 1
     val3 += 1
+    toggle += 1
     if val1 == 200:
       val1 = 147
       val2 = 41
       val3 = 200
+      toggle = 0
     for key in list(async_rpt):
       val = async_rpt.pop(key)
       logger.debug("%s updated via report" % key)
