@@ -1,12 +1,23 @@
-make drawing-addtions saveable to database
-enable adding of templates
-optimise schema def (size of svg should be in svg-template, not in instance)
-enable dynamic data retrieval from redis/mongo+ subscribe/unsub.
-add info/metadata retrieve+popup display
-lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
+select/operate window
+
 alarm-window
 click to go to location, from alarm-window
+
 event-window
-switch from gis to schema object view
+
+add info/metadata retrieve+sidewindow display
+
 grafana dashboard?
+
+
+lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
 iccp-connector?
+
+> event/alarm schermen:
+>  alarm/ack/close op datapoint
+>  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
+ 
+
+> grafana voor trending datapunten
+
+
