@@ -31,13 +31,13 @@ socketio = SocketIO(app, async_mode=async_mode)
 ################################################
 
 def add_listener(point):
-  global rt_db
+  #global rt_db
   #check redis for point,
-  if rt_db.exists("data:" + point) > 0:
+  #if rt_db.exists("data:" + point) > 0:
     # we allready get all redis data update events, so nothing to be done
     # possibly add psub for point in the future to limit amount of events
     # and/or increase reference count for subscribed data points
-    return "rt"
+  #  return "rt"
 
   #else subscribe for mongodb poll(keep reference count)
   if not point in poll_datapoint:
@@ -51,15 +51,16 @@ def add_listener(point):
 
 
 def remove_listener(point):
+  #global rt_db
   #check redis for point
-  if rt_db.exists("data".point) > 0:
+  #if rt_db.exists("data:" + point) > 0:
     # possibly remove psub for point
     # and/or decrease reference count
-    return "rt"
+  #  return "rt"
 
   #else unsubscribe for mongodb poll(keep reference count)
   if point in poll_datapoint:
-    if poll_datapoint[point] > 0:
+    if poll_datapoint[point]['refCount'] > 0:
       poll_datapoint[point]['refCount'] -= 1
 
   return "poll"
@@ -483,6 +484,8 @@ def worker():
   global redis_event_thread
   socketio.sleep(tick)
   logger.info("worker treat started")
+  interval = 10
+  interval_counter = 0
   while True:
     socketio.sleep(1)
     for point in poll_datapoint:
@@ -502,10 +505,11 @@ def worker():
 
         # check if data changed since last check
         oldValue = poll_datapoint[point]['value']
-        if oldValue != value: # update value, only if value was changed
+        if oldValue != value or interval_counter % interval == 0: # update value, only if value was changed, and every 10 seconds (to keep client in sync)
           poll_datapoint[point]['value'] = value
           poll_dataUpdate(point, value)    
     logger.info("values polled")
+    interval_counter += 1
 
 
 def redis_events():

@@ -1,6 +1,7 @@
 var socket;
 var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
 var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers;
+var local_data_cache;
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
 var CRSPixel = L.Util.extend(L.CRS.Simple, {
@@ -376,6 +377,7 @@ function toggle_view() {
 $(document).ready(function() {
   namespace = '';
   socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+  local_data_cache = {};
   init_gis();
   init_schema();
   document.getElementById("mmi_svg").style.display = "block";
@@ -388,7 +390,7 @@ $(document).ready(function() {
     //console.log("called:" + data.toString());
     let key = data['key'];
     let value = data['value'];
-    console.log("key:" + key.toString() + " value:" + value.toString());
+    //console.log("key:" + key.toString() + " value:" + value.toString());
     // update svg items and geojson in schema
     updateLayers(schema_editableLayers._layers, key, value);
     // update svg items and geojson in gis
@@ -396,6 +398,10 @@ $(document).ready(function() {
   });
 
   var updateLayers = function(layers,key, value){
+    if(local_data_cache[key] == value){
+      return;
+    }
+    local_data_cache[key] = value;
     for(let layer_id in layers){
       let layer = layers[layer_id]
       for (const [d_key, point] of Object.entries(layer._dataPoints)) {
@@ -435,27 +441,26 @@ $(document).ready(function() {
         if(layer.type === "Feature"){
           //template_item is property modification of geojson element. class is used for type of display
           //template_item = {"1":["color","gt","10","#00ff00"]};
-          for (const [template_key, template_logic] of Object.entries(template_item)) {
-            let result = "";
-            if(template_logic[1] == ">" && value > template_logic[2]){ // greater then
-              result = template_logic[3];
-            }
-            if(template_logic[1] == "<" && value < template_logic[2]){ // less then
-              result = template_logic[3];
-            }
-            if(template_logic[1] == "==" && value == template_logic[2]){ // equal
-              result = template_logic[3];
-            }
-            if(template_logic[1] == "!=" && value != template_logic[2] ){ // not equal
-              result = template_logic[3];
-            }
-            if(template_logic[1] == "><" && value > template_logic[2] && value < template_logic[3]){ // within range (invert order for outside range)
-              result = template_logic[4];
-            }
-
-            layer.options[template_logic[0]] = result;
-            layer.setStyle();//update the layer style
+          let result = null;
+          if(template_item[1] == ">" && value > template_item[2]){ // greater then
+            result = template_item[3];
           }
+          if(template_item[1] == "<" && value < template_item[2]){ // less then
+            result = template_item[3];
+          }
+          if(template_item[1] == "==" && value == template_item[2]){ // equal
+            result = template_item[3];
+          }
+          if(template_item[1] == "!=" && value != template_item[2] ){ // not equal
+            result = template_item[3];
+          }
+          if(template_item[1] == "><" && value > template_item[2] && value < template_item[3]){ // within range (invert order for outside range)
+            result = template_item[4];
+          }
+          if(result !== null){
+            layer.options[template_item[0]] = result;
+            layer.setStyle();//update the layer style
+          }        
         }
       }
     }
@@ -482,16 +487,6 @@ $(document).ready(function() {
     }
 
     schema_in_view.push(data['id']);
-
-      //register for all values in loaded svg
-    $("g",node._image).find("*").each(function(idx, el){
-      let cl = el.classList.toString();
-      //console.log("el.id:" + el.id + " cl:"+cl);
-      if(el.id.startsWith("iec60870://") == true){ 
-        if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
-        if(cl == "XSWI"){ $("#open",el)[0].beginElementAt(1.0); }
-      }
-    });
   });
 
   socket.on('svg_object_remove_from_schema', function (data) {
@@ -505,8 +500,10 @@ $(document).ready(function() {
     }
     if(obj != null){
       //unregister values in this svg
-      for (const [key, point] of Object.entries(obj._dataPoints['0'])) {
-        socket.emit('unregister_datapoint', key);
+      for (const [key, point] of Object.entries(obj._dataPoints)) {
+        for (const [child_key, child_point] of Object.entries(point)) {
+          socket.emit('unregister_datapoint', child_key);
+        }
       }
       schema_editableLayers.removeLayer(obj);
       let index = schema_in_view.indexOf(data);
@@ -540,6 +537,11 @@ $(document).ready(function() {
           local_geojsonlayer._layers[local_geoitem].type = "Feature";
           local_geojsonlayer._layers[local_geoitem].on("click", schema_show_Sidebar);
           local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
+          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+            for (const [child_key, child_point] of Object.entries(point)) {
+              socket.emit('register_datapoint', child_key);
+            }
+          }
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
           //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
           //  socket.emit('register_datapoint', point);
@@ -569,18 +571,7 @@ $(document).ready(function() {
       }
     }
     
-
     gis_in_view.push(data['id']);
-
-      //register for all values in loaded svg
-    $("g",node._image).find("*").each(function(idx, el){
-      let cl = el.classList.toString();
-      //console.log("el.id:" + el.id + " cl:"+cl);
-      if(el.id.startsWith("iec60870://") == true){    
-        if(cl == "XCBR"){ $("#close",el)[0].beginElementAt(1.0); }
-        if(cl == "XSWI"){ $("#open",el)[0].beginElementAt(1.0); }
-      }
-    });
   });
 
   socket.on('svg_object_remove_from_gis', function (data) {
@@ -593,8 +584,10 @@ $(document).ready(function() {
       }
     }
     if(obj != null){
-      for (const [key, point] of Object.entries(obj._dataPoints['0'])) {
-        socket.emit('unregister_datapoint', key);
+      for (const [key, point] of Object.entries(obj._dataPoints)) {
+        for (const [child_key, child_point] of Object.entries(point)) {
+          socket.emit('unregister_datapoint', child_key);
+        }
       }
 
       gis_editableLayers.removeLayer(obj);
@@ -626,8 +619,13 @@ $(document).ready(function() {
           // add geojson objects to edit and geojson-layer
           local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
           local_geojsonlayer._layers[local_geoitem].type = "Feature";
-          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
           local_geojsonlayer._layers[local_geoitem].on("click", gis_show_Sidebar);
+          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
+          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+            for (const [child_key, child_point] of Object.entries(point)) {
+              socket.emit('register_datapoint', child_key);
+            }
+          }
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
           //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
           //  socket.emit('register_datapoint', point);
