@@ -21,15 +21,13 @@ function init_schema(){
     mapType: "schema"
   }).setView([0, 0], 17);//setView([0,0], 1);
 
-  L.easyButton('<span style="font-size: 1.5em;">&starf;</span>', toggle_view ).addTo( schema_leafletmap );
-
   schema_editableLayers = new L.FeatureGroup();
   schema_leafletmap.addLayer(schema_editableLayers);
 
   schema_geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
 
   let schema_options = {
-    position: 'topright',
+    position: 'topleft',
     draw: {
       polyline: true,
       polygon: {
@@ -50,9 +48,18 @@ function init_schema(){
     }
   };
   
-  let schema_drawControl = new L.Control.Draw(schema_options);
-  schema_leafletmap.addControl(schema_drawControl);
-
+  var schema_drawControl = new L.Control.Draw(schema_options);
+  var isEditEnabled = false;
+  L.easyButton('fa-globe', function(btn, map){
+    if(isEditEnabled == true){
+      schema_leafletmap.removeControl(schema_drawControl);
+      isEditEnabled = false;
+    }else{
+      schema_leafletmap.addControl(schema_drawControl);
+      isEditEnabled = true;
+    }  
+  }).addTo( schema_leafletmap );
+  //schema_leafletmap.addControl(schema_drawControl);
 
   schema_sidebar = L.control.sidebar('schema_sidebar', {
     position: 'right',
@@ -97,8 +104,6 @@ function init_gis(){
     tileSize: 512,
     zoomOffset: -1,
   }).addTo(gis_leafletmap);//*/
-
-  L.easyButton('<span style="font-size: 1.5em;">&starf;</span>', toggle_view ).addTo( gis_leafletmap );
 
   gis_geojsonlayer = L.geoJSON().addTo(gis_leafletmap);
 
@@ -360,28 +365,21 @@ function gis_removeItems(e){
 }
 
 
-
-
-function toggle_view() {
-  let gis = document.getElementById("gis_map");
-  let schema_div = document.getElementById("mmi_svg");
-  if (gis.style.display === "none") {
-    document.getElementById("mmi_svg").style.display = "none";
-    document.getElementById("gis_map").style.display = "block";
-  } else {
-    document.getElementById("mmi_svg").style.display = "block";
-    document.getElementById("gis_map").style.display = "none";
-  }
-} 
-
 $(document).ready(function() {
   namespace = '';
   socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
   local_data_cache = {};
   init_gis();
   init_schema();
-  document.getElementById("mmi_svg").style.display = "block";
-  document.getElementById("gis_map").style.display = "none";
+  if(document.getElementById("focus").value === "1"){
+    document.getElementById("mmi_svg").style.display = "none";
+    document.getElementById("gis_map").style.display = "block";
+  }
+  else{
+    document.getElementById("mmi_svg").style.display = "block";
+    document.getElementById("gis_map").style.display = "none";
+  }
+
 
   //////////////////////////////////////////////////////////////////////////
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from flask import Flask, render_template, session, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
-from werkzeug.utils import secure_filename
 
 import string
 import logging
@@ -9,6 +8,7 @@ import logging
 import pymongo
 from bson import ObjectId
 import redis
+import uuid
 
 
 async_mode = None #"threading" #"eventlet" None
@@ -25,8 +25,26 @@ poll_datapoint = {}
 
 #webserver
 app = Flask(__name__, template_folder='templates', static_folder='static')
+app.secret_key = 'BAD_SECRET_KEY'
+
+
 socketio = SocketIO(app, async_mode=async_mode)
 
+session_clients = {}
+
+#http calls
+@app.route('/', methods = ['GET'])
+def index():
+  if not 'user_id' in session:
+    client_uuid = uuid.uuid4()
+    session['user_id'] = client_uuid
+    session_clients[client_uuid] = {}
+  focus = str(request.args.get('focus'))
+  if focus == None:
+    focus = "0"
+  return render_template('index.html', async_mode=socketio.async_mode, session=session, user_id = session['user_id'],focus = focus)
+
+  
 
 ################################################
 
@@ -203,12 +221,6 @@ def svg_getTemplate(_):
   return data
 
 ###############################################
-
-#http calls
-@app.route('/', methods = ['GET'])
-def index():
-  return render_template('index.html', async_mode=socketio.async_mode)
-
 
 # web UI: event when client connects
 @socketio.on('connect', namespace='')

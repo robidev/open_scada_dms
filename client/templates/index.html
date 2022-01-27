@@ -97,11 +97,19 @@
       rows="15"></textarea>
       <button id="sidebar-save">Save</button>
   </div>
+  <input type="hidden" id="user_id>" name="user_id" value="{{ user_id }}">
+  <input type="hidden" id="focus" name="focus" value="{{ focus }}">
 
 <main id='main_content'>
 <div class='wrap'>
   <div class="column middle">
     <h2 class='h2 teal'>HMI</h2>	
+    <a href="?focus=0" class="mapButton">schema</a>
+    <a href="?focus=1" class="mapButton">gis</a>
+    <a href="?focus=2" class="mapButton">alarms</a>
+    <a href="?focus=3" class="mapButton">events</a>
+    <a href="?focus=4" class="mapButton">graphs</a>
+    <a href="?focus=5" class="mapButton">logs</a>
     <div class='content'>
       <div id="network" class="network">
         <div id="mmi_svg" style="display:block;"></div>
