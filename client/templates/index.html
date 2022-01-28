@@ -51,52 +51,81 @@
 <body><!--onload="draw()"-->
 
   <div id="schema_sidebar" style="color:black;">
-    <h1>Properties</h1>
-    <textarea style="width:380px;"
-      class="" 
-      id="options_field" 
-      name="options_field" 
-      data-gramm_editor="false" 
-      spellcheck="false" 
-      autofocus="" 
-      placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
-      rows="15"></textarea>
+    <div id="schema_info_panel">
+      <h1>Information</h1>
+      -name- 
+      <div id="schema_info_control">
+        <h1>Control</h1> 
+        element: xx<br>
+        value: <input id="schema_control_value" value="True"><br>
+        <button >select</button>
+        <button >operate</button>
+        <button >cancel</button>
+      </div>
+    </div> 
+    <div id="schema_edit_panel">
+      <h1>Properties</h1>
+      <textarea style="width:380px;"
+        class="" 
+        id="options_field" 
+        name="options_field" 
+        data-gramm_editor="false" 
+        spellcheck="false" 
+        autofocus="" 
+        placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
+        rows="15"></textarea>
       <h2>Data points</h2>
       <textarea style="width:380px;"
-      class="" 
-      id="datapoints_field" 
-      name="datapoints_field" 
-      data-gramm_editor="false" 
-      spellcheck="false" 
-      autofocus="" 
-      placeholder="{&quot;datapoints&quot;:&quot;🎉&quot;}" 
-      rows="15"></textarea>
+        class="" 
+        id="datapoints_field" 
+        name="datapoints_field" 
+        data-gramm_editor="false" 
+        spellcheck="false" 
+        autofocus="" 
+        placeholder="{&quot;datapoints&quot;:&quot;🎉&quot;}" 
+        rows="15"></textarea>
       <button id="sidebar-save">Save</button>
+    </div>
   </div>
 
   <div id="gis_sidebar" style="color:black;">
-    <h1>Properties</h1>
-    <textarea style="width:380px;"
-      class="" 
-      id="options_field" 
-      name="options_field" 
-      data-gramm_editor="false" 
-      spellcheck="false" 
-      autofocus="" 
-      placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
-      rows="15"></textarea>
+    <div id="gis_info_panel">
+      <h1>Information</h1> 
+      -name-
+      <div id="gis_info_control">
+        <h1>Control</h1> 
+        element: xx<br>
+        value: <input id="gis_control_value"  value="True"><br>
+        <button >select</button>
+        <button >operate</button>
+        <button >cancel</button>
+      </div>
+    </div> 
+    <div id="gis_edit_panel">
+      <h1>Properties</h1>
+      <textarea style="width:380px;"
+        class="" 
+        id="options_field" 
+        name="options_field" 
+        data-gramm_editor="false" 
+        spellcheck="false" 
+        autofocus="" 
+        placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
+        rows="15"></textarea>
       <h2>Data points</h2>
       <textarea style="width:380px;"
-      class="" 
-      id="datapoints_field" 
-      name="datapoints_field" 
-      data-gramm_editor="false" 
-      spellcheck="false" 
-      autofocus="" 
-      placeholder="{&quot;datapoints&quot;:&quot;🎉&quot;}" 
-      rows="15"></textarea>
+        class="" 
+        id="datapoints_field" 
+        name="datapoints_field" 
+        data-gramm_editor="false" 
+        spellcheck="false" 
+        autofocus="" 
+        placeholder="{&quot;datapoints&quot;:&quot;🎉&quot;}" 
+        rows="15"></textarea>
       <button id="sidebar-save">Save</button>
+    </div>
   </div>
+
   <input type="hidden" id="user_id>" name="user_id" value="{{ user_id }}">
   <input type="hidden" id="focus" name="focus" value="{{ focus }}">
 

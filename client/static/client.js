@@ -1,6 +1,6 @@
 var socket;
-var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers; 
-var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers;
+var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers, schema_isEditEnabled; 
+var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers, gis_isEditEnabled;
 var local_data_cache;
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
@@ -49,14 +49,18 @@ function init_schema(){
   };
   
   var schema_drawControl = new L.Control.Draw(schema_options);
-  var isEditEnabled = false;
+  schema_isEditEnabled = false;
   L.easyButton('fa-globe', function(btn, map){
-    if(isEditEnabled == true){
+    if(schema_isEditEnabled == true){
       schema_leafletmap.removeControl(schema_drawControl);
-      isEditEnabled = false;
+      document.getElementById("schema_info_panel").style.display = "block";
+      document.getElementById("schema_edit_panel").style.display = "none";
+      schema_isEditEnabled = false;
     }else{
       schema_leafletmap.addControl(schema_drawControl);
-      isEditEnabled = true;
+      document.getElementById("schema_info_panel").style.display = "none";
+      document.getElementById("schema_edit_panel").style.display = "block";
+      schema_isEditEnabled = true;
     }  
   }).addTo( schema_leafletmap );
   //schema_leafletmap.addControl(schema_drawControl);
@@ -70,6 +74,7 @@ function init_schema(){
   L.DomEvent.on(schema_sidebar.getCloseButton(), 'click', function () {
     schema_sidebar.hide();
   });
+
 
 
   schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
@@ -113,7 +118,7 @@ function init_gis(){
   gis_leafletmap.addLayer(gis_editableLayers);
 
   let gis_options = {
-    position: 'topright',
+    position: 'topleft',
     draw: {
       polyline: true,
       polygon: {
@@ -134,7 +139,21 @@ function init_gis(){
     }
   };
   let gis_drawControl = new L.Control.Draw(gis_options);
-  gis_leafletmap.addControl(gis_drawControl);
+  var gis_isEditEnabled = false;
+  L.easyButton('fa-globe', function(){
+    if(gis_isEditEnabled == true){
+      gis_leafletmap.removeControl(gis_drawControl);
+      document.getElementById("gis_info_panel").style.display = "block";
+      document.getElementById("gis_edit_panel").style.display = "none";
+      gis_isEditEnabled = false;
+    }else{
+      gis_leafletmap.addControl(gis_drawControl);
+      document.getElementById("gis_info_panel").style.display = "none";
+      document.getElementById("gis_edit_panel").style.display = "block";
+      gis_isEditEnabled = true;
+    }  
+  }).addTo( gis_leafletmap );
+  //gis_leafletmap.addControl(gis_drawControl);
 
 
   gis_sidebar = L.control.sidebar('gis_sidebar', {
@@ -379,7 +398,20 @@ $(document).ready(function() {
     document.getElementById("mmi_svg").style.display = "block";
     document.getElementById("gis_map").style.display = "none";
   }
-
+  if(schema_isEditEnabled == true){
+    document.getElementById("schema_info_panel").style.display = "none";
+    document.getElementById("schema_edit_panel").style.display = "block";
+  }else{
+    document.getElementById("schema_info_panel").style.display = "block";
+    document.getElementById("schema_edit_panel").style.display = "none";
+  }
+  if(gis_isEditEnabled == true){
+    document.getElementById("gis_info_panel").style.display = "none";
+    document.getElementById("gis_edit_panel").style.display = "block";
+  }else{
+    document.getElementById("gis_info_panel").style.display = "block";
+    document.getElementById("gis_edit_panel").style.display = "none";
+  }
 
   //////////////////////////////////////////////////////////////////////////
 
