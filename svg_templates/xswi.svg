@@ -1,8 +1,8 @@
 <svg width="550" height="510" xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
   <g id="S12/E1/Q1/QB1" class="draggable-group">
     <title>SWI</title>
-    <text id="datapoint_1"     class="MEAS" data-text="DIS: QB1={value}" fill="#ffffff" stroke="#ffffff" x="296" y="314.666538" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal"></text>
-    <rect id="datapoint_3"    class="CSWI" height="19" width="19" y="300.49959" x="256.864387" stroke="#ffffff" fill="#000000"/> 
+    <text id="datapoint_1"     class="MEAS" data-text="DIS: QB1={value}" fill="#00ff00" stroke="#ffffff" x="296" y="314.666538" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">position: {value}</text>
+    <rect id="datapoint_2"    class="CSWI" height="19" width="19" y="300.49959" x="256.864387" stroke="#ffffff" fill="#000000" onclick="open_control(evt,\'datapoint_3\')"/> 
     <line id="datapoint_2"     class="XSWI" stroke="#ffffff" stroke-linecap="undefined" stroke-linejoin="undefined" y2="320" x2="266" y1="300" x1="266" stroke-width="4" fill="none">
         <animateTransform id="open" attributeName="transform" attributeType="XML" type="rotate" to="90 266 310 " dur="100ms" fill="freeze" />
         <animateTransform id="close" attributeName="transform" attributeType="XML" type="rotate" to="0 266 310 " dur="100ms" fill="freeze" />
