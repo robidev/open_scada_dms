@@ -1,7 +1,7 @@
 var socket;
 var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers, schema_isEditEnabled; 
 var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers, gis_isEditEnabled;
-var local_data_cache;
+var local_data_cache, local_data_cache_norefresh;
 
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
 var CRSPixel = L.Util.extend(L.CRS.Simple, {
@@ -388,6 +388,7 @@ $(document).ready(function() {
   namespace = '';
   socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
   local_data_cache = {};
+  local_data_cache_norefresh = {};
   init_gis();
   init_schema();
   if(document.getElementById("focus").value === "1"){
@@ -420,6 +421,12 @@ $(document).ready(function() {
     //console.log("called:" + data.toString());
     let key = data['key'];
     let value = data['value'];
+
+    if(local_data_cache[key] == value && local_data_cache_norefresh[key] == true){
+      return;
+    }
+    local_data_cache[key] = value;
+    local_data_cache_norefresh[key] = true;
     //console.log("key:" + key.toString() + " value:" + value.toString());
     // update svg items and geojson in schema
     updateLayers(schema_editableLayers._layers, key, value);
@@ -428,10 +435,6 @@ $(document).ready(function() {
   });
 
   var updateLayers = function(layers,key, value){
-    if(local_data_cache[key] == value){
-      return;
-    }
-    local_data_cache[key] = value;
     for(let layer_id in layers){
       let layer = layers[layer_id]
       for (const [d_key, point] of Object.entries(layer._dataPoints)) {
@@ -513,8 +516,10 @@ $(document).ready(function() {
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
+        local_data_cache_norefresh[child_key] = false;
       }
     }
+    node._image.layerNode = node;//for onclick events in svg, to find the node back
 
     schema_in_view.push(data['id']);
   });
@@ -570,6 +575,7 @@ $(document).ready(function() {
           for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
             for (const [child_key, child_point] of Object.entries(point)) {
               socket.emit('register_datapoint', child_key);
+              local_data_cache_norefresh[child_key] = false;
             }
           }
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
@@ -598,9 +604,11 @@ $(document).ready(function() {
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
+        local_data_cache_norefresh[child_key] = false;
       }
     }
-    
+    node._image.layerNode = node;//for onclick events in svg, to find the node back
+
     gis_in_view.push(data['id']);
   });
 
@@ -654,6 +662,7 @@ $(document).ready(function() {
           for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
             for (const [child_key, child_point] of Object.entries(point)) {
               socket.emit('register_datapoint', child_key);
+              local_data_cache_norefresh[child_key] = false;
             }
           }
           getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
@@ -901,6 +910,10 @@ function fitSvg(contents, preview){
 
 function schema_show_Sidebar(e){
   let layer = e.target;
+  schema_sidebar._container.querySelector('#schema_info_control').style.display = "none";
+  schema_sidebar._container.querySelector('#schema_control_element').value = "";
+  schema_sidebar._container.querySelector('#schema_control_value').value = "";
+
   schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   schema_sidebar.show();
@@ -928,6 +941,10 @@ var schema_save_fnc = function(layer){
 
 function gis_show_Sidebar(e){
   let layer = e.target;
+  gis_sidebar._container.querySelector('#gis_info_control').style.display = "none";
+  gis_sidebar._container.querySelector('#gis_control_element').value = "";
+  gis_sidebar._container.querySelector('#gis_control_value').value = "";
+
   gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   gis_sidebar.show();
@@ -963,4 +980,60 @@ function abbreviate_number(num, fixed) {
       d = c < 0 ? c : Math.abs(c), // enforce -0 is 0
       e = d + ['', 'K', 'M', 'B', 'T'][k]; // append power
   return e;
+}
+
+function open_control(event,datapoint){
+  let id = datapoint;
+
+  let i = 0;
+  let node = null;
+  object = event.target;
+  while(i < 20 && object){
+    if(object['layerNode']){
+      node = object['layerNode'];
+      break;
+    }
+    object = object.parentNode;
+    i++;
+  }
+  //let nod = this.template_item;
+  let status_point = "";
+  let control_element = "";
+  for (const [key, point] of Object.entries(node._dataPoints)) {
+    for (const [child_key, child_point] of Object.entries(point)) {
+      if(child_point == datapoint){
+        control_element = child_key;
+      }
+      if(child_point == event.target.id){
+        status_point = child_key;
+      }
+    }
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  if(node._map.options.mapType === "schema"){
+    schema_show_Sidebar({target:node});
+    schema_sidebar._container.querySelector('#schema_info_control').style.display = "block";
+    schema_sidebar._container.querySelector('#schema_control_element').value = control_element;
+    schema_sidebar._container.querySelector('#schema_control_value').value = local_data_cache[status_point];
+
+  }
+  if(node._map.options.mapType === "gis"){
+    gis_show_Sidebar({target:node});
+    gis_sidebar._container.querySelector('#gis_info_control').style.display = "block";
+    gis_sidebar._container.querySelector('#gis_control_element').value = control_element;
+    gis_sidebar._container.querySelector('#gis_control_value').value = local_data_cache[status_point];
+  }
+}
+
+function select(element, value) {
+  socket.emit('publish', {'operation': 'select', 'element': element, 'value': value});
+}
+
+function operate(element, value) {
+  socket.emit('publish', {'operation': 'operate', 'element': element, 'value': value});
+}
+
+function cancel(element) {
+  socket.emit('publish', {'operation': 'cancel', 'element': element, 'value': ""});
 }

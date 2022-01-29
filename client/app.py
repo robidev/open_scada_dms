@@ -86,12 +86,16 @@ def remove_listener(point):
 
 def redis_dataUpdate(msg):
   global rt_db
+  if rt_db == None:
+    logger.error("No redis db connected")
+    return
+
   key = msg['channel'][15:]
   data = rt_db.get(key)
   key_u8 = key.decode("utf-8")[5:]
   data_u8 = data.decode("utf-8")
   
-  print("update",key_u8, data_u8)
+  logger.info("update",key_u8, data_u8)
   updateDataPoint( key_u8,data_u8) # emit to clients
 
 
@@ -103,6 +107,10 @@ def poll_dataUpdate(point, data):
 @socketio.on('schema_addItems', namespace='')
 def add_to_schema_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return None
+
   db = mongoclient.scada
   _id = db.schema_objects.insert_one(
     {'w':data['w'],
@@ -119,6 +127,10 @@ def add_to_schema_database(data):
 @socketio.on('schema_addGeojsonItem', namespace='')
 def add_geojson_to_schema_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return None
+
   db = mongoclient.scada
   _id = db.schema_geojson.insert_one({"type": data['type'], "geometry": data["geometry"], "properties": data["properties"]})
     # ensure _id gets retrieved
@@ -128,6 +140,10 @@ def add_geojson_to_schema_database(data):
 @socketio.on('schema_editedItems', namespace='')
 def update_schema_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
   newvalues = {'w':data['w'],
@@ -136,40 +152,53 @@ def update_schema_database(data):
       's':data['s'],
       'datapoints': data['dataPoints'] }
   db.schema_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
-  return
 
 
 @socketio.on('schema_editedGeojsonItems', namespace='')
 def update_schema_geojson_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
   newvalues = {"geometry": data["geometry"], "properties": data["properties"]} # x,y etc.
   #newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.schema_geojson.update_one(myquery, {"$set": newvalues}, False) # update_many()
-  return
 
 
 @socketio.on('schema_removeItems', namespace='')
 def remove_from_schema_database(uuid):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   db.schema_objects.delete_one({'_id':ObjectId(uuid[1:])})
-  return
 
 
 @socketio.on('schema_removeGeojsonItems', namespace='')
 def remove_from_schema_geojson_database(uuid):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   db.schema_geojson.delete_one({'_id':ObjectId(uuid[1:])})
-  return
+
 
 ### GIS ###
 
 @socketio.on('gis_addItem', namespace='')
 def add_to_gis_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return None
+
   db = mongoclient.scada
   if data['type'] == 'Svg':
     _id = db.gis_objects.insert_one({"type": data['type'], "location": data["location"], "properties": data["properties"]})
@@ -181,6 +210,10 @@ def add_to_gis_database(data):
 @socketio.on('gis_editedItems', namespace='')
 def update_gis_database(data):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
   if data['type'] == 'Svg':
@@ -188,28 +221,40 @@ def update_gis_database(data):
   else:
     newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.gis_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
-  return
+
 
 @socketio.on('gis_removeItems', namespace='')
 def remove_from_gis_database(uuid):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
-  return
+
 
 ### templates ###
 
 @socketio.on('svg_addTemplate', namespace='')
 def svg_addTemplate(template):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return
+
   db = mongoclient.scada
   # TODO: prevent nosql injection
   db.svg_templates.insert_one(template)
-  return
+
 
 @socketio.on('svg_getTemplates', namespace='')
 def svg_getTemplate(_):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
+
   db = mongoclient.scada
   cursor = db.svg_templates.find({})
   data = []
@@ -262,7 +307,7 @@ def updateDataPoint(point, data_l):
 # register datapoint for polling/reporting
 @socketio.on('unregister_datapoint', namespace='')
 def unregister_datapoint(data):
-  print("client:" + request.sid)
+  logger.info("client:" + request.sid)
   client = request.sid
   logger.info("unregister datapoint:" + str(data) )
   if not client in clients:
@@ -275,7 +320,7 @@ def unregister_datapoint(data):
 
 @socketio.on('disconnect')
 def disconnect():
-  print('Client disconnected: ' + request.sid )
+  logger.info('Client disconnected: ' + request.sid )
   client = request.sid
   if client in clients:
     del clients[client]
@@ -284,12 +329,15 @@ def disconnect():
 # web UI: load datamodels for registered IED's
 @socketio.on('register_datapoint_finished', namespace='')
 def register_datapoint_finished(data):
-  print(request.sid)
+  logger.info(request.sid)
   logger.info("register datapoint finished")
 
 # load svg schema data
 def query_schema(x1,y1,x2,y2,z):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
@@ -365,6 +413,9 @@ def get_svg_for_schema(data):
 # load svg gis data
 def query_schema_geojson(w,n,e,s,z):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
@@ -395,6 +446,9 @@ def query_schema_geojson(w,n,e,s,z):
 # load svg gis data
 def query_gis_geojson(w,n,e,s,z):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
@@ -425,6 +479,9 @@ def query_gis_geojson(w,n,e,s,z):
 # load svg gis data
 def query_gis_svg(w,n,e,s,z):
   global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
   # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   try:
@@ -492,14 +549,17 @@ def readvaluecallback(key,data):
 #background thread
 def worker():
   global mongoclient
-  global rt_pubsub
-  global redis_event_thread
   socketio.sleep(tick)
-  logger.info("worker treat started")
+  logger.info("polling treat started")
   interval = 10
   interval_counter = 0
   while True:
     socketio.sleep(1)
+    if mongoclient == None:
+      logger.error("no mongodb connection")
+      socketio.sleep(10)
+      continue
+
     for point in poll_datapoint:
       if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
         # query mongodb for possible update
@@ -527,9 +587,13 @@ def worker():
 def redis_events():
   global rt_pubsub
   while True:
+    if rt_pubsub == None:
+      logger.error("no redis connection")
+      socketio.sleep(10)
+      continue
     message = rt_pubsub.get_message()
     if message:
-      print("missed event:" + str(message))
+      logger.warning("missed event:" + str(message))
     else:
       socketio.sleep(0.01)
 
@@ -539,16 +603,37 @@ if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     level=logging.INFO)
 
-  logger.info("started")
+  try:
+    mongoclient = pymongo.MongoClient('localhost', 27017, 
+      username="aaa",
+      password="bbb", 
+      authSource='scada', 
+      authMechanism='SCRAM-SHA-256', 
+      connect=True, 
+      connectTimeoutMS=2000,
+      socketTimeoutMS=2000)
 
-  mongoclient = pymongo.MongoClient('localhost', 27017, username="aaa",password="bbb", authSource='scada', authMechanism='SCRAM-SHA-256')
-  rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+    db = mongoclient.scada
+    cursor = db.data_timeseries.find({}).limit(1) # find newest value
+    for object in cursor:
+      logger.info("connected to mongodb")
 
-  rt_pubsub = rt_db.pubsub()
-  # TODO: should all keys be subscribed separately, and only when used, or filtered in python
-  rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
-  redis_event_thread = socketio.start_background_task(target=redis_events)
+  except:
+    logger.error("could not connect to mongodb")
+    mongoclient = None
 
+  try:
+    rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+    rt_pubsub = rt_db.pubsub()
+    # TODO: should all keys be subscribed separately, and only when used, or filtered in python
+    rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
+    redis_event_thread = socketio.start_background_task(target=redis_events)
+    logger.info("connected to redis")
+  except:
+    logger.error("there is an issue with redis db")
+    rt_db = None
+
+  logger.info("starting webserver")
   socketio.run(app,host="0.0.0.0")
 
 

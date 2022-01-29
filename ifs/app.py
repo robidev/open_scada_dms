@@ -126,6 +126,9 @@ def mongo_watch_changes(stream):
             return False
 
 
+
+################################################################
+
 iecclient = libiec60870client.IEC60870_5_104_client(callback)
 print("start")
 
