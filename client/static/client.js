@@ -913,6 +913,8 @@ function schema_show_Sidebar(e){
   schema_sidebar._container.querySelector('#schema_info_control').style.display = "none";
   schema_sidebar._container.querySelector('#schema_control_element').value = "";
   schema_sidebar._container.querySelector('#schema_control_value').value = "";
+  schema_sidebar._container.querySelector('#schema_info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
+  schema_sidebar._container.querySelector('#schema_info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
 
   schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
@@ -944,6 +946,8 @@ function gis_show_Sidebar(e){
   gis_sidebar._container.querySelector('#gis_info_control').style.display = "none";
   gis_sidebar._container.querySelector('#gis_control_element').value = "";
   gis_sidebar._container.querySelector('#gis_control_value').value = "";
+  gis_sidebar._container.querySelector('#gis_info_items').innerHTML = "Name: " + layer.options.name + "<br>";
+  gis_sidebar._container.querySelector('#gis_info_items').innerHTML += "Description: " + layer.options.description + "<br>";
 
   gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
@@ -970,17 +974,6 @@ var gis_save_fnc = function(layer){
   gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
 };
 
-function abbreviate_number(num, fixed) {
-  if (num === null) { return null; } // terminate early
-  if (num === 0) { return '0'; } // terminate early
-  fixed = (!fixed || fixed < 0) ? 0 : fixed; // number of decimal places to show
-  var b = (num).toPrecision(2).split("e"), // get power
-      k = b.length === 1 ? 0 : Math.floor(Math.min(b[1].slice(1), 14) / 3), // floor at decimals, ceiling at trillions
-      c = k < 1 ? num.toFixed(0 + fixed) : (num / Math.pow(10, k * 3) ).toFixed(1 + fixed), // divide by power
-      d = c < 0 ? c : Math.abs(c), // enforce -0 is 0
-      e = d + ['', 'K', 'M', 'B', 'T'][k]; // append power
-  return e;
-}
 
 function open_control(event,datapoint){
   let id = datapoint;
@@ -1016,13 +1009,14 @@ function open_control(event,datapoint){
     schema_sidebar._container.querySelector('#schema_info_control').style.display = "block";
     schema_sidebar._container.querySelector('#schema_control_element').value = control_element;
     schema_sidebar._container.querySelector('#schema_control_value').value = local_data_cache[status_point];
-
+    schema_sidebar._container.querySelector('#schema_info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
   }
   if(node._map.options.mapType === "gis"){
     gis_show_Sidebar({target:node});
     gis_sidebar._container.querySelector('#gis_info_control').style.display = "block";
     gis_sidebar._container.querySelector('#gis_control_element').value = control_element;
     gis_sidebar._container.querySelector('#gis_control_value').value = local_data_cache[status_point];
+    gis_sidebar._container.querySelector('#gis_info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
   }
 }
 
@@ -1036,4 +1030,17 @@ function operate(element, value) {
 
 function cancel(element) {
   socket.emit('publish', {'operation': 'cancel', 'element': element, 'value': ""});
+}
+
+
+function abbreviate_number(num, fixed) {
+  if (num === null) { return null; } // terminate early
+  if (num === 0) { return '0'; } // terminate early
+  fixed = (!fixed || fixed < 0) ? 0 : fixed; // number of decimal places to show
+  var b = (num).toPrecision(2).split("e"), // get power
+      k = b.length === 1 ? 0 : Math.floor(Math.min(b[1].slice(1), 14) / 3), // floor at decimals, ceiling at trillions
+      c = k < 1 ? num.toFixed(0 + fixed) : (num / Math.pow(10, k * 3) ).toFixed(1 + fixed), // divide by power
+      d = c < 0 ? c : Math.abs(c), // enforce -0 is 0
+      e = d + ['', 'K', 'M', 'B', 'T'][k]; // append power
+  return e;
 }

@@ -1,23 +1,12 @@
-select/operate window
-
-alarm-window
-click to go to location, from alarm-window
-
-event-window
-
-add info/metadata retrieve+sidewindow display
-
-grafana dashboard?
+event/alarm schermen:
+>  alarm/ack/close op datapoint, click to go to location, from alarm-window
+>  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
+ 
+grafana dashboard voor trending datapunten?
 
 
 lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
 iccp-connector?
-
-> event/alarm schermen:
->  alarm/ack/close op datapoint
->  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
- 
-
-> grafana voor trending datapunten
+iec61850 ifs?
 
 

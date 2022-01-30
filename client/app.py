@@ -95,7 +95,7 @@ def redis_dataUpdate(msg):
   key_u8 = key.decode("utf-8")[5:]
   data_u8 = data.decode("utf-8")
   
-  logger.info("update",key_u8, data_u8)
+  logger.info("update: %s %s", str(key_u8), str(data_u8))
   updateDataPoint( key_u8,data_u8) # emit to clients
 
 
@@ -539,11 +539,18 @@ def get_svg_for_gis(data):
   socketio.emit("geojson_object_add_to_gis",geojson )
 
 
-# callbacks from libiec61850client
-# called by client.poll
-def readvaluecallback(key,data):
-  logger.debug("callback: %s - %s" % (key,data))
-  socketio.emit("svg_value_update_event_on_schema",{ 'element' : key, 'data' : data })
+@socketio.on('publish', namespace='')
+def publish_operation(data):
+  global rt_db
+  if data['operation'] == 'select':
+    logger.info("select:" + data['element'] + ">" + data['value'])
+    rt_db.publish("select:" + data['element'],data['value'])
+  if data['operation'] == 'operate':
+    logger.info("operate:" + data['element'] + ">" + data['value'])
+    rt_db.publish("operate:" + data['element'],data['value'])
+  if data['operation'] == 'cancel':  
+    logger.info("cancel:" + data['element'])
+    rt_db.publish("cancel:" + data['element'],"cancel")
 
 
 #background thread

@@ -14,166 +14,24 @@ db = new Mongo().getDB("scada");
 
 db.createCollection("rtu_list");
 db.rtu_list.insert([
-    { "RTU": "127.0.0.1:2404", "enabled":1, "IFS":"IFS_A" },
-    { "RTU": "127.0.0.1:2405", "enabled":0, "IFS":"IFS_A" },
-    { "RTU": "127.0.0.1:2406", "enabled":1, "IFS":"IFS_B" },
-    { "RTU": "172.17.0.1:2404", "enabled":1, "IFS":"IFS_A" },
+	{"_id":{"$oid":"61e085c304de6714b46a6f89"},"RTU":"127.0.0.1:2404","enabled":1,"IFS":"IFS_A"},
+	{"_id":{"$oid":"61e085c304de6714b46a6f8a"},"RTU":"127.0.0.1:2405","enabled":0,"IFS":"IFS_A"},
+	{"_id":{"$oid":"61e085c304de6714b46a6f8b"},"RTU":"127.0.0.1:2406","enabled":1,"IFS":"IFS_B"},
+	{"_id":{"$oid":"61e085c304de6714b46a6f8c"},"RTU":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A"},
 ]);
 
 db.createCollection("data_timeseries");
 
 db.createCollection("svg_templates");
-db.svg_templates.insert([
-    { 
-        "name": "rect", 
-	"viewBox":"0 0 552 512",
-        "datapoint_amount":0,
-        "svg": "<rect fill=\"#000000\" id=\"canvas_background\" height=\"512\" width=\"552\" y=\"0\" x=\"0\"/>"
-    },
-]);
+db.svg_templates.insert([{"_id":{"$oid":"61e08da10c839486ed2ff610"},"name":"feed","viewBox":"199.41453552246094 62.49855422973633 133.1709442138672 31.784664154052734","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <title>Bay 1</title>\n  <text id=\"IFL\" class=\"IFL\" stroke=\"#ffffff\" xml:space=\"preserve\" text-anchor=\"middle\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"80\" x=\"266\" fill=\"#ffffff\">220KV Feed</text>\n  <ellipse id=\"svg_top\" stroke=\"#ffffff\" ry=\"2.424242\" rx=\"2.121212\" cy=\"91.858974\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" fill=\"none\"/>\n</svg>\n"},{"_id":{"$oid":"61e08e444ffdf2e4d17b6d90"},"name":"load","viewBox":"239.43299865722656 320.4365234375 53.13398742675781 66.11099243164062","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <line id=\"S12/E1/W1/BB1\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"360\" x2=\"266\" y1=\"320.436511\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n  <text id=\"LOAD\" class=\"LOAD\" stroke=\"#ffffff\" xml:space=\"preserve\" text-anchor=\"middle\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"380\" x=\"266\" fill=\"#ffffff\">Load</text>\n</svg>\n"},{"_id":{"$oid":"61e08ecee2f933d90bb96b0e"},"name":"volt","viewBox":"296 235.6328887939453 92.7076416015625 12.49447250366211","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/E1/Q1/U1\">\n    <title>VTR</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"Voltage: {value} V\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"244.499945\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\">voltage: {value} V</text>\n  </g>\n</svg>\n"},{"_id":{"$oid":"61e09af4997b79a9453dc5b0"},"name":"ptr","viewBox":"248 93.43472290039062 75.9984130859375 163.0001220703125","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <line id=\"S12/D1/Q1/L1\" class=\"LINE\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"153.934719\" x2=\"266\" y1=\"93.434721\" x1=\"266\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n\n  <g id=\"S12/D1/T1\">\n    <title>PTR</title>\n    <ellipse id=\"svg_T1_a\" ry=\"18\" rx=\"18\" cy=\"171.753014\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n    <text id=\"svg_T1_name\" stroke=\"#ffffff\" xml:space=\"preserve\" text-anchor=\"start\" font-family=\"Helvetica, Arial, sans-serif\" font-size=\"24\" y=\"186.66199\" x=\"296\" stroke-width=\"null\" fill=\"#ffffff\">T1</text>\n    <ellipse id=\"svg_T1_b\" ry=\"18\" rx=\"18\" cy=\"196.290907\" cx=\"266\" fill-opacity=\"null\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"none\"/>\n  </g>\n \n  <line id=\"S12/E1/Q1/L2\" class=\"LINE\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"256.43483\" x2=\"266\" y1=\"214.934859\" x1=\"266\" stroke-width=\"1.5\" fill=\"none\"/>\n</svg>\n"},{"_id":{"$oid":"61e09b59997b79a9453dc5b2"},"name":"ct","viewBox":"291.85107421875 116.38803100585938 91.71145629882812 12.370073318481445","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/D1/Q1/I1\">\n    <title>CTR</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"Current: {value} A\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"291.851085\" y=\"125.166792\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\">current: {value} A</text>\n  </g>\n</svg>\n"},{"_id":{"$oid":"61e09b6e997b79a9453dc5b4"},"name":"xswi","viewBox":"256.8643798828125 300.4996032714844 19 19","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/E1/Q1/QB1\" class=\"draggable-group\">\n    <title>SWI</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"DIS: QB1={value}\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"314.666538\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\"/>\n    <rect id=\"datapoint_3\" class=\"CSWI\" height=\"19\" width=\"19\" y=\"300.49959\" x=\"256.864387\" stroke=\"#ffffff\" fill=\"#000000\"/> \n    <line id=\"datapoint_2\" class=\"XSWI\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"320\" x2=\"266\" y1=\"300\" x1=\"266\" stroke-width=\"4\" fill=\"none\">\n        <animateTransform id=\"open\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"90 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"close\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"0 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"transition\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"45 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"error\" attributeName=\"stroke\" attributeType=\"XML\" to=\"red\" dur=\"100ms\" fill=\"freeze\"/>\n    </line>\n  </g>\n</svg>\n"},{"_id":{"$oid":"61e09b7f997b79a9453dc5b6"},"name":"xcbr","viewBox":"256.3644104003906 257.9464416503906 19.999969482421875 22.55316162109375","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/E1/Q1/QA1\" class=\"draggable-group\">\n    <title>CBR</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"CBR: QA1={value}\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"272.166593\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\"/>\n    <rect id=\"datapoint_2\" class=\"XCBR\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"#ffffff\">\n      <animate id=\"open\" attributeName=\"fill\" attributeType=\"XML\" to=\"black\" dur=\"100ms\" fill=\"freeze\"/>\n      <animate id=\"transition\" attributeName=\"fill\" attributeType=\"XML\" to=\"green\" dur=\"10ms\" fill=\"freeze\"/>\n      <animate id=\"close\" attributeName=\"fill\" attributeType=\"XML\" to=\"white\" dur=\"100ms\" fill=\"freeze\"/> \n      <animate id=\"error\" attributeName=\"fill\" attributeType=\"XML\" to=\"red\" dur=\"10ms\" fill=\"freeze\"/>           \n    </rect>\n    <rect id=\"datapoint_3\" class=\"CSWI\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"none\" fill=\"none\"/>\n  </g>\n</svg>\n"},{"_id":{"$oid":"61f589e15afd2ad4b7d52fcb"},"name":"xswi2","viewBox":"256.8643798828125 300.4996032714844 123.63858032226562 19","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/E1/Q1/QB1\" class=\"draggable-group\">\n    <title>SWI</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"DIS: QB1={value}\" fill=\"#00ff00\" stroke=\"#ffffff\" x=\"296\" y=\"314.666538\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\">position: {value}</text>\n    <rect id=\"datapoint_2\" class=\"CSWI\" height=\"19\" width=\"19\" y=\"300.49959\" x=\"256.864387\" stroke=\"#ffffff\" fill=\"#000000\" onclick=\"open_control(evt,'datapoint_3')\"/> \n    <line id=\"datapoint_2\" class=\"XSWI\" stroke=\"#ffffff\" stroke-linecap=\"undefined\" stroke-linejoin=\"undefined\" y2=\"320\" x2=\"266\" y1=\"300\" x1=\"266\" stroke-width=\"4\" fill=\"none\"  onclick=\"open_control(evt,'datapoint_3')\">\n        <animateTransform id=\"open\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"90 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"close\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"0 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"transition\" attributeName=\"transform\" attributeType=\"XML\" type=\"rotate\" to=\"45 266 310 \" dur=\"100ms\" fill=\"freeze\"/>\n        <animateTransform id=\"error\" attributeName=\"stroke\" attributeType=\"XML\" to=\"red\" dur=\"100ms\" fill=\"freeze\"/>\n    </line>\n  </g>\n</svg>\n"},{"_id":{"$oid":"61f58df020fea500c56e04dc"},"name":"xcbr2","viewBox":"256.3644104003906 257.9464416503906 124.04562377929688 22.55316162109375","svg":"<svg width=\"550\" height=\"510\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vector-effect: non-scaling-stroke;\">\n  <g id=\"S12/E1/Q1/QA1\" class=\"draggable-group\">\n    <title>CBR</title>\n    <text id=\"datapoint_1\" class=\"MEAS\" data-text=\"CBR: QA1={value}\" fill=\"#ffffff\" stroke=\"#ffffff\" x=\"296\" y=\"272.166593\" font-size=\"12\" font-family=\"Helvetica, Arial, sans-serif\" text-anchor=\"start\" xml:space=\"preserve\" font-weight=\"normal\" font-style=\"normal\">position: {value}</text>\n    <rect id=\"datapoint_2\" class=\"CSWI\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"none\" fill=\"none\" onclick=\"open_control(evt,'datapoint_3')\"/>\n    <rect id=\"datapoint_2\" class=\"XCBR\" height=\"22.553162\" width=\"19.999974\" y=\"257.946454\" x=\"256.364398\" stroke-width=\"1.5\" stroke=\"#ffffff\" fill=\"#ffffff\" onclick=\"open_control(evt,'datapoint_3')\">\n      <animate id=\"open\" attributeName=\"fill\" attributeType=\"XML\" to=\"black\" dur=\"100ms\" fill=\"freeze\"/>\n      <animate id=\"transition\" attributeName=\"fill\" attributeType=\"XML\" to=\"green\" dur=\"10ms\" fill=\"freeze\"/>\n      <animate id=\"close\" attributeName=\"fill\" attributeType=\"XML\" to=\"white\" dur=\"100ms\" fill=\"freeze\"/> \n      <animate id=\"error\" attributeName=\"fill\" attributeType=\"XML\" to=\"red\" dur=\"10ms\" fill=\"freeze\"/>           \n    </rect>\n\n  </g>\n</svg>\n"}]);
 
 db.createCollection("schema_objects");
-db.schema_objects.insert([
-    { 
-	"svg": "rect", 
-	"w":0, 
-	"n":0, 
-	"e":552, 
-	"s":512, 
-	"datapoints": { "datapoint_1":"iec60870://111", "datapoint_2":"iec60870://222", "datapoint_3":"iec60870://333" }
-    },
-]);
+db.schema_objects.insert([{"_id":{"$oid":"61e86c6886680760c7683c65"},"w":0.0001874623489379883,"n":-0.00033147611379623414,"e":-0.0002713856887817383,"s":-0.00039331636667251586,"svg":"ct","datapoints":[{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100":"datapoint_1"}]},{"_id":{"$oid":"61e86c8486680760c7683c67"},"w":0.00020136945724487306,"n":-0.00021291117906570436,"e":-0.00026240461349487306,"s":-0.00027537007093429564,"svg":"volt","datapoints":[{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101":"datapoint_1"}]},{"_id":{"$oid":"61f589cf5afd2ad4b7d52fca"},"w":-0.00038416084289550777,"n":-0.00026023696899414063,"e":-0.0010043889617919921,"s":-0.00037300277709960937,"svg":"xcbr2","datapoints":[{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/300":"datapoint_1"},{"iec60870-5-104://127.0.0.1:2404/DoublePointCommand/6000":"datapoint_3"},{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/300":"datapoint_2"}]},{"_id":{"$oid":"61f589e15afd2ad4b7d52fcc"},"w":-0.0004004372406005859,"n":-0.0000745703125,"e":-0.001018630142211914,"s":-0.00016957031250000002,"svg":"xswi2","datapoints":[{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/301":"datapoint_1"},{"iec60870-5-104://127.0.0.1:2404/DoublePointCommand/6001":"datapoint_3"},{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/301":"datapoint_2"}]}]);
+
 
 db.createCollection("schema_geojson");
-db.schema_geojson.insert([
-    {
-      "type": "Feature",
-      "properties": {
-        "id": "gis_1",
-        "stroke": "#ad7fa8",
-        "stroke-width": 2,
-        "stroke-opacity": 1
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            5.842629075050354,
-            51.980789872371176
-          ],
-          [
-            5.841186046600342,
-            51.98081300094364
-          ],
-          [
-            5.841400623321533,
-            51.97933605242088
-          ]
-        ]
-      }
-    },
-]);
+db.schema_geojson.insert([{"_id":{"$oid":"61e726f216af6eae4b3ed8aa"},"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[0.000305,-0.0009],[0.000305,-0.000488],[0.00135,-0.000488],[0.00135,-0.0009],[0.000305,-0.0009]]]},"properties":{"fillEnabled":true,"fill":null,"fill-opacity":0.2,"fillRule":"evenodd","strokeEnabled":true,"stroke":"#0000ff","stroke-width":4,"stroke-opacity":0.5,"stroke-cap":"round","stroke-join":"round","stroke-dashArray":null,"stroke-dashOffset":null,"smoothFactor":1,"noClip":false,"datapoints":[{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100":["color",">","170","#00ffff"]},{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100":["color","<","170","#0000ff"]}]}}]);
 
 
 db.createCollection("gis_objects");
-db.gis_objects.insert([
-    { 
-        "type": "Feature",
-        "properties": {
-	  "type":"Svg",
-	  "svg": "rect", 
-          "dataPoints": { "datapoint_1":"iec60870://111", "datapoint_2":"iec60870://222", "datapoint_3":"iec60870://333" }, 
-        },
-	"geometry": { 
-	  "type": "Point", 
-	  "coordinates": [ 5.84366, 51.978708 ], 
-	  "height": 0.001, 
-	  "width": 0.001 
-        }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "name": "Coors Field",
-        "id": "gis_1",
-        "stroke": "#ad7fa8",
-        "stroke-width": 2,
-        "stroke-opacity": 1
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            5.842629075050354,
-            51.980789872371176
-          ],
-          [
-            5.841186046600342,
-            51.98081300094364
-          ],
-          [
-            5.841400623321533,
-            51.97933605242088
-          ],
-          [
-            5.843364000320434,
-            51.9789891111414
-          ],
-          [
-            5.8451128005981445,
-            51.97930631470222
-          ],
-          [
-            5.845075249671936,
-            51.979986973095556
-          ],
-          [
-            5.843181610107422,
-            51.98002001450193
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "id": "gis_1",
-        "stroke": "#729fcf",
-        "stroke-width": 2,
-        "stroke-opacity": 1,
-        "fill": "#ef2929",
-        "fill-opacity": 0.5
-      },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              5.843503475189209,
-              51.979742465930954
-            ],
-            [
-              5.84347128868103,
-              51.979303010510016
-            ],
-            [
-              5.844458341598511,
-              51.97937570268175
-            ],
-            [
-              5.84447979927063,
-              51.97972594512847
-            ],
-            [
-              5.843911170959473,
-              51.979887848730215
-            ],
-            [
-              5.843503475189209,
-              51.979742465930954
-            ]
-          ]
-        ]
-      }
-    }
-]);
+db.gis_objects.insert([{"_id":{"$oid":"61eb271486281e00c67d948b"},"type":"Feature","geometry":{"type":"LineString","coordinates":[[5.842919,51.979749],[5.844705,51.97966],[5.845035,51.979967]]},"properties":{"fillEnabled":false,"fill":null,"fill-opacity":0.2,"fillRule":"evenodd","strokeEnabled":true,"stroke":"#3388ff","stroke-width":4,"stroke-opacity":0.5,"stroke-cap":"round","stroke-join":"round","stroke-dashArray":null,"stroke-dashOffset":null,"smoothFactor":1,"noClip":false,"datapoints":[{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100":["color",">","170","#00ffff"]},{"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100":["color","<","170","#0000ff"]}]}},{"_id":{"$oid":"61eb2886dc7b89db119745e4"},"type":"Feature","geometry":{"type":"LineString","coordinates":[[5.843603,51.979883],[5.843919,51.979987],[5.843871,51.979823]]},"properties":{"fillEnabled":false,"fill":null,"fill-opacity":0.2,"fillRule":"evenodd","strokeEnabled":true,"stroke":"#3388ff","stroke-width":4,"stroke-opacity":0.5,"stroke-cap":"round","stroke-join":"round","stroke-dashArray":null,"stroke-dashOffset":null,"smoothFactor":1,"noClip":false,"datapoints":{}}},{"_id":{"$oid":"61eb2904dc7b89db119745e5"},"type":"Svg","location":{"type":"Point","coordinates":[5.84323525428772,51.98005305588395],"height":0.0000618402528829165,"width":0.0004588480377201165},"properties":{"svg":"ct","datapoints":[{"iec60870://127.0.0.1:2404.measuredvaluescaled.100":"datapoint_1"}]}},{"_id":{"$oid":"61f5b4a71b4e6672567adcc1"},"type":"Svg","location":{"type":"Point","coordinates":[5.842285752296448,51.98002331864124],"height":0.00009500000000173259,"width":0.0006181929016104704},"properties":{"svg":"xswi2","datapoints":[{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/300":"datapoint_1"},{"iec60870-5-104://127.0.0.1:2404/DoublePointCommand/6000":"datapoint_3"},{"iec60870-5-104://127.0.0.1:2404/DoublePointInformation/300":"datapoint_2"}]}}]);
