@@ -37,6 +37,10 @@
 <script type="text/javascript" src="static/lib/socket.io.js" crossorigin=""></script>
 <script type="text/javascript" src="static/client.js" crossorigin=""></script>
 
+<script type="text/javascript" src="static/client-schema.js" crossorigin=""></script>
+<script type="text/javascript" src="static/client-gis.js" crossorigin=""></script>
+
+
 <style>
   #gis_map { 
     height: 800px; 
@@ -48,22 +52,22 @@
 
 
 </head>
-<body><!--onload="draw()"-->
+<body>
 
-  <div id="schema_sidebar" style="color:black;">
-    <div id="schema_info_panel">
+  <div id="sidebar" style="color:black;">
+    <div id="info_panel">
       <h1>Information</h1>
-      <div id="schema_info_items"></div>
-      <div id="schema_info_control">
+      <div id="info_items"></div>
+      <div id="info_control">
         <h1>Control</h1> 
-        element: <input id="schema_control_element"  value="/"  style="width:400px;"><br>
-        value: <input id="schema_control_value" value="True"><br>
-        <button onclick="select($('#schema_control_element').val(),$('#schema_control_value').val())">select</button>
-        <button onclick="operate($('#schema_control_element').val(),$('#schema_control_value').val())">operate</button>
-        <button onclick="cancel($('#schema_control_element').val())">cancel</button>
+        element: <input id="control_element"  value="/"  style="width:400px;"><br>
+        value: <input id="control_value" value="True"><br>
+        <button onclick="select($('#control_element').val(),$('#control_value').val())">select</button>
+        <button onclick="operate($('#control_element').val(),$('#control_value').val())">operate</button>
+        <button onclick="cancel($('#control_element').val())">cancel</button>
       </div>
     </div> 
-    <div id="schema_edit_panel">
+    <div id="edit_panel">
       <h1>Properties</h1>
       <textarea style="width:380px;"
         class="" 
@@ -88,43 +92,7 @@
     </div>
   </div>
 
-  <div id="gis_sidebar" style="color:black;">
-    <div id="gis_info_panel">
-      <h1>Information</h1> 
-      <div id="gis_info_items"></div>
-      <div id="gis_info_control">
-        <h1>Control</h1> 
-        element: <input id="gis_control_element"  value="/" style="width:400px;"><br>
-        value: <input id="gis_control_value"  value="True"><br>
-        <button onclick="select($('#gis_control_element').val(),$('#gis_control_value').val())">select</button>
-        <button onclick="operate($('#gis_control_element').val(),$('#gis_control_value').val())">operate</button>
-        <button onclick="cancel($('#gis_control_element').val())">cancel</button>
-      </div>
-    </div> 
-    <div id="gis_edit_panel">
-      <h1>Properties</h1>
-      <textarea style="width:380px;"
-        class="" 
-        id="options_field" 
-        name="options_field" 
-        data-gramm_editor="false" 
-        spellcheck="false" 
-        autofocus="" 
-        placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
-        rows="15"></textarea>
-      <h2>Data points</h2>
-      <textarea style="width:380px;"
-        class="" 
-        id="datapoints_field" 
-        name="datapoints_field" 
-        data-gramm_editor="false" 
-        spellcheck="false" 
-        autofocus="" 
-        placeholder="{&quot;datapoints&quot;:&quot;🎉&quot;}" 
-        rows="15"></textarea>
-      <button id="sidebar-save">Save</button>
-    </div>
-  </div>
+
 
   <input type="hidden" id="user_id>" name="user_id" value="{{ user_id }}">
   <input type="hidden" id="focus" name="focus" value="{{ focus }}">
@@ -142,7 +110,6 @@
     <div class='content'>
       <div id="network" class="network">
         <div id="mmi_svg" style="display:block;"></div>
-        <div id="gis_map" style="display:none;"></div>
       </div>
     </div>
   </div>

@@ -1,3 +1,5 @@
+top-bar location indication
+
 event/alarm schermen:
 >  alarm/ack/close op datapoint, click to go to location, from alarm-window
 >  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)

@@ -407,7 +407,7 @@ def get_svg_for_schema(data):
   
   in_view_geojson_schema = query_schema_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
   geojson = [{"type": "FeatureCollection", "features": in_view_geojson_schema }]
-  socketio.emit("geojson_object_add_to_schema",geojson )
+  socketio.emit("geojson_object_add_to_map",geojson )
   
 
 # load svg gis data
@@ -536,7 +536,7 @@ def get_svg_for_gis(data):
 
   in_view_geojson = query_gis_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
   geojson = [{"type": "FeatureCollection", "features": in_view_geojson }]
-  socketio.emit("geojson_object_add_to_gis",geojson )
+  socketio.emit("geojson_object_add_to_map",geojson )
 
 
 @socketio.on('publish', namespace='')

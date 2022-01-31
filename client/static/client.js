@@ -1,421 +1,64 @@
 var socket;
-var schema_leafletmap, schema_sidebar, schema_geojsonlayer, schema_in_view, schema_editableLayers, schema_isEditEnabled; 
-var gis_leafletmap, gis_sidebar, gis_geojsonlayer,gis_in_view, gis_editableLayers, gis_isEditEnabled;
 var local_data_cache, local_data_cache_norefresh;
-
-//https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
-var CRSPixel = L.Util.extend(L.CRS.Simple, {
-	transformation: new L.Transformation(1,0,1,0)
-});
-
-function init_schema(){
-  schema_in_view = [];
-
-  document.getElementById("mmi_svg").style.display = "block";
-  
-  schema_leafletmap = L.map('mmi_svg', { 
-    renderer: L.svg(), 
-    crs: CRSPixel,
-    minZoom: 0,//-5
-    maxZoom: 20,
-    mapType: "schema"
-  }).setView([0, 0], 17);//setView([0,0], 1);
-
-  schema_editableLayers = new L.FeatureGroup();
-  schema_leafletmap.addLayer(schema_editableLayers);
-
-  schema_geojsonlayer = L.geoJSON().addTo(schema_leafletmap);
-
-  let schema_options = {
-    position: 'topleft',
-    draw: {
-      polyline: true,
-      polygon: {
-        allowIntersection: false, // Restricts shapes to simple polygons 
-        drawError: {
-          color: '#e1e100', // Color the shape will turn when intersects 
-          message: '<strong>Error: line intersects!<strong> intersecting polygons are not allowed' // Message that will show when intersect 
-        }
-      },
-      circle: false, // Turns off this drawing tool 
-      rectangle: true,
-      marker: false,
-      circlemarker: false
-    },
-    edit: {
-      featureGroup: schema_editableLayers, //REQUIRED!! 
-      remove: true
-    }
-  };
-  
-  var schema_drawControl = new L.Control.Draw(schema_options);
-  schema_isEditEnabled = false;
-  L.easyButton('fa-globe', function(btn, map){
-    if(schema_isEditEnabled == true){
-      schema_leafletmap.removeControl(schema_drawControl);
-      document.getElementById("schema_info_panel").style.display = "block";
-      document.getElementById("schema_edit_panel").style.display = "none";
-      schema_isEditEnabled = false;
-    }else{
-      schema_leafletmap.addControl(schema_drawControl);
-      document.getElementById("schema_info_panel").style.display = "none";
-      document.getElementById("schema_edit_panel").style.display = "block";
-      schema_isEditEnabled = true;
-    }  
-  }).addTo( schema_leafletmap );
-  //schema_leafletmap.addControl(schema_drawControl);
-
-  schema_sidebar = L.control.sidebar('schema_sidebar', {
-    position: 'right',
-    autoPan: false,
-    closeButton: true,
-  });
-  schema_leafletmap.addControl(schema_sidebar);
-  L.DomEvent.on(schema_sidebar.getCloseButton(), 'click', function () {
-    schema_sidebar.hide();
-  });
-
-
-
-  schema_leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
-  schema_leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
-  schema_leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
-  schema_leafletmap.on('moveend', update_schema);
-  schema_leafletmap.on('zoomend', update_schema);
-
-  //do not update map when editing, to prevent layer modification from database during editing
-  schema_leafletmap.on('draw:editstart', function(){ schema_leafletmap.off('moveend', update_schema);  schema_leafletmap.off('zoomend', update_schema);} );
-  schema_leafletmap.on('draw:editstop', function(){schema_leafletmap.on('moveend', update_schema);  schema_leafletmap.on('zoomend', update_schema);} );
-  schema_leafletmap.on('draw:deletestart', function(){schema_leafletmap.off('moveend', update_schema);  schema_leafletmap.off('zoomend', update_schema);} );
-  schema_leafletmap.on('draw:deletestop', function(){schema_leafletmap.on('moveend', update_schema);  schema_leafletmap.on('zoomend', update_schema);} );
-  schema_leafletmap.setZoom(18);//-5
-}
-
-
-function init_gis(){
-  gis_in_view = [];
-
-  document.getElementById("gis_map").style.display = "block";
-
-  gis_leafletmap = L.map('gis_map', { 
-    renderer: L.svg(),
-    mapType: "gis"
-  }).setView([51.980, 5.842], 17);
-  //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: 'openstreetmap',
-    maxZoom: 20,
-    id: 'openstreetmap',
-    tileSize: 512,
-    zoomOffset: -1,
-  }).addTo(gis_leafletmap);//*/
-
-  gis_geojsonlayer = L.geoJSON().addTo(gis_leafletmap);
-
-  
-  //https://codepen.io/mochaNate/pen/bWNveg
-  gis_editableLayers = new L.FeatureGroup();
-  gis_leafletmap.addLayer(gis_editableLayers);
-
-  let gis_options = {
-    position: 'topleft',
-    draw: {
-      polyline: true,
-      polygon: {
-        allowIntersection: false, // Restricts shapes to simple polygons 
-        drawError: {
-          color: '#e1e100', // Color the shape will turn when intersects 
-          message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
-        }
-      },
-      circle: false, // Turns off this drawing tool 
-      rectangle: true,
-      marker: false,
-      circlemarker: false
-    },
-    edit: {
-      featureGroup: gis_editableLayers, //REQUIRED!! 
-      remove: true
-    }
-  };
-  let gis_drawControl = new L.Control.Draw(gis_options);
-  var gis_isEditEnabled = false;
-  L.easyButton('fa-globe', function(){
-    if(gis_isEditEnabled == true){
-      gis_leafletmap.removeControl(gis_drawControl);
-      document.getElementById("gis_info_panel").style.display = "block";
-      document.getElementById("gis_edit_panel").style.display = "none";
-      gis_isEditEnabled = false;
-    }else{
-      gis_leafletmap.addControl(gis_drawControl);
-      document.getElementById("gis_info_panel").style.display = "none";
-      document.getElementById("gis_edit_panel").style.display = "block";
-      gis_isEditEnabled = true;
-    }  
-  }).addTo( gis_leafletmap );
-  //gis_leafletmap.addControl(gis_drawControl);
-
-
-  gis_sidebar = L.control.sidebar('gis_sidebar', {
-    position: 'right',
-    autoPan: false,
-    closeButton: true,
-  });
-  gis_leafletmap.addControl(gis_sidebar);
-  L.DomEvent.on(gis_sidebar.getCloseButton(), 'click', function () {
-    gis_sidebar.hide();
-  });
-
-
-  //register svg events
-  gis_leafletmap.on(L.Draw.Event.CREATED, gis_addItem);//*/
-  gis_leafletmap.on(L.Draw.Event.EDITED, gis_editedItems);
-  gis_leafletmap.on(L.Draw.Event.DELETED, gis_removeItems);
-  gis_leafletmap.on('moveend', update_gis);
-  gis_leafletmap.on('zoomend', update_gis);
-
-  //ensure layers are not updated from database during editing or removing
-  gis_leafletmap.on('draw:editstart', function(){ gis_leafletmap.off('moveend', update_schema);  gis_leafletmap.off('zoomend', update_schema);} );
-  gis_leafletmap.on('draw:editstop', function(){gis_leafletmap.on('moveend', update_schema);  gis_leafletmap.on('zoomend', update_schema);} );
-  gis_leafletmap.on('draw:deletestart', function(){gis_leafletmap.off('moveend', update_schema);  gis_leafletmap.off('zoomend', update_schema);} );
-  gis_leafletmap.on('draw:deletestop', function(){gis_leafletmap.on('moveend', update_schema);  gis_leafletmap.on('zoomend', update_schema);} );
-  gis_leafletmap.setZoom(18);
-}
-
-
-function schema_addItem(e) {
-  let type = e.layerType, layer = e.layer;
-
-  if (type === 'marker') {
-    layer.bindPopup('A popup!');
-  }
-
-  if (type === 'svg') {
-    layer.type = "Svg";
-    layer.on("click", schema_show_Sidebar);
-    
-    if(layer._newTemplate == true){
-      socket.emit('svg_addTemplate', {
-        'name':layer._templateName,
-        'viewBox': layer._svgViewBox,
-        'svg': layer._url.innerHTML,
-        'datapoint_amount':layer._dataPoints.length
-      });
-    }
-
-    let bounds = layer.getBounds();
-    socket.emit('schema_addItems', {
-      'w':bounds._northEast.lng,
-      'n':bounds._northEast.lat,
-      'e':bounds._southWest.lng,
-      's':bounds._southWest.lat,
-      'svg':layer._templateName, 
-      'dataPoints': layer._dataPoints }, 
-      function(ret){
-        if (!layer.uuid){
-          layer.uuid = ret;
-        }
-      }
-    );
-  }
-  else if (layer.toGeoJSON){ //geojson item
-    layer.type = "Feature";
-    layer._dataPoints = {};
-    layer.on("click", schema_show_Sidebar);
-
-    layer.feature = {"properties":{}};
-    setGeojsonStyle(layer, layer.feature);
-    let geojson = layer.toGeoJSON();
-    geojson["properties"]['datapoints'] = layer._dataPoints;
-    geojson['type'] = layer.type;
-    socket.emit('schema_addGeojsonItem', geojson ,
-    function(ret){
-      if (!layer.uuid){
-        layer.uuid = ret;
-      }
-    });
-  }
-  schema_editableLayers.addLayer(layer);
-}
-
-
-function gis_addItem(e) {
-  let type = e.layerType, layer = e.layer;
-
-  if (type === 'marker') {
-    layer.bindPopup('A popup!');
-  }
-  if (type === 'svg') {
-    layer.type = "Svg";
-    layer.on("click", gis_show_Sidebar);
-
-    if(layer._newTemplate == true){
-      socket.emit('svg_addTemplate', {
-        'name':layer._templateName,
-        'viewBox': layer._svgViewBox,
-        'svg': layer._url.innerHTML,
-        'datapoint_amount':layer._dataPoints.length
-      });
-    }
-    let latlng = layer.getLatLng();
-    let bounds = layer.getBounds();
-    socket.emit('gis_addItem', {
-      'type': "Svg",
-      "location": { "type": "Point", 
-                    "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
-                    "height": bounds._northEast.lat - bounds._southWest.lat, 
-                    "width": bounds._northEast.lng - bounds._southWest.lng
-                  },
-      "properties": {
-                    'svg':layer._templateName, 
-                    'datapoints': layer._dataPoints
-                  }
-      },
-      function(ret){
-        if (!layer.uuid){
-          layer.uuid = ret;
-        }
-      }
-    );
-  }
-  else if (layer.toGeoJSON){ //geojson item
-    layer.type = "Feature";
-    layer.on("click", gis_show_Sidebar);
-    layer._dataPoints = {};
-
-    layer.feature = {"properties":{}};
-    setGeojsonStyle(layer, layer.feature);
-    let geojson = layer.toGeoJSON();
-
-    geojson["properties"]['datapoints'] = layer._dataPoints;
-    geojson['type'] = layer.type;
-    socket.emit('gis_addItem', geojson ,
-    function(ret){
-      if (!layer.uuid){
-        layer.uuid = ret;
-      }
-    });
-  }
-  gis_editableLayers.addLayer(layer);
-}
-
-
-function schema_editedItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    if(layer.type && layer.type === "Feature"){
-      let geojson = layer.toGeoJSON();
-      geojson["properties"]['datapoints'] = layer._dataPoints;
-      //setGeojsonStyle(layer, geojson);
-
-      socket.emit('schema_editedGeojsonItems', {
-        '_id':layer.uuid,
-        'type': layer.type,
-        'geometry':geojson['geometry'],
-        'properties':geojson['properties'],
-      });
-    }
-    else if(layer.type && layer.type === "Svg"){
-      let bounds = layer.getBounds();
-      socket.emit('schema_editedItems', {
-        '_id':layer.uuid,
-        'w':bounds._northEast.lng,
-        'n':bounds._northEast.lat,
-        'e':bounds._southWest.lng,
-        's':bounds._southWest.lat,
-        'dataPoints': layer._dataPoints
-      });
-    }
-  }
-}
-
-
-
-function gis_editedItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    if(layer.type && layer.type === "Feature"){
-      let geojson = layer.toGeoJSON();
-      geojson["properties"]['datapoints'] = layer._dataPoints;
-      //setGeojsonStyle(layer, geojson);
-
-      socket.emit('gis_editedItems', {
-        '_id':layer.uuid,
-        'type': layer.type,
-        'geometry':geojson['geometry'],
-        'properties':geojson['properties'],
-      });
-    }
-    else if(layer.type && layer.type === "Svg"){
-      let latlng = layer.getLatLng();
-      let bounds = layer.getBounds();
-      socket.emit('gis_editedItems', {
-        '_id':layer.uuid,
-        'type': layer.type,
-        "location": { "type": "Point", 
-                      "coordinates": [ latlng.lng, latlng.lat ], //coords are switched position from leaflet in geojson
-                      "height": bounds._northEast.lat - bounds._southWest.lat, 
-                      "width": bounds._northEast.lng - bounds._southWest.lng, 
-                    },
-        "properties": {
-          'datapoints': layer._dataPoints
-        } 
-      });
-    }
-  }
-}
-
-
-
-function schema_removeItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    if(layer.type && layer.type === "Feature"){
-      socket.emit('schema_removeGeojsonItems', layer.uuid);
-    }
-    else if(layer.type && layer.type === "Svg"){
-      socket.emit('schema_removeItems', layer.uuid);
-    }
-  }
-}
-
-
-function gis_removeItems(e){
-  for (const [key, layer] of Object.entries(e.layers._layers)) {
-    socket.emit('gis_removeItems', layer.uuid);
-  }
-}
+var sidebar, leafletmap, isEditEnabled, editableLayers, geojsonlayer;
 
 
 $(document).ready(function() {
-  namespace = '';
-  socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
   local_data_cache = {};
   local_data_cache_norefresh = {};
-  init_gis();
-  init_schema();
+  namespace = '';
+
+  socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+
   if(document.getElementById("focus").value === "1"){
-    document.getElementById("mmi_svg").style.display = "none";
-    document.getElementById("gis_map").style.display = "block";
-  }
-  else{
-    document.getElementById("mmi_svg").style.display = "block";
-    document.getElementById("gis_map").style.display = "none";
-  }
-  if(schema_isEditEnabled == true){
-    document.getElementById("schema_info_panel").style.display = "none";
-    document.getElementById("schema_edit_panel").style.display = "block";
+    init_gis();
   }else{
-    document.getElementById("schema_info_panel").style.display = "block";
-    document.getElementById("schema_edit_panel").style.display = "none";
+    init_schema();
   }
-  if(gis_isEditEnabled == true){
-    document.getElementById("gis_info_panel").style.display = "none";
-    document.getElementById("gis_edit_panel").style.display = "block";
-  }else{
-    document.getElementById("gis_info_panel").style.display = "block";
-    document.getElementById("gis_edit_panel").style.display = "none";
-  }
+  init();
 
   //////////////////////////////////////////////////////////////////////////
 
+  socket.on('geojson_object_add_to_map', function (json) {
+    //add geojson to object
+    if (json) {
+      let local_geojsonlayer = L.geoJSON();
+
+      // parse the json into leaflet layers
+      local_geojsonlayer.addData(json);
+      //find what layer allready exist
+      for(let local_geoitem in local_geojsonlayer._layers){
+        let found = false;
+        for(let edititem in editableLayers._layers){
+          if(editableLayers._layers[edititem].feature && 
+              editableLayers._layers[edititem].feature._id === local_geojsonlayer._layers[local_geoitem].feature._id){
+            found = true;
+            break;
+          }
+        }
+        if(found == false){// if geojson is not found,
+          // add geojson objects to edit and geojson-layer
+          local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
+          local_geojsonlayer._layers[local_geoitem].type = "Feature";
+          local_geojsonlayer._layers[local_geoitem].on("click", show_Sidebar);
+          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
+          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+            for (const [child_key, child_point] of Object.entries(point)) {
+              socket.emit('register_datapoint', child_key);
+              local_data_cache_norefresh[child_key] = false;
+            }
+          }
+          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
+          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+          //  socket.emit('register_datapoint', point);
+          //}
+
+          editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
+          geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
+        }
+      }
+    }
+  });
 
   socket.on('updateDataPoint', function (data) { 
     //console.log("called:" + data.toString());
@@ -428,10 +71,8 @@ $(document).ready(function() {
     local_data_cache[key] = value;
     local_data_cache_norefresh[key] = true;
     //console.log("key:" + key.toString() + " value:" + value.toString());
-    // update svg items and geojson in schema
-    updateLayers(schema_editableLayers._layers, key, value);
-    // update svg items and geojson in gis
-    updateLayers(gis_editableLayers._layers, key, value);
+    // update svg items and geojson
+    updateLayers(editableLayers._layers, key, value);
   });
 
   var updateLayers = function(layers,key, value){
@@ -497,233 +138,73 @@ $(document).ready(function() {
         }
       }
     }
-  }
-
-  //////////////////////////////////////////////////////////////////////////
-
-
-  socket.on('svg_object_add_to_schema', function (data) {
-    //add svg to object
-    if(schema_in_view.includes(data['id'])){
-      return;
-    }
-    node = svg_add_to_schema(data['w'],data['n'],data['e'],data['s'],data['svg'],data['id']);
-    if(node == null){
-      return;
-    }
-    node._dataPoints = data['datapoints'];
-    node.on("click", schema_show_Sidebar);
-    for (const [key, point] of Object.entries(node._dataPoints)) {
-      for (const [child_key, child_point] of Object.entries(point)) {
-        socket.emit('register_datapoint', child_key);
-        local_data_cache_norefresh[child_key] = false;
-      }
-    }
-    node._image.layerNode = node;//for onclick events in svg, to find the node back
-
-    schema_in_view.push(data['id']);
-  });
-
-  socket.on('svg_object_remove_from_schema', function (data) {
-    //remove svg from object
-    let obj = null
-    for(let item in schema_editableLayers._layers){
-      if(schema_editableLayers._layers[item].uuid === data){
-          obj = schema_editableLayers._layers[item];
-          break; 
-      }
-    }
-    if(obj != null){
-      //unregister values in this svg
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
-        for (const [child_key, child_point] of Object.entries(point)) {
-          socket.emit('unregister_datapoint', child_key);
-        }
-      }
-      schema_editableLayers.removeLayer(obj);
-      let index = schema_in_view.indexOf(data);
-      if (index > -1) {
-        schema_in_view.splice(index, 1);
-      }
-    }
-
-  });
-
-  socket.on('geojson_object_add_to_schema', function (json) {
-    //add geojson to object
-    if (json) {
-      let local_geojsonlayer = L.geoJSON();
-
-      // parse the json into leaflet layers
-      local_geojsonlayer.addData(json);
-      //find what layer allready exist
-      for(let local_geoitem in local_geojsonlayer._layers){
-        let found = false;
-        for(let edititem in schema_editableLayers._layers){
-          if(schema_editableLayers._layers[edititem].feature && 
-            schema_editableLayers._layers[edititem].feature._id === local_geojsonlayer._layers[local_geoitem].feature._id){
-            found = true;
-            break;
-          }
-        }
-        if(found == false){// if geojson is not found,
-          // add geojson objects to edit and geojson-layer
-          local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
-          local_geojsonlayer._layers[local_geoitem].type = "Feature";
-          local_geojsonlayer._layers[local_geoitem].on("click", schema_show_Sidebar);
-          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
-          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-            for (const [child_key, child_point] of Object.entries(point)) {
-              socket.emit('register_datapoint', child_key);
-              local_data_cache_norefresh[child_key] = false;
-            }
-          }
-          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
-          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-          //  socket.emit('register_datapoint', point);
-          //}
-
-          schema_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
-          schema_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
-        }
-      }
-		}
-  });
-
-  socket.on('svg_object_add_to_gis', function (data) {
-    //add svg to object
-    if(gis_in_view.includes(data['id'])){
-      return;
-    }
-    let node = svg_add_to_gis(data['svg'],data['id'],data['location']);
-    if(node == null){
-      return;
-    }
-    node.on("click", gis_show_Sidebar);
-    node._dataPoints = data["properties"]['datapoints'];
-    for (const [key, point] of Object.entries(node._dataPoints)) {
-      for (const [child_key, child_point] of Object.entries(point)) {
-        socket.emit('register_datapoint', child_key);
-        local_data_cache_norefresh[child_key] = false;
-      }
-    }
-    node._image.layerNode = node;//for onclick events in svg, to find the node back
-
-    gis_in_view.push(data['id']);
-  });
-
-  socket.on('svg_object_remove_from_gis', function (data) {
-    //remove svg from object
-    let obj = null
-    for(let item in gis_editableLayers._layers){
-      if(gis_editableLayers._layers[item].uuid === data){
-          obj = gis_editableLayers._layers[item];
-          break; // If you want to break out of the loop once you've found a match
-      }
-    }
-    if(obj != null){
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
-        for (const [child_key, child_point] of Object.entries(point)) {
-          socket.emit('unregister_datapoint', child_key);
-        }
-      }
-
-      gis_editableLayers.removeLayer(obj);
-      let index = gis_in_view.indexOf(data);
-      if (index > -1) {
-        gis_in_view.splice(index, 1);
-      }
-    }
-  });
-
-  socket.on('geojson_object_add_to_gis', function (json) {
-    //add geojson to object
-    if (json) {
-      let local_geojsonlayer = L.geoJSON();
-
-      // parse the json into leaflet layers
-      local_geojsonlayer.addData(json);
-      //find what layer allready exist
-      for(let local_geoitem in local_geojsonlayer._layers){
-        let found = false;
-        for(let edititem in gis_editableLayers._layers){
-          if(gis_editableLayers._layers[edititem].feature && 
-              gis_editableLayers._layers[edititem].feature._id === local_geojsonlayer._layers[local_geoitem].feature._id){
-            found = true;
-            break;
-          }
-        }
-        if(found == false){// if geojson is not found,
-          // add geojson objects to edit and geojson-layer
-          local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
-          local_geojsonlayer._layers[local_geoitem].type = "Feature";
-          local_geojsonlayer._layers[local_geoitem].on("click", gis_show_Sidebar);
-          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
-          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-            for (const [child_key, child_point] of Object.entries(point)) {
-              socket.emit('register_datapoint', child_key);
-              local_data_cache_norefresh[child_key] = false;
-            }
-          }
-          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
-          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-          //  socket.emit('register_datapoint', point);
-          //}
-
-          gis_editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
-          gis_geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
-        }
-      }
-		}
-  });
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
+  };
 });
 
-var update_schema = function(){ 
-  zoom = schema_leafletmap.getZoom();
-  bounds = schema_leafletmap.getBounds();
-  socket.emit('get_svg_for_schema', {'w': bounds.getWest(), 'n': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'e': bounds.getEast(), 's': bounds.getNorth()});
-} 
+function init(){
+  geojsonlayer = L.geoJSON().addTo(leafletmap);
 
-var update_gis = function(){ 
-  zoom = gis_leafletmap.getZoom();
-  bounds = gis_leafletmap.getBounds();
-  socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
-} 
+  //https://codepen.io/mochaNate/pen/bWNveg
+  editableLayers = new L.FeatureGroup();
+  leafletmap.addLayer(editableLayers);
+
+  let options = {
+    position: 'topleft',
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false, // Restricts shapes to simple polygons 
+        drawError: {
+          color: '#e1e100', // Color the shape will turn when intersects 
+          message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
+        }
+      },
+      circle: false, // Turns off this drawing tool 
+      rectangle: true,
+      marker: false,
+      circlemarker: false
+    },
+    edit: {
+      featureGroup: editableLayers, //REQUIRED!! 
+      remove: true
+    }
+  };
+  let drawControl = new L.Control.Draw(options);
+  var isEditEnabled = false;
+  document.getElementById("info_panel").style.display = "block";
+  document.getElementById("edit_panel").style.display = "none";
+
+  L.easyButton('fa-globe', function(){
+    if(isEditEnabled == true){
+      leafletmap.removeControl(drawControl);
+      document.getElementById("info_panel").style.display = "block";
+      document.getElementById("edit_panel").style.display = "none";
+      isEditEnabled = false;
+    }else{
+      leafletmap.addControl(drawControl);
+      document.getElementById("info_panel").style.display = "none";
+      document.getElementById("edit_panel").style.display = "block";
+      isEditEnabled = true;
+    }  
+  }).addTo( leafletmap );
 
 
-function svg_add_to_schema(w, n, e, s, svgString, svgId) {
-  let svg = new L.SvgObject(svgString, L.latLngBounds([[n,w],[s,e]]), svgId,{ svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds:  0.000005/*1.0*/ }});
-  svg.type = "Svg";
-  schema_editableLayers.addLayer(svg);
-  return svg;
+  sidebar = L.control.sidebar('sidebar', {
+    position: 'right',
+    autoPan: false,
+    closeButton: true,
+  });
+  leafletmap.addControl(sidebar);
+  L.DomEvent.on(sidebar.getCloseButton(), 'click', function () {
+    sidebar.hide();
+  });
+
+  leafletmap.on('draw:editstart',   function() { sidebar.hide(); sidebar.removeFrom(leafletmap); } );
+  leafletmap.on('draw:editstop',    function() { sidebar.hide(); sidebar.addTo(leafletmap); } );
+  leafletmap.on('draw:deletestart', function() { sidebar.hide(); sidebar.removeFrom(leafletmap); } );
+  leafletmap.on('draw:deletestop',  function() { sidebar.hide(); sidebar.addTo(leafletmap); } );
+
 }
-
-function svg_add_to_gis(svgString, svgId, location) {
-  // correct leaflet size+latlng based on gis coordinate system (by ajusting bounds)
-  let hheight = location['height']/2;
-  let hwidth = location['width']/2;
-  let longtitude = location['coordinates'][0];
-  let latitude = location['coordinates'][1];
-
-  // set svg viewbox with x,y,x2,y2 (i.e. 0,0,512,512). as a side-effect, the leaflet bounds on map are also set to this by default
-  let svg = new L.SvgObject(
-    svgString, 
-    L.latLngBounds([ [ latitude-hheight,longtitude-hwidth], [ latitude+hheight,longtitude+hwidth ] ]), 
-    svgId,  
-    { svgViewBox:{ viewBox: "calculate", fitBounds: false, scaleBounds: 0.000005 }}
-  );
-  svg.type = "Svg";
-  // add to gis layer
-  gis_editableLayers.addLayer(svg);
-  return svg;
-}
-
-/////////////////////////////////////////////////////////////////////////////
 
 
 function setGeojsonStyle(layer, geojson){
@@ -886,7 +367,7 @@ L.Draw.Svg.include({
           }
         });
       });
-	}
+   }
 });
 
 function fitSvg(contents, preview){
@@ -907,72 +388,47 @@ function fitSvg(contents, preview){
 }
 
 
-
-function schema_show_Sidebar(e){
+function show_Sidebar(e){
   let layer = e.target;
-  schema_sidebar._container.querySelector('#schema_info_control').style.display = "none";
-  schema_sidebar._container.querySelector('#schema_control_element').value = "";
-  schema_sidebar._container.querySelector('#schema_control_value').value = "";
-  schema_sidebar._container.querySelector('#schema_info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
-  schema_sidebar._container.querySelector('#schema_info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
+  sidebar._container.querySelector('#info_control').style.display = "none";
+  sidebar._container.querySelector('#control_element').value = "";
+  sidebar._container.querySelector('#control_value').value = "";
+  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
+  sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
 
-  schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
-  schema_sidebar.show();
-  let schema_save_fnc_wrap = function(){schema_save_fnc(layer);};
+  sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  sidebar.show();
+  let save_fnc_wrap = function(){save_fnc(layer);};
 
-  let save_btn = schema_sidebar._container.querySelector('#sidebar-save');
+  let save_btn = sidebar._container.querySelector('#sidebar-save');
   let new_save_btn = save_btn.cloneNode(true);
   save_btn.parentNode.replaceChild(new_save_btn, save_btn);
 
-  L.DomEvent.on(new_save_btn, 'click', schema_save_fnc_wrap);
+  L.DomEvent.on(new_save_btn, 'click', save_fnc_wrap);
 }
 
-var schema_save_fnc = function(layer){ 
-  layer._dataPoints = JSON.parse(schema_sidebar._container.querySelector('#datapoints_field').value);
+var save_fnc = function(layer){ 
+  layer._dataPoints = JSON.parse(sidebar._container.querySelector('#datapoints_field').value);
   if(layer.type==="Feature"){
-    layer.options = JSON.parse(schema_sidebar._container.querySelector('#options_field').value);
+    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value);
     layer.setStyle();
     setGeojsonStyle(layer, layer.feature);
   }
-  schema_editedItems({"layers":{"_layers":{"0":layer}}});
 
-  schema_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  schema_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
-};
-
-function gis_show_Sidebar(e){
-  let layer = e.target;
-  gis_sidebar._container.querySelector('#gis_info_control').style.display = "none";
-  gis_sidebar._container.querySelector('#gis_control_element').value = "";
-  gis_sidebar._container.querySelector('#gis_control_value').value = "";
-  gis_sidebar._container.querySelector('#gis_info_items').innerHTML = "Name: " + layer.options.name + "<br>";
-  gis_sidebar._container.querySelector('#gis_info_items').innerHTML += "Description: " + layer.options.description + "<br>";
-
-  gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
-  gis_sidebar.show();
-  let gis_save_fnc_wrap = function(){gis_save_fnc(layer);};
-
-  let save_btn = gis_sidebar._container.querySelector('#sidebar-save');
-  let new_save_btn = save_btn.cloneNode(true);
-  save_btn.parentNode.replaceChild(new_save_btn, save_btn);
-
-  L.DomEvent.on(new_save_btn, 'click', gis_save_fnc_wrap);
-}
-
-var gis_save_fnc = function(layer){ 
-  layer._dataPoints = JSON.parse(gis_sidebar._container.querySelector('#datapoints_field').value);
-  if(layer.type==="Feature"){
-    layer.options = JSON.parse(gis_sidebar._container.querySelector('#options_field').value);
-    layer.setStyle();
-    setGeojsonStyle(layer, layer.feature);
+  if(node._map.options.mapType === "schema"){
+    schema_editedItems({"layers":{"_layers":{"0":layer}}});
   }
-  gis_editedItems({"layers":{"_layers":{"0":layer}}});
+  else{
+    gis_editedItems({"layers":{"_layers":{"0":layer}}});
+  }
 
-  gis_sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  gis_sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+  sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
 };
+
+
+
 
 
 function open_control(event,datapoint){
@@ -1004,20 +460,14 @@ function open_control(event,datapoint){
   }
   event.preventDefault();
   event.stopPropagation();
-  if(node._map.options.mapType === "schema"){
-    schema_show_Sidebar({target:node});
-    schema_sidebar._container.querySelector('#schema_info_control').style.display = "block";
-    schema_sidebar._container.querySelector('#schema_control_element').value = control_element;
-    schema_sidebar._container.querySelector('#schema_control_value').value = local_data_cache[status_point];
-    schema_sidebar._container.querySelector('#schema_info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
-  }
-  if(node._map.options.mapType === "gis"){
-    gis_show_Sidebar({target:node});
-    gis_sidebar._container.querySelector('#gis_info_control').style.display = "block";
-    gis_sidebar._container.querySelector('#gis_control_element').value = control_element;
-    gis_sidebar._container.querySelector('#gis_control_value').value = local_data_cache[status_point];
-    gis_sidebar._container.querySelector('#gis_info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
-  }
+
+  show_Sidebar({target:node});
+  sidebar._container.querySelector('#info_control').style.display = "block";
+  sidebar._container.querySelector('#control_element').value = control_element;
+  sidebar._container.querySelector('#control_value').value = local_data_cache[status_point];
+  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
+
+
 }
 
 function select(element, value) {
