@@ -8,7 +8,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href="static/css/layout.css" rel="stylesheet" type="text/css"></link>
+<!--Add jquery -->
+<script type="text/javascript" src="static/lib/jquery-3.5.1.min.js" crossorigin=""></script>
+
 <!--Add leaflet -->
 <link href="static/css/leaflet.css" rel="stylesheet" crossorigin=""/>
 <script src="static/lib/leaflet-src.js" crossorigin=""></script>
@@ -33,28 +35,25 @@
 <script src='static/lib/leaflet.draw.svg.js' crossorigin=""></script>
 <link href='static/css/leaflet.draw.svg.css' rel='stylesheet' crossorigin=""/>
 
-<script type="text/javascript" src="static/lib/jquery-3.5.1.min.js" crossorigin=""></script>
-<script type="text/javascript" src="static/lib/socket.io.js" crossorigin=""></script>
-<script type="text/javascript" src="static/client.js" crossorigin=""></script>
+<!--Add tabulator code-->
+<link href="static/css/tabulator/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="static/lib/tabulator/tabulator.min.js"></script>
 
+<!--general and override css-->
+<link href="static/css/layout.css" rel="stylesheet" type="text/css"></link>
+
+<!--Add socketio-->
+<script type="text/javascript" src="static/lib/socket.io.js" crossorigin=""></script>
+
+<!--main code-->
+<script type="text/javascript" src="static/client.js" crossorigin=""></script>
+<!-- map specific code-->
 <script type="text/javascript" src="static/client-schema.js" crossorigin=""></script>
 <script type="text/javascript" src="static/client-gis.js" crossorigin=""></script>
 
-
-<style>
-  #gis_map { 
-    height: 800px; 
-  }
-  #mmi_svg { 
-    height: 800px; 
-  }
-</style>
-
-
 </head>
 <body>
-
-  <div id="sidebar" style="color:black;">
+  <div id="sidebar" style="color:black; display:none;">
     <div id="info_panel">
       <h1>Information</h1>
       <div id="info_items"></div>
@@ -92,29 +91,23 @@
     </div>
   </div>
 
-
-
   <input type="hidden" id="user_id>" name="user_id" value="{{ user_id }}">
   <input type="hidden" id="focus" name="focus" value="{{ focus }}">
 
-<main id='main_content'>
-<div class='wrap'>
-  <div class="column middle">
-    <h2 class='h2 teal'>HMI</h2>	
-    <a href="?focus=0" class="mapButton">schema</a>
-    <a href="?focus=1" class="mapButton">gis</a>
-    <a href="?focus=2" class="mapButton">alarms</a>
-    <a href="?focus=3" class="mapButton">events</a>
-    <a href="?focus=4" class="mapButton">graphs</a>
-    <a href="?focus=5" class="mapButton">logs</a>
-    <div class='content'>
-      <div id="network" class="network">
-        <div id="mmi_svg" style="display:block;"></div>
+  <div class='wrap'>
+    <div class="column middle">
+      <h2 class='h2 teal'>HMI</h2>	
+      <a href="?focus=0" class="mapButton">schema</a>
+      <a href="?focus=1" class="mapButton">gis</a>
+      <a href="?focus=2" class="mapButton">alarms</a>
+      <a href="?focus=3" class="mapButton">events</a>
+      <a href="?focus=4" class="mapButton">graphs</a>
+      <a href="?focus=5" class="mapButton">logs</a>
+      <div class='content'>
+        <div id="mmi_svg" style="display:block; height: 800px; "></div>
       </div>
     </div>
   </div>
-</div>
-</main>
 </body>
 </html>
 

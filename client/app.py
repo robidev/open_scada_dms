@@ -20,6 +20,7 @@ clients = {}
 rt_pubsub = None
 redis_event_thread = None
 rt_db = None
+get_value = None
 
 poll_datapoint = {}
 
@@ -83,24 +84,6 @@ def remove_listener(point):
 
   return "poll"
 
-
-def redis_dataUpdate(msg):
-  global rt_db
-  if rt_db == None:
-    logger.error("No redis db connected")
-    return
-
-  key = msg['channel'][15:]
-  data = rt_db.get(key)
-  key_u8 = key.decode("utf-8")[5:]
-  data_u8 = data.decode("utf-8")
-  
-  logger.info("update: %s %s", str(key_u8), str(data_u8))
-  updateDataPoint( key_u8,data_u8) # emit to clients
-
-
-def poll_dataUpdate(point, data):
-  updateDataPoint(point,data) # emit to clients
 
 ###############################################
 
@@ -553,9 +536,40 @@ def publish_operation(data):
     rt_db.publish("cancel:" + data['element'],"cancel")
 
 
+#######################################################################
+
+
+def redis_dataUpdate(msg):
+  global rt_db
+  if rt_db == None:
+    logger.error("No redis db connected")
+    return
+
+  key = msg['channel'][15:]
+  data = rt_db.get(key)
+  key_u8 = key.decode("utf-8")[5:]
+  data_u8 = data.decode("utf-8")
+  
+  logger.info("update: %s %s", str(key_u8), str(data_u8))
+  updateDataPoint( key_u8,data_u8) # emit to clients
+
+
+def poll_dataUpdate(point, data):
+  updateDataPoint(point,data) # emit to clients
+
+
+def mongodb_get_value(point):
+  global mongoclient
+  # query mongodb for possible update
+  db = mongoclient.scada
+  cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
+  for object in cursor:
+    return object['value']
+  return None
+
+
 #background thread
 def worker():
-  global mongoclient
   socketio.sleep(tick)
   logger.info("polling treat started")
   interval = 10
@@ -569,17 +583,8 @@ def worker():
 
     for point in poll_datapoint:
       if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
-        # query mongodb for possible update
-        db = mongoclient.scada
-        data = None
-        cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
-        for object in cursor:
-          data = object
-          break
-
-        if data:
-          value = data['value']
-        else: # if value is not in mongodb, just give up (for now)
+        value = get_value(point)
+        if value == None:
           value = 'UNKNOWN'
 
         # check if data changed since last check
@@ -640,8 +645,34 @@ if __name__ == '__main__':
     logger.error("there is an issue with redis db")
     rt_db = None
 
+  # get values
+  get_value = mongodb_get_value
+
+
   logger.info("starting webserver")
   socketio.run(app,host="0.0.0.0")
 
 
 
+#alarm mapping:
+#
+#if value update from redis, or via poll from mongodb OR
+#if new message from mongodb (since last cursor..)
+#
+#check if key in alarm list(dict in mem)
+#if true; retrieve value, and perform alarm logic (<,>,=,<>,><)
+# action trigger+= 
+#                 alarm set(alarm_uid,msg,element,value), 
+#                 alarm reset(alarm_uid,element,value), 
+#                 (always)publish event(alarm_uid,msg,element,value), 
+#                 trigger shell script(for syslog, snmp, email etc.)
+#option: do not retrigger same alert when triggered
+#
+
+#events:
+# 
+# all processes enter own events in db
+# IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
+# main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
+#   operate/select/cancel command and result (of action, and actual process)
+#   alarms trigger
