@@ -2,6 +2,9 @@
 from flask import Flask, render_template, session, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
 
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
+
 import string
 import logging
 
@@ -568,6 +571,23 @@ def mongodb_get_value(point):
   return None
 
 
+def influxdb_get_value(point):
+  global influxdb_query_api
+  # query influxdb for possible update
+  query = ' from(bucket:"bucket_1")\
+    |> range(start: 0)\
+    |> filter(fn:(r) => r._measurement == "datapoint")\
+    |> filter(fn: (r) => r.id == "' + point + '")\
+    |> last() '
+
+  result = influxdb_query_api.query(org="scada", query=query)
+  if result and len(result) > 0:
+    for table in result:
+      for record in table.records:
+        return record.get_value() # return first result
+  return None
+
+
 #background thread
 def worker():
   socketio.sleep(tick)
@@ -583,7 +603,10 @@ def worker():
 
     for point in poll_datapoint:
       if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
+
         value = get_value(point)
+        #value = influxdb_get_value(point)
+
         if value == None:
           value = 'UNKNOWN'
 
@@ -645,8 +668,22 @@ if __name__ == '__main__':
     logger.error("there is an issue with redis db")
     rt_db = None
 
+
+  try:
+    influxdb_client = InfluxDBClient(url="http://127.0.0.1:8086", 
+            token="_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
+            org="scada")
+    influxdb_query_api = influxdb_client.query_api()
+
+    influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+  except:
+    logger.error("there is an issue with influxdb")
+    influxdb_client = None
+    influxdb_write_api = None
+
   # get values
-  get_value = mongodb_get_value
+  get_value = influxdb_get_value
+  #get_value = mongodb_get_value
 
 
   logger.info("starting webserver")
