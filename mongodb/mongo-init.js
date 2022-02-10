@@ -20,6 +20,9 @@ db.rtu_list.insert([
 	{ "RTU":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A" },
 ]);
 
+db.createCollection("alarm_table");
+db.createCollection("alarm_logic");
+
 db.createCollection("data_timeseries");
 
 db.createCollection("svg_templates");

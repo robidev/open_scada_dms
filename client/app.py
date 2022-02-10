@@ -12,6 +12,7 @@ import pymongo
 from bson import ObjectId
 import redis
 import uuid
+import json
 
 
 async_mode = None #"threading" #"eventlet" None
@@ -26,6 +27,7 @@ rt_db = None
 get_value = None
 
 poll_datapoint = {}
+alarm_list = {}
 
 #webserver
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -218,6 +220,22 @@ def remove_from_gis_database(uuid):
 
   db = mongoclient.scada
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
+  new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
+    alert_id = 1, # alert id within this datapoint
+    logic = ">", # logic to apply to value
+    value_1 = 89,value_2 = 0, # test values to check logic and value with
+    actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
+    retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
+    )
+  new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
+    alert_id = 2, # alert id within this datapoint
+    logic = "<", # logic to apply to value
+    value_1 = 90,value_2 = 0, # test values to check logic and value with
+    actions = {"reset_alarm":"OverVoltage"}, # actions to perform on match
+    retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
+    )
 
 
 ### templates ###
@@ -555,6 +573,7 @@ def redis_dataUpdate(msg):
   
   logger.info("update: %s %s", str(key_u8), str(data_u8))
   updateDataPoint( key_u8,data_u8) # emit to clients
+  update_alarms( key_u8,data_u8 )
 
 
 def poll_dataUpdate(point, data):
@@ -588,10 +607,294 @@ def influxdb_get_value(point):
   return None
 
 
+###############################################################
+###############################################################
+###############################################################
+
+
+def update_alarms(key, value):
+  global alarm_list
+  if key in alarm_list:
+    alarm_logic_list = alarm_list[key]['alarm_logic_list']
+    for alarm in alarm_logic_list:
+      # alarm.
+      #  value_1, value_2 = "number"
+      #  logic = <,>,==,<>,!=
+      try: # attempt to convert to int
+        tryval = int(value)
+        value = tryval
+      except:
+        pass #leave the value a string
+
+      if isinstance(value, int):
+        value_1 = int(alarm['value_1'])
+        value_2 = int(alarm['value_2'])
+      else:
+        value_1 = alarm['value_1']
+        value_2 = alarm['value_2']
+      
+      if alarm['logic'] == "==" and value == value_1:
+        trigger_alarm(key, alarm, value)
+      elif alarm['logic'] == "<" and value < value_1:
+        trigger_alarm(key, alarm, value)
+      elif alarm['logic'] == ">" and value > value_1:
+        trigger_alarm(key, alarm, value)
+      elif alarm['logic'] == "!=" and value != value_1:
+        trigger_alarm(key, alarm, value)
+      elif alarm['logic'] == "><" and value > value_1 and value < value_2:
+        trigger_alarm(key, alarm, value)
+
+
+def trigger_alarm(key, alarm, value):
+  global alarm_list
+  global mongoclient
+  # check if event should only be send on state change (enables polling), or every check fires event
+  alert_id = alarm['alert_id']
+
+  if alarm['retrigger'] == True:
+    update = True
+  else:
+    update = False
+
+  if "set_alarm" in alarm['action']:
+    # if alarm can be retriggered, or if not, only trigger if state changes
+    if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != True):
+      print("set alarm: " + key)
+      alarm_list[key][alert_id] = True
+      update = True
+      # add/update item in alarm_table @ mongodb
+      db = mongoclient.scada
+      time = "2022/02/10 - 10:00:00"
+      myquery = {'datapoint': key, "alert_id": alert_id } 
+      newvalues =  {
+            "time":         time,
+            "datapoint":    key,
+            "alert_id":     alert_id,
+            "element":      alarm['element'],
+            "message":      alarm['action']['set_alarm'],
+            "value":        str(value),
+            "alarm":        True, 
+            "acknowledged": False, 
+            "open":         True
+          }
+      db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+
+
+  if "reset_alarm"in alarm['action']:
+    if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != False):
+      print("reset alarm: " + key)
+      alarm_list[key][alert_id] = False
+      update = True
+      # update item in alarm_table @ mongodb
+      db = mongoclient.scada
+      time = "2022/02/10 - 10:00:00"
+      myquery = {'datapoint': key, "alert_id": alert_id } 
+      newvalues =  {
+            "time":         time,
+            "datapoint":    key,
+            "alert_id":     alert_id,
+            "element":      alarm['element'],
+            "message":      alarm['action']['reset_alarm'],
+            "value":        str(value),
+            "alarm":        False
+          }
+      db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+
+
+  if "event" in alarm['action'] and update == True:
+    print("event")
+    publish_event(alarm['element'],alarm['action']['event'],value)
+
+  if "script" in alarm['action']:
+    print("run script:" + alarm['action']['script'])
+    # subprocess....
+  return
+
+
+def publish_event(element,msg,value):
+  # IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
+  # main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
+  #   operate/select/cancel command and result (of action, and actual process)
+  #   alarms trigger
+  el = json.dumps(element)
+  print("element: %s, message: %s, value: %s" % (el, msg, str(value)))
+  # add event item @ influxdb
+  global influxdb_write_api
+  p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
+  influxdb_write_api.write(bucket="bucket_2", record=p)
+
+
+def new_alarm_check(datapoint,  
+    alert_id = 1, # alert id within this datapoint
+    logic = ">", # logic to apply to value
+    value_1 = 0,value_2 = 0, # test values to check logic and value with
+    actions = {"set_alarm":"Al1"}, # actions to perform on match
+    retrigger = True, # retrigger on every match, or only if new alarm (allows for polling)
+    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
+    ): 
+  """
+  logic = "" #  <,>,==,<>,!=
+  actions = {
+    "set_alarm":"Al1", 
+    "reset_alarm":"AL1",
+    "event":"EV1", 
+    "script":"/var/script/run1"
+    }
+  """
+  global alarm_list
+  alarm = {
+    "alert_id":alert_id,
+    "logic":logic,
+    "value_1":value_1, 
+    "value_2":value_2,
+    "action": actions,
+    "retrigger":retrigger,
+    "element":element,
+  }
+
+  if not datapoint in alarm_list:
+    alarm_list[datapoint] = {}
+    alarm_list[datapoint]['alarm_logic_list'] = []
+    alarm_list[datapoint][alert_id]=False
+
+  alarm_list[datapoint]['alarm_logic_list'].append(alarm)
+
+  # add alarm to alarm_list in mongodb (TODO: should we check on alert_id for update/insert?)
+  global mongoclient
+  db = mongoclient.scada
+  alarm['datapoint'] = datapoint
+  db.alarm_logic.insert_one(alarm)
+
+
+def acknowledge_alarm(datapoint, alert_id, ack):
+  global alarm_list
+  global mongoclient
+  db = mongoclient.scada
+  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
+  newvalues =  {
+        "acknowledged": ack
+      }
+  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
+    if alarm['alert_id'] == alert_id:
+      if ack == True:
+        publish_event(json.dumps(alarm['element']),"alarm acknowledged",True)
+      else:
+        publish_event(json.dumps(alarm['element']),"alarm not acknowledged",False)
+
+
+def close_alarm(datapoint, alert_id, open):
+  global alarm_list
+  global mongoclient
+  db = mongoclient.scada
+  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
+  newvalues =  {
+        "open": open
+      }
+  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+
+  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
+    if alarm['alert_id'] == alert_id:
+      if open == True:
+        publish_event(json.dumps(alarm['element']),"alarm set open",True)
+      else:
+        publish_event(json.dumps(alarm['element']),"alarm set closed",False)
+
+
+def lower_alarm(datapoint, alert_id):
+  global alarm_list
+  global mongoclient
+  if not datapoint in alarm_list:
+    print("could not find datapoint in alarm list")
+    return
+  if not alert_id in alarm_list[datapoint]:
+    print("could not find alert_id in alarm list[datapoint]")
+    return
+
+  db = mongoclient.scada
+  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
+  newvalues =  {
+        "alarm": False
+      }
+  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+  alarm_list[datapoint][alert_id]=False
+
+  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
+    if alarm['alert_id'] == alert_id:
+      publish_event(json.dumps(alarm['element']),"alarm manually lowered",False)
+
+
+@socketio.on('get_alarm_table', namespace='')
+def get_alarm_table():
+  global alarm_list
+  global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
+
+  db = mongoclient.scada
+  cursor = db.alarm_table.find({})
+  data = []
+  for object in cursor:
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+    data.append(object)
+    datapoint = object["datapoint"]
+    alert_id = object["alert_id"]
+    # set alarm state in memory
+    if not datapoint in alarm_list:
+      alarm_list[datapoint] = {}
+      alarm_list[datapoint]['alarm_logic_list'] = []
+    
+    alarm_list[datapoint][alert_id]=object["alarm"]
+  return data
+
+
+def get_alarm_logic(clear=True):
+  global alarm_list
+  global mongoclient
+  if mongoclient == None:
+    logger.error("no mongodb connection")
+    return {}
+
+  db = mongoclient.scada
+  cursor = db.alarm_logic.find({})
+
+  # clear the list if desired
+  if clear == True:
+    alarm_list = {}
+
+  for object in cursor:
+    datapoint = object["datapoint"]
+    alert_id = object["alert_id"]
+    # set alarm state in memory
+    if not datapoint in alarm_list:
+      alarm_list[datapoint] = {}
+      alarm_list[datapoint]['alarm_logic_list'] = []
+    if not alert_id in alarm_list[datapoint]:
+      alarm_list[datapoint][alert_id]=False
+
+    alarm = {
+      "alert_id":alert_id,
+      "logic":object["logic"],
+      "value_1":object["value_1"], 
+      "value_2":object["value_2"],
+      "action": object["action"],
+      "retrigger":object['retrigger'],
+      "element":object['element'],
+    }
+
+    alarm_list[datapoint]['alarm_logic_list'].append(alarm)
+
+    
+###############################################################
+###############################################################
+###############################################################
+
 #background thread
 def worker():
   socketio.sleep(tick)
-  logger.info("polling treat started")
+  logger.info("polling thread started")
   interval = 10
   interval_counter = 0
   while True:
@@ -649,6 +952,7 @@ if __name__ == '__main__':
       socketTimeoutMS=2000)
 
     db = mongoclient.scada
+    get_alarm_logic()
     cursor = db.data_timeseries.find({}).limit(1) # find newest value
     for object in cursor:
       logger.info("connected to mongodb")
@@ -684,32 +988,7 @@ if __name__ == '__main__':
   # get values
   get_value = influxdb_get_value
   #get_value = mongodb_get_value
-
-
   logger.info("starting webserver")
   socketio.run(app,host="0.0.0.0")
 
 
-
-#alarm mapping:
-#
-#if value update from redis, or via poll from mongodb OR
-#if new message from mongodb (since last cursor..)
-#
-#check if key in alarm list(dict in mem)
-#if true; retrieve value, and perform alarm logic (<,>,=,<>,><)
-# action trigger+= 
-#                 alarm set(alarm_uid,msg,element,value), 
-#                 alarm reset(alarm_uid,element,value), 
-#                 (always)publish event(alarm_uid,msg,element,value), 
-#                 trigger shell script(for syslog, snmp, email etc.)
-#option: do not retrigger same alert when triggered
-#
-
-#events:
-# 
-# all processes enter own events in db
-# IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
-# main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
-#   operate/select/cancel command and result (of action, and actual process)
-#   alarms trigger
