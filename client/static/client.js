@@ -36,16 +36,41 @@ $(document).ready(function() {
 
 function init_alarm(){
   //define data array
-  var tabledata = [
-    {id:1, time:"2022/01/01 - 00:00:00", b1:"substation", b2:"bay", b3:"component", message:"message", alarm:"on/off", acknowledged:"yes/no", open:"true/false"},
-    {id:2, time:"2022/01/01 - 00:00:01", b1:"sub_1", b2:"S1/E1/Q1/I1", b3:"VT", message:"undervoltage", alarm:"on", acknowledged:"no", open:"true"},
-    {id:3, time:"2022/01/01 - 00:00:02", b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"on", acknowledged:"no", open:"true"},
-    {id:4, time:"2022/01/01 - 00:00:03", b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"off", acknowledged:"no", open:"true"},
-    {id:5, time:"2022/01/01 - 00:00:04", b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"off", acknowledged:"yes", open:"true"},
-    {id:6, time:"2022/01/01 - 00:00:05", b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"on", acknowledged:"no", open:"false"},
-  ];
+  socket.on('update_alarm_table', function (json) {
+      json.forEach((item) => {
+        item['b1'] = item['element']['B1'];
+        item['b2'] = item['element']['B2'];
+        item['b3'] = item['element']['B3'];
+        //ret['value']
+      });
+      table.replaceData(json).then(function(){
+        table.getRows().forEach((row_element) => {
+          let alarm = row_element.getData().alarm;
+          let ack = row_element.getData().acknowledged;
+          let open = row_element.getData().open;
+          row_element.getElement().style.animation = ""; 
+          if(alarm == true && ack == false && open == true){
+            row_element.getElement().style.animation = "blinker 1s linear infinite"; 
+          } else if(alarm == false && ack == false && open == true){
+            row_element.getElement().style.backgroundColor = "orange"; 
+            row_element.getElement().style.color = "black"; 
+          } else if(alarm == true && ack == true && open == true){
+            row_element.getElement().style.backgroundColor = "yellow"; 
+            row_element.getElement().style.color = "black"; 
+          } else if(alarm == false && ack == true && open == true){
+            row_element.getElement().style.backgroundColor = "green"; 
+            row_element.getElement().style.color = "black"; 
+          }else {
+            row_element.getElement().style.backgroundColor = "black"; 
+            row_element.getElement().style.color = "white"; 
+          }
+        });
+      }); //load data array
+  });
+
+
   var table = new Tabulator("#mmi_svg", {
-    data:tabledata,           //load row data from array
+    //data:tabledata,           //load row data from array
     layout:"fitColumns",      //fit columns to width of table
     responsiveLayout:"hide",  //hide columns that dont fit on the table
     tooltips:true,            //show tool tips on cells
@@ -70,45 +95,59 @@ function init_alarm(){
         {title:"Open", field:"open", width:90,  hozAlign:"center", formatter:"tickCross", sorter:"boolean", editor:"tickCross" },
     ],
   });
-  table.setFilter("open", "=", "true");
+
+  refresh_alarm_table();
+
+  //table.setFilter("open", "=", "true");
   table.on("rowClick", function(e, row){
     //alert("Row " + row.getIndex() + " Clicked!!!!")
     let row_element = row.getElement();
-    if(row_element.style.animation){
-      row_element.style.animation = ""; 
-    }else{
-      row_element.style.animation = "blinker 1s linear infinite"; 
-    }
+    //acknowledge alarm/close alarm
     table.refreshFilter();
   });
 
+  //callbacks for ack/close/alarm_manual_off
+  //follow link to gis/schema map(needs leaflet plugin!)
+  //rule editor for alarm rules (list rules, and allow edit/add)
+
 }
+
+function refresh_alarm_table(){
+  socket.emit('get_alarm_table', {} );
+}
+
 
 function init_events(){
-  //define data array
-  var tabledata = [
-    {id:1, time:0, b1:"substation", b2:"bay", b3:"component", message:"message", alarm:"on/off", acknowledged:"yes/no", open:"true/false"},
-    {id:2, time:1, b1:"sub_1", b2:"S1/E1/Q1/I1", b3:"VT", message:"undervoltage", alarm:"on", acknowledged:"no", open:"true"},
-    {id:3, time:2, b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"on", acknowledged:"no", open:"true"},
-    {id:4, time:3, b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"off", acknowledged:"no", open:"true"},
-    {id:5, time:4, b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"off", acknowledged:"yes", open:"true"},
-    {id:6, time:5, b1:"sub_1", b2:"S1/D1/F1/I1", b3:"CB", message:"trip", alarm:"on", acknowledged:"no", open:"false"},
-  ];
+
+  socket.on('update_event_table', function (json) {
+    //write events to table
+    table.replaceData(json);
+  });
+
+  socket.on('add_event_to_table', function (json) {
+    //add a event to table
+    table.addData(json)
+  });
+
   var table = new Tabulator("#mmi_svg", {
-    data:tabledata, //assign data to table
     autoColumns:true, //create columns from data field names
   });
+
+  refresh_event_table();
 }
 
+function refresh_event_table(){
+  socket.emit('get_event_table', {} );
+}
+
+
 function init_grafana(){
-  
+  //iframe?
 }
 
 function init_logs(){
-  
+  //flat text
 }
-
-
 
 
 function init_mapelements(){

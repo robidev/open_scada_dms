@@ -678,6 +678,7 @@ def trigger_alarm(key, alarm, value):
             "open":         True
           }
       db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+      get_alarm_table(None)
 
 
   if "reset_alarm"in alarm['action']:
@@ -699,6 +700,7 @@ def trigger_alarm(key, alarm, value):
             "alarm":        False
           }
       db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+      get_alarm_table(None)
 
 
   if "event" in alarm['action'] and update == True:
@@ -722,6 +724,7 @@ def publish_event(element,msg,value):
   global influxdb_write_api
   p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
   influxdb_write_api.write(bucket="bucket_2", record=p)
+  socketio.emit('add_event_to_table', {'element':element, 'message':msg, 'value':value})
 
 
 def new_alarm_check(datapoint,  
@@ -782,6 +785,8 @@ def acknowledge_alarm(datapoint, alert_id, ack):
       else:
         publish_event(json.dumps(alarm['element']),"alarm not acknowledged",False)
 
+  get_alarm_table(None)
+
 
 def close_alarm(datapoint, alert_id, open):
   global alarm_list
@@ -799,6 +804,8 @@ def close_alarm(datapoint, alert_id, open):
         publish_event(json.dumps(alarm['element']),"alarm set open",True)
       else:
         publish_event(json.dumps(alarm['element']),"alarm set closed",False)
+
+  get_alarm_table(None)
 
 
 def lower_alarm(datapoint, alert_id):
@@ -823,9 +830,11 @@ def lower_alarm(datapoint, alert_id):
     if alarm['alert_id'] == alert_id:
       publish_event(json.dumps(alarm['element']),"alarm manually lowered",False)
 
+  get_alarm_table(None)
+
 
 @socketio.on('get_alarm_table', namespace='')
-def get_alarm_table():
+def get_alarm_table(data):
   global alarm_list
   global mongoclient
   if mongoclient == None:
@@ -834,11 +843,11 @@ def get_alarm_table():
 
   db = mongoclient.scada
   cursor = db.alarm_table.find({})
-  data = []
+  alarm_items = []
   for object in cursor:
     object["id"] = "_" + str(object["_id"])
     object.pop("_id")
-    data.append(object)
+    alarm_items.append(object)
     datapoint = object["datapoint"]
     alert_id = object["alert_id"]
     # set alarm state in memory
@@ -847,7 +856,9 @@ def get_alarm_table():
       alarm_list[datapoint]['alarm_logic_list'] = []
     
     alarm_list[datapoint][alert_id]=object["alarm"]
-  return data
+
+  socketio.emit('update_alarm_table', alarm_items)
+  # return alarm_items
 
 
 def get_alarm_logic(clear=True):
@@ -886,7 +897,26 @@ def get_alarm_logic(clear=True):
 
     alarm_list[datapoint]['alarm_logic_list'].append(alarm)
 
-    
+
+@socketio.on('get_event_table', namespace='')
+def get_event_table(param):
+  # retrieve events from influxdb
+  global influxdb_query_api
+  # query influxdb for possible update
+  query = ' from(bucket:"bucket_2")\
+    |> range(start: 0) '
+
+  data = []
+  result = influxdb_query_api.query(org="scada", query=query)
+  if result and len(result) > 0:
+    for table in result:
+      for record in table.records:
+        data.append(record.get_value()) 
+
+  socketio.emit('update_event_table', data)
+
+
+
 ###############################################################
 ###############################################################
 ###############################################################
