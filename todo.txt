@@ -7,8 +7,12 @@ script fire on alarm logic
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
 
- 
-grafana dashboard voor trending datapunten?
+
+adding/removing/editing RTU's
+
+
+
+pre-config grafana dashboard voor trending datapunten?
 
 
 lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
