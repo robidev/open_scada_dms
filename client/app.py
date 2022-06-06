@@ -91,6 +91,7 @@ def remove_listener(point):
 
 
 ###############################################
+### Schema ###
 
 @socketio.on('schema_addItems', namespace='')
 def add_to_schema_database(data):
@@ -220,6 +221,8 @@ def remove_from_gis_database(uuid):
 
   db = mongoclient.scada
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
+
+  #TEST! TODO remove
   new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
     alert_id = 1, # alert id within this datapoint
     logic = ">", # logic to apply to value
@@ -610,7 +613,7 @@ def influxdb_get_value(point):
 ###############################################################
 ###############################################################
 ###############################################################
-
+### Alarm logic ###
 
 def update_alarms(key, value):
   global alarm_list
@@ -711,20 +714,6 @@ def trigger_alarm(key, alarm, value):
     print("run script:" + alarm['action']['script'])
     # subprocess....
   return
-
-
-def publish_event(element,msg,value):
-  # IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
-  # main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
-  #   operate/select/cancel command and result (of action, and actual process)
-  #   alarms trigger
-  el = json.dumps(element)
-  print("element: %s, message: %s, value: %s" % (el, msg, str(value)))
-  # add event item @ influxdb
-  global influxdb_write_api
-  p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
-  influxdb_write_api.write(bucket="bucket_2", record=p)
-  socketio.emit('add_event_to_table', {'element':element, 'message':msg, 'value':value})
 
 
 def new_alarm_check(datapoint,  
@@ -837,6 +826,10 @@ def lower_alarm(datapoint, alert_id):
 def get_alarm_table(data):
   global alarm_list
   global mongoclient
+
+  # event test
+  #publish_event("element_1","alarm set closed","jaja") # test
+
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
@@ -898,20 +891,40 @@ def get_alarm_logic(clear=True):
     alarm_list[datapoint]['alarm_logic_list'].append(alarm)
 
 
+### Event logic ###
+def publish_event(element,msg,value):
+  # IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
+  # main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
+  #   operate/select/cancel command and result (of action, and actual process)
+  #   alarms trigger
+  el = json.dumps(element)
+  print("element: %s, message: %s, value: %s" % (el, msg, str(value)))
+  # add event item @ influxdb
+  global influxdb_write_api
+  p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
+  influxdb_write_api.write(bucket="bucket_2", record=p)
+  socketio.emit('add_event_to_table', {'element':element, 'message':msg, 'value':value})
+
+
 @socketio.on('get_event_table', namespace='')
 def get_event_table(param):
   # retrieve events from influxdb
   global influxdb_query_api
   # query influxdb for possible update
   query = ' from(bucket:"bucket_2")\
-    |> range(start: 0) '
+    |> range(start: 0)\
+    |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
 
   data = []
   result = influxdb_query_api.query(org="scada", query=query)
   if result and len(result) > 0:
     for table in result:
       for record in table.records:
-        data.append(record.get_value()) 
+        timestmp = str(record.values["_time"])
+        elem = str(record.values["element"])
+        msg =  str(record.values["message"]) #str(record.values["_field"])
+        val =  str(record.values["value"]) #str(record.values["_value"])
+        data.append({"time":timestmp, "element":elem, "msg": msg, "value": val})
 
   socketio.emit('update_event_table', data)
 

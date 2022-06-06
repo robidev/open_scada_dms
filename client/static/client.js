@@ -73,7 +73,7 @@ function init_alarm(){
     //data:tabledata,           //load row data from array
     layout:"fitColumns",      //fit columns to width of table
     responsiveLayout:"hide",  //hide columns that dont fit on the table
-    tooltips:true,            //show tool tips on cells
+    //tooltips:true,            //show tool tips on cells
     addRowPos:"top",          //when adding a new row, add it to the top of the table
     history:true,             //allow undo and redo actions on the table
     pagination:"local",       //paginate the data
@@ -82,7 +82,7 @@ function init_alarm(){
     movableColumns:true,      //allow column order to be changed
     resizableRows:true,       //allow row order to be changed
     initialSort:[             //set the initial sort order of the data
-        {column:"Time", dir:"asc"},
+        {column:"time", dir:"asc"},
     ],
     columns:[                 //define the table columns
         {title:"Time", field:"time",hozAlign:"center", formatter:"plaintext"},
@@ -100,7 +100,7 @@ function init_alarm(){
 
   //table.setFilter("open", "=", "true");
   table.on("rowClick", function(e, row){
-    //alert("Row " + row.getIndex() + " Clicked!!!!")
+    alert("Row " + row.getIndex() + " Clicked!!!!") //test
     let row_element = row.getElement();
     //acknowledge alarm/close alarm
     table.refreshFilter();
@@ -131,6 +131,25 @@ function init_events(){
 
   var table = new Tabulator("#mmi_svg", {
     autoColumns:true, //create columns from data field names
+    //data:tabledata,           //load row data from array
+    layout:"fitColumns",      //fit columns to width of table
+    responsiveLayout:"hide",  //hide columns that dont fit on the table
+    //tooltips:true,            //show tool tips on cells
+    addRowPos:"top",          //when adding a new row, add it to the top of the table
+    pagination:"local",       //paginate the data
+    paginationSize:7,         //allow 7 rows per page of data
+    paginationCounter:"rows", //display count of paginated rows in footer
+    movableColumns:true,      //allow column order to be changed
+    resizableRows:true,       //allow row order to be changed
+    initialSort:[             //set the initial sort order of the data
+        {column:"time", dir:"asc"},
+    ],
+    columns:[                 //define the table columns
+        {title:"Time", field:"time",hozAlign:"center", formatter:"plaintext"},
+        {title:"Element", field:"element", hozAlign:"left", formatter:"plaintext"},
+        {title:"Message", field:"msg", hozAlign:"left", formatter:"textarea"},
+        {title:"Value", field:"value", hozAlign:"left", formatter:"plaintext"},
+    ],
   });
 
   refresh_event_table();

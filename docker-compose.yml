@@ -100,6 +100,7 @@ services:
       # Data persistency
       # sudo mkdir -p /srv/docker/influxdb/data
       - /srv/docker/influxdb/data:/var/lib/influxdb
+    #USER = admin, PASSWORD = administrator
 
 # timeseries dashboard
   grafana:
@@ -116,4 +117,18 @@ services:
       # Data persistency
       # sudo mkdir -p /srv/docker/grafana/data; chown 472:472 /srv/docker/grafana/data
       - /srv/docker/grafana/data:/var/lib/grafana
+
+# manage containers, password is Administrator
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    ports:
+      - "8000:8000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  portainer_data:
 

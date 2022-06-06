@@ -2,7 +2,11 @@ top-bar location indication
 
 event/alarm schermen:
 >  alarm/ack/close op datapoint, click to go to location, from alarm-window
+script fire on alarm logic
 >  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
+scaling values in IFS (before storage)
+scaling values in GUI (only on display)
+
  
 grafana dashboard voor trending datapunten?
 
