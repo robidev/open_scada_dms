@@ -27,7 +27,7 @@ The project is a collection of containers, and tries to mainly rely on actively 
 
 The following containers are included:
 
-conainer		purpose				port		username	password
+container		purpose				port		username	password
 scada			main application		http/5000	-		-
 grafana			for historical data analysis	https/3000	-		-
 admin-mongo 		for mongodb administation 	http/8081	admin		admin

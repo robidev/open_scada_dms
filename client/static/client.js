@@ -109,13 +109,85 @@ function init_alarm(){
   //callbacks for ack/close/alarm_manual_off
   //follow link to gis/schema map(needs leaflet plugin!)
   //rule editor for alarm rules (list rules, and allow edit/add)
-
+  editRules();
 }
 
 function refresh_alarm_table(){
   socket.emit('get_alarm_table', {} );
 }
 
+
+function editRules() {
+
+  document.querySelectorAll(".open-modal").forEach(function (trigger) {
+    trigger.addEventListener("click", function () {
+          hideAllModalWindows();
+          showModalWindow(this);
+      });
+  });
+
+  document.querySelectorAll(".modal-save").forEach(function (saveBtn) {
+    saveBtn.addEventListener("click", function () {
+      var modalTarget = document.querySelector("#modal-1");
+      socket.emit('save_alarm_rules', modalTarget.childNodes[3].value, 
+        function(ret){
+          console.log("save ok");
+        }
+      );
+    });
+  });
+
+  document.querySelectorAll(".modal-hide").forEach(function (closeBtn) {
+    closeBtn.addEventListener("click", function () {
+          hideAllModalWindows();
+      });
+  });
+
+  document.querySelector(".modal-fader").addEventListener("click", function () {
+      hideAllModalWindows();
+  });
+
+  var btn = document.createElement("button");
+  var t = document.createTextNode("edit rules");
+  btn.setAttribute("class","mapButton");
+  btn.appendChild(t);
+  document.querySelector("#mmi_svg").parentElement.insertBefore(btn,document.querySelector("#mmi_svg"));//,null);
+  btn.addEventListener("click", function () {
+      hideAllModalWindows();
+      showModalWindow(this);
+    });
+
+}
+
+function showModalWindow (buttonEl) {
+  var modalTarget = document.querySelector("#modal-1");
+  document.querySelector(".modal-fader").className += " active";
+  modalTarget.className += " active";
+
+  socket.emit('get_alarm_rules', { }, 
+    function(ret){
+      modalTarget.childNodes[3].value = ret;
+    }
+  );
+}
+
+function hideAllModalWindows () {
+  var modalFader = document.querySelector(".modal-fader");
+  var modalWindows = document.querySelectorAll(".modal-window");
+  
+  if(modalFader.className.indexOf("active") !== -1) {
+      modalFader.className = modalFader.className.replace("active", "");
+  }
+  
+  modalWindows.forEach(function (modalWindow) {
+      if(modalWindow.className.indexOf("active") !== -1) {
+          modalWindow.className = modalWindow.className.replace("active", "");
+      }
+  });
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// events
 
 function init_events(){
 
@@ -159,15 +231,23 @@ function refresh_event_table(){
   socket.emit('get_event_table', {} );
 }
 
-
+////////////////////////////////////////////////////////////////////////////////
+//init grafana
 function init_grafana(){
   //iframe?
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//init portainer
 function init_logs(){
   //flat text
+  //diagnostics
+  //health
 }
 
+
+//////////////////////////////////////////////////////////////////////////////
+//leaflet maps
 
 function init_mapelements(){
   geojsonlayer = L.geoJSON().addTo(leafletmap);
@@ -405,6 +485,7 @@ function getGeojsonStyle(layer){
 
 //////////////////////////////////////////////////////////////////////////
 	//.leaflet-modal
+
 L.Draw.Svg.include({
 	  enable: function(){
       let drawsvg = this;
@@ -578,7 +659,8 @@ var save_fnc = function(layer){
 };
 
 
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// operate functions
 
 
 function open_control(event,datapoint){
@@ -632,6 +714,9 @@ function cancel(element) {
   socket.emit('publish', {'operation': 'cancel', 'element': element, 'value': ""});
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//generic functions
 
 function abbreviate_number(num, fixed) {
   if (num === null) { return null; } // terminate early

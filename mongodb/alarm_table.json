@@ -1,0 +1,1 @@
+{"_id":{"$oid":"620592203ed421f72de205c2"},"alert_id":1,"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101","acknowledged":false,"alarm":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"message":"OverVoltage","open":true,"time":"2022/02/10 - 10:00:00","value":"41"}

@@ -1,0 +1,2 @@
+{"_id":{"$oid":"62aa3622b058888cd413b537"},"alert_id":1,"logic":">","value_1":89,"value_2":0,"action":{"set_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"}
+{"_id":{"$oid":"62aa3622b058888cd413b538"},"alert_id":1,"logic":"<","value_1":92,"value_2":0,"action":{"reset_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"}

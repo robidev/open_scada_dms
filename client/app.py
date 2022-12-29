@@ -33,6 +33,9 @@ alarm_list = {}
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = 'BAD_SECRET_KEY'
 
+#influxdb buckets
+value_bucket = "bucket_1"
+event_bucket = "bucket_2"
 
 socketio = SocketIO(app, async_mode=async_mode)
 
@@ -223,22 +226,22 @@ def remove_from_gis_database(uuid):
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
 
   #TEST! TODO remove
-  new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
-    alert_id = 1, # alert id within this datapoint
-    logic = ">", # logic to apply to value
-    value_1 = 89,value_2 = 0, # test values to check logic and value with
-    actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
-    retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
-    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
-    )
-  new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
-    alert_id = 2, # alert id within this datapoint
-    logic = "<", # logic to apply to value
-    value_1 = 90,value_2 = 0, # test values to check logic and value with
-    actions = {"reset_alarm":"OverVoltage"}, # actions to perform on match
-    retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
-    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
-    )
+  #new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
+  #  alert_id = 1, # alert id within this datapoint
+  #  logic = ">", # logic to apply to value
+  #  value_1 = 89,value_2 = 0, # test values to check logic and value with
+  #  actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
+  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
+  #  )
+  #new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
+  #  alert_id = 2, # alert id within this datapoint
+  #  logic = "<", # logic to apply to value
+  #  value_1 = 90,value_2 = 0, # test values to check logic and value with
+  #  actions = {"reset_alarm":"OverVoltage"}, # actions to perform on match
+  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
+  #  )
 
 
 ### templates ###
@@ -596,7 +599,7 @@ def mongodb_get_value(point):
 def influxdb_get_value(point):
   global influxdb_query_api
   # query influxdb for possible update
-  query = ' from(bucket:"bucket_1")\
+  query = ' from(bucket:"' + value_bucket + '")\
     |> range(start: 0)\
     |> filter(fn:(r) => r._measurement == "datapoint")\
     |> filter(fn: (r) => r.id == "' + point + '")\
@@ -821,6 +824,8 @@ def lower_alarm(datapoint, alert_id):
 
   get_alarm_table(None)
 
+#########################################################################################
+# io with frontend
 
 @socketio.on('get_alarm_table', namespace='')
 def get_alarm_table(data):
@@ -863,12 +868,13 @@ def get_alarm_logic(clear=True):
 
   db = mongoclient.scada
   cursor = db.alarm_logic.find({})
-
+  logger.info("get_alarm_logic: got data from mongodb")
   # clear the list if desired
   if clear == True:
     alarm_list = {}
 
   for object in cursor:
+    logger.info("get_alarm_logic: parsing object")
     datapoint = object["datapoint"]
     alert_id = object["alert_id"]
     # set alarm state in memory
@@ -889,6 +895,31 @@ def get_alarm_logic(clear=True):
     }
 
     alarm_list[datapoint]['alarm_logic_list'].append(alarm)
+  logger.info("get_alarm_logic: done")
+
+
+@socketio.on('get_alarm_rules', namespace='')
+def get_alarm_rules(data):
+  global alarm_list
+  if len(alarm_list) == 0:
+    get_alarm_logic()
+  return json.dumps(alarm_list, indent=4)
+
+@socketio.on('save_alarm_rules', namespace='')
+def save_alarm_rules(data):
+  local_alarm_list = json.loads(data)
+  global mongoclient
+  db = mongoclient.scada
+
+  db.alarm_logic.drop()
+  #db.createCollection("alarm_logic")
+  for datapoint in local_alarm_list:
+    for alarm in local_alarm_list[datapoint]['alarm_logic_list']:
+      alarm['datapoint'] = datapoint
+      db.alarm_logic.insert_one(alarm)
+  
+  global alarm_list
+  alarm_list = local_alarm_list
 
 
 ### Event logic ###
@@ -902,7 +933,7 @@ def publish_event(element,msg,value):
   # add event item @ influxdb
   global influxdb_write_api
   p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
-  influxdb_write_api.write(bucket="bucket_2", record=p)
+  influxdb_write_api.write(bucket=event_bucket, record=p)
   socketio.emit('add_event_to_table', {'element':element, 'message':msg, 'value':value})
 
 
@@ -911,7 +942,7 @@ def get_event_table(param):
   # retrieve events from influxdb
   global influxdb_query_api
   # query influxdb for possible update
-  query = ' from(bucket:"bucket_2")\
+  query = ' from(bucket:"' + event_bucket + '")\
     |> range(start: 0)\
     |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
 
@@ -961,7 +992,7 @@ def worker():
         if oldValue != value or interval_counter % interval == 0: # update value, only if value was changed, and every 10 seconds (to keep client in sync)
           poll_datapoint[point]['value'] = value
           poll_dataUpdate(point, value)    
-    logger.info("values polled")
+    logger.debug("values polled")
     interval_counter += 1
 
 
@@ -985,7 +1016,7 @@ if __name__ == '__main__':
     level=logging.INFO)
 
   try:
-    mongoclient = pymongo.MongoClient('localhost', 27017, 
+    mongoclient = pymongo.MongoClient('mongodb', 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
       username="aaa",
       password="bbb", 
       authSource='scada', 
@@ -993,15 +1024,18 @@ if __name__ == '__main__':
       connect=True, 
       connectTimeoutMS=2000,
       socketTimeoutMS=2000)
-
+    logger.info("connected to mongodb")
     db = mongoclient.scada
+    logger.info("mongodb: set db")
     get_alarm_logic()
+    logger.info("mongodb: got alarm logic")
     cursor = db.data_timeseries.find({}).limit(1) # find newest value
+    logger.info("mongodb: found timeseries data")
     for object in cursor:
-      logger.info("connected to mongodb")
+      logger.info("got data from mongodb")
 
-  except:
-    logger.error("could not connect to mongodb")
+  except Exception as e:
+    logger.error("mongodb: exception while initialising mongodb connection: " + str(e))
     mongoclient = None
 
   try:
@@ -1031,7 +1065,9 @@ if __name__ == '__main__':
   # get values
   get_value = influxdb_get_value
   #get_value = mongodb_get_value
+
   logger.info("starting webserver")
+  #publish_event("system","webserver ready","ok")
   socketio.run(app,host="0.0.0.0")
 
 

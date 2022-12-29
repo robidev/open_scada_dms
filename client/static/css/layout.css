@@ -344,3 +344,53 @@ div.tabcontents {
     background-color: rgb(0, 0, 0);
   }
 }
+
+.modal-fader {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 99998;
+  background: rgba(0,0,0,0.200);
+}
+.modal-fader.active {
+  display: block;
+}
+.modal-window {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  color: #000;
+  background: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  font-family: sans-serif;
+  top: 50px;
+}
+.modal-window.active {
+  display: block;
+}
+
+.modal-window h1,
+.modal-window h2,
+.modal-window h3,
+.modal-window h4,
+.modal-window h5,
+.modal-window h6 {
+  margin: 0;
+}
+
+.modal-btn {
+  background: #36a5a5;
+  border: none;
+  color: #fff;
+  padding: 10px 15px;
+  box-shadow: none;
+  border-radius: 3px;
+  text-decoration: none;
+}

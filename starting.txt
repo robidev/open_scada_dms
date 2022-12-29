@@ -1,0 +1,17 @@
+start db's:
+
+sudo docker-compose up mongodb redis influxdb
+
+start admins:
+
+sudo docker-compose up redis-commander admin-mongo 
+sudo docker-compose up grafana
+sudo docker-compose up portainer
+
+start scada:
+
+./app.py
+
+seems mongodb needs mongodb to resolve to the server-ip, and app.py needs to adress the dns for replication
+to work. replication is needed for journaling
+easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts

@@ -19,7 +19,6 @@ services:
   mongodb:
     image: mongo
     container_name: mongodb
-    restart: always
     hostname: mongodb
     env_file:
       - .env
@@ -76,7 +75,6 @@ services:
     image: rediscommander/redis-commander:latest
     env_file:
       - .env
-    restart: always
     environment:
       - HTTP_USER=admin
       - HTTP_PASSWORD=admin
