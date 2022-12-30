@@ -21,12 +21,6 @@ $(document).ready(function() {
   else if(focus === "3"){ // event view
     init_events();
   }
-  else if(focus === "4"){ // historical graph view
-    init_grafana();
-  }
-  else if(focus === "5"){ // system log view
-    init_logs();
-  }
   else{ //default is schema view
     init_schema();
     init_mapelements();
@@ -99,11 +93,25 @@ function init_alarm(){
   refresh_alarm_table();
 
   //table.setFilter("open", "=", "true");
-  table.on("rowClick", function(e, row){
-    alert("Row " + row.getIndex() + " Clicked!!!!") //test
-    let row_element = row.getElement();
-    //acknowledge alarm/close alarm
+  table.on("cellEdited", function(cell){
+    //alert("Cell edited: " + cell.getField() + " to: " + cell.getValue()); //test
+    let data = cell.getData();
+    //acknowledge alarm/close alarm    
+    socket.emit('update_alarm_state', data );
+
     table.refreshFilter();
+  });
+
+  table.on("cellDblClick", function(e, cell){
+    let field = cell.getField();
+    if(field === "alarm" || field === "acknowledged" || field === "open"){
+      let inv = !cell.getValue();
+      cell.setValue(inv);
+    }
+    else{
+      alert("Cell clicked: " + cell.getField() + " "); //test
+    }
+
   });
 
   //callbacks for ack/close/alarm_manual_off

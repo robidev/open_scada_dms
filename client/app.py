@@ -761,21 +761,89 @@ def new_alarm_check(datapoint,
   db.alarm_logic.insert_one(alarm)
 
 
+@socketio.on('update_alarm_state', namespace='')
+def update_alarm_state(dataitem):
+  global alarm_list
+  global mongoclient
+
+  # object identifier
+  datapoint = dataitem['datapoint']
+  alert_id = dataitem['alert_id']
+
+  #data to be modified/updated
+  alarm = dataitem['alarm']
+  ack = dataitem['acknowledged']
+  open = dataitem['open']
+
+  if not datapoint in alarm_list:
+    print("could not find datapoint in alarm list")
+    return
+  if not alert_id in alarm_list[datapoint]:
+    print("could not find alert_id in alarm list[datapoint]")
+    return
+
+  db = mongoclient.scada
+  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
+  newvalues =  {
+        "alarm": alarm,
+        "acknowledged": ack,
+        "open": open
+      }
+  # get old values
+  cursor = db.alarm_table.find(myquery)
+  for object in cursor:
+    oldack = object['acknowledged']
+    oldopen = object['open']
+  # set net values
+  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+
+  # check if event needs to be made
+  for alarm_item in  alarm_list[datapoint]['alarm_logic_list']:
+    if alarm_item['alert_id'] == alert_id:
+      if ack != oldack:
+        if ack  == True:
+          publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",True)
+        else:
+          publish_event(json.dumps(alarm_item['element']),"alarm unacknowledged",False)
+      if open != oldopen:
+        if open == True:
+          publish_event(json.dumps(alarm_item['element']),"alarm set open",True)
+        else:
+          publish_event(json.dumps(alarm_item['element']),"alarm set closed",False)
+      if alarm != alarm_list[datapoint][alert_id]:
+        if alarm == True:
+          publish_event(json.dumps(alarm_item['element']),"alarm manually raised",True)
+        else:
+          publish_event(json.dumps(alarm_item['element']),"alarm manually lowered",False)
+
+
+  get_alarm_table(None)
+
+
+
 def acknowledge_alarm(datapoint, alert_id, ack):
   global alarm_list
   global mongoclient
+  if not datapoint in alarm_list:
+    print("could not find datapoint in alarm list")
+    return
+  if not alert_id in alarm_list[datapoint]:
+    print("could not find alert_id in alarm list[datapoint]")
+    return
+
   db = mongoclient.scada
   myquery = {'datapoint': datapoint, "alert_id": alert_id } 
   newvalues =  {
         "acknowledged": ack
       }
   db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+
   for alarm in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm['alert_id'] == alert_id:
       if ack == True:
-        publish_event(json.dumps(alarm['element']),"alarm acknowledged",True)
+        publish_event(json.dumps(alarm['element']),"alarm acknowledged",str(True))
       else:
-        publish_event(json.dumps(alarm['element']),"alarm not acknowledged",False)
+        publish_event(json.dumps(alarm['element']),"alarm unacknowledged",str(False))
 
   get_alarm_table(None)
 
@@ -783,6 +851,13 @@ def acknowledge_alarm(datapoint, alert_id, ack):
 def close_alarm(datapoint, alert_id, open):
   global alarm_list
   global mongoclient
+  if not datapoint in alarm_list:
+    print("could not find datapoint in alarm list")
+    return
+  if not alert_id in alarm_list[datapoint]:
+    print("could not find alert_id in alarm list[datapoint]")
+    return
+
   db = mongoclient.scada
   myquery = {'datapoint': datapoint, "alert_id": alert_id } 
   newvalues =  {
@@ -793,9 +868,9 @@ def close_alarm(datapoint, alert_id, open):
   for alarm in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm['alert_id'] == alert_id:
       if open == True:
-        publish_event(json.dumps(alarm['element']),"alarm set open",True)
+        publish_event(json.dumps(alarm['element']),"alarm set open",str(True))
       else:
-        publish_event(json.dumps(alarm['element']),"alarm set closed",False)
+        publish_event(json.dumps(alarm['element']),"alarm set closed",str(False))
 
   get_alarm_table(None)
 
@@ -816,13 +891,19 @@ def lower_alarm(datapoint, alert_id):
         "alarm": False
       }
   db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+
   alarm_list[datapoint][alert_id]=False
 
   for alarm in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm['alert_id'] == alert_id:
-      publish_event(json.dumps(alarm['element']),"alarm manually lowered",False)
+      publish_event(json.dumps(alarm['element']),"alarm manually lowered",str(False))
 
   get_alarm_table(None)
+
+
+
+
+
 
 #########################################################################################
 # io with frontend
