@@ -100,7 +100,7 @@ services:
       - /srv/docker/influxdb/data:/var/lib/influxdb
     #USER = admin, PASSWORD = administrator
 
-# timeseries dashboard
+# timeseries dashboard, username:admin, password: admin
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana
@@ -127,6 +127,22 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
 
+#  yacht:
+#    container_name: yacht
+#    restart: unless-stopped
+#    ports:
+#      - 8000:8000
+#    volumes:
+#      - yacht:/config
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - .:/compose
+#    environment:
+#      - PUID=0
+#      - PGID=0
+#      - COMPOSE_DIR=/compose
+#    image: selfhostedpro/yacht
+
 volumes:
   portainer_data:
+#  yacht:
 

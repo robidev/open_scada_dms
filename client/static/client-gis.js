@@ -16,7 +16,6 @@ function init_gis(){
     zoomOffset: -1,
   }).addTo(leafletmap);//*/
 
-
   //register svg events
   leafletmap.on(L.Draw.Event.CREATED, gis_addItem);//*/
   leafletmap.on(L.Draw.Event.EDITED, gis_editedItems);
@@ -29,7 +28,11 @@ function init_gis(){
   leafletmap.on('draw:editstop', function(){leafletmap.on('moveend', update_gis);  leafletmap.on('zoomend', update_gis);} );
   leafletmap.on('draw:deletestart', function(){leafletmap.off('moveend', update_gis);  leafletmap.off('zoomend', update_gis);} );
   leafletmap.on('draw:deletestop', function(){leafletmap.on('moveend', update_gis);  leafletmap.on('zoomend', update_gis);} );
-  leafletmap.setZoom(18);
+
+  if(location.hash === ""){ //ensure were not setting a location in the url
+    leafletmap.setZoom(18);
+  }
+
 
 
   socket.on('svg_object_add_to_gis', function (data) {

@@ -710,7 +710,6 @@ def trigger_alarm(key, alarm, value):
 
 
   if "event" in alarm['action'] and update == True:
-    print("event")
     publish_event(alarm['element'],alarm['action']['event'],value)
 
   if "script" in alarm['action']:
@@ -723,7 +722,7 @@ def new_alarm_check(datapoint,
     alert_id = 1, # alert id within this datapoint
     logic = ">", # logic to apply to value
     value_1 = 0,value_2 = 0, # test values to check logic and value with
-    actions = {"set_alarm":"Al1"}, # actions to perform on match
+    actions = {"set_alarm":"Al1"}, # actions to perform on match (value of set_alarm is used in message)
     retrigger = True, # retrigger on every match, or only if new alarm (allows for polling)
     element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
     ): 
@@ -796,10 +795,11 @@ def update_alarm_state(dataitem):
     oldopen = object['open']
   # set net values
   db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
-
+  print("++update_alarm_state")
   # check if event needs to be made
   for alarm_item in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm_item['alert_id'] == alert_id:
+      print("-- ack:" + str(ack) + " open:" + str(open) + " alarm:" + str(alarm))
       if ack != oldack:
         if ack  == True:
           publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",True)
@@ -815,93 +815,9 @@ def update_alarm_state(dataitem):
           publish_event(json.dumps(alarm_item['element']),"alarm manually raised",True)
         else:
           publish_event(json.dumps(alarm_item['element']),"alarm manually lowered",False)
-
-
-  get_alarm_table(None)
-
-
-
-def acknowledge_alarm(datapoint, alert_id, ack):
-  global alarm_list
-  global mongoclient
-  if not datapoint in alarm_list:
-    print("could not find datapoint in alarm list")
-    return
-  if not alert_id in alarm_list[datapoint]:
-    print("could not find alert_id in alarm list[datapoint]")
-    return
-
-  db = mongoclient.scada
-  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
-  newvalues =  {
-        "acknowledged": ack
-      }
-  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
-
-  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
-    if alarm['alert_id'] == alert_id:
-      if ack == True:
-        publish_event(json.dumps(alarm['element']),"alarm acknowledged",str(True))
-      else:
-        publish_event(json.dumps(alarm['element']),"alarm unacknowledged",str(False))
+      break
 
   get_alarm_table(None)
-
-
-def close_alarm(datapoint, alert_id, open):
-  global alarm_list
-  global mongoclient
-  if not datapoint in alarm_list:
-    print("could not find datapoint in alarm list")
-    return
-  if not alert_id in alarm_list[datapoint]:
-    print("could not find alert_id in alarm list[datapoint]")
-    return
-
-  db = mongoclient.scada
-  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
-  newvalues =  {
-        "open": open
-      }
-  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
-
-  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
-    if alarm['alert_id'] == alert_id:
-      if open == True:
-        publish_event(json.dumps(alarm['element']),"alarm set open",str(True))
-      else:
-        publish_event(json.dumps(alarm['element']),"alarm set closed",str(False))
-
-  get_alarm_table(None)
-
-
-def lower_alarm(datapoint, alert_id):
-  global alarm_list
-  global mongoclient
-  if not datapoint in alarm_list:
-    print("could not find datapoint in alarm list")
-    return
-  if not alert_id in alarm_list[datapoint]:
-    print("could not find alert_id in alarm list[datapoint]")
-    return
-
-  db = mongoclient.scada
-  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
-  newvalues =  {
-        "alarm": False
-      }
-  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
-
-  alarm_list[datapoint][alert_id]=False
-
-  for alarm in  alarm_list[datapoint]['alarm_logic_list']:
-    if alarm['alert_id'] == alert_id:
-      publish_event(json.dumps(alarm['element']),"alarm manually lowered",str(False))
-
-  get_alarm_table(None)
-
-
-
 
 
 
@@ -914,7 +830,7 @@ def get_alarm_table(data):
   global mongoclient
 
   # event test
-  #publish_event("element_1","alarm set closed","jaja") # test
+  #publish_event("element_1","alarm set closed","TEST") # test
 
   if mongoclient == None:
     logger.error("no mongodb connection")
@@ -1010,7 +926,7 @@ def publish_event(element,msg,value):
   #   operate/select/cancel command and result (of action, and actual process)
   #   alarms trigger
   el = json.dumps(element)
-  print("element: %s, message: %s, value: %s" % (el, msg, str(value)))
+  # print("-- element: %s, message: %s, value: %s" % (el, msg, str(value)))
   # add event item @ influxdb
   global influxdb_write_api
   p = Point("event").tag("element", el).field("message", msg).field("value", str(value))

@@ -16,7 +16,6 @@ function init_schema(){
     mapType: "schema"
   }).setView([0, 0], 17);//setView([0,0], 1);
 
-
   leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
   leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
   leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
@@ -29,7 +28,9 @@ function init_schema(){
   leafletmap.on('draw:deletestart', function(){leafletmap.off('moveend', update_schema); leafletmap.off('zoomend', update_schema);} );
   leafletmap.on('draw:deletestop', function(){leafletmap.on('moveend', update_schema); leafletmap.on('zoomend', update_schema);} );
 
-  leafletmap.setZoom(18);//-5
+  if(location.hash === ""){ //ensure were not setting a location in the url
+    leafletmap.setZoom(18);
+  }
 
 
   socket.on('svg_object_add_to_schema', function (data) {

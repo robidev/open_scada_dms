@@ -1,22 +1,38 @@
-top-bar location indication
+build example schema/gis for 2 substations(1 feed each), each containing a static 10kv distribution line with 2 dist. transformers, each contain a strand of houses
 
-event/alarm schermen:
->  alarm/ack/close op datapoint, click to go to location, from alarm-window
+__________________
+  |              |
+Sub.1          Sub.2
+ | |___         | |______
+ |     |        |        |
+dis.1-dis.2     dis.3--dis.4
+|  |   |  |     |  |   |  |
++--+   +--+     +--+   +--+
+
+lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
+view/adding/removing/editing RTU's
+
+click to go to location, from alarm-window
+pre-config grafana dashboard voor trending datapunten?
+
+Publish!!!
+
+
+-- future --
 script fire on alarm logic
->  event van acties op alarm/ack/close event van IFS(connectie/disconnect, add/remove datapoint)
+ - what logic? should it be 
+ - pyeval? (server side python app context?, if so, how to restrict?)
+ - shell?
+ - trigger other events?
+ - modify scada views?
+ - sms?
+
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
 
 
-adding/removing/editing RTU's
-
-
-
-pre-config grafana dashboard voor trending datapunten?
-
-
-lod-handling (low-res/nodata when too far zoomed (z-min, z-max?))
 iccp-connector?
+
 iec61850 ifs?
 
 
