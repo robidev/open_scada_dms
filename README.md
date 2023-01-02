@@ -1,10 +1,10 @@
 # This is a work in progress
 
 # Open SCADA EMS/DMS
-This is an open source project for a basic ems/dms scada system. It contains a HMI with vector graphics taylored towards power-scada, and supports an IEC60870-5-104 based IFS. 
+This is an open source project for a basic ems/dms scada system. It contains a HMI(human-machine-interface) with vector graphics tailored towards power-scada, and supports an IEC60870-5-104 based IFS(the connection between the field devices and the central scada). 
 
 ## schema and gis
-schema shows a schematic view of a power grid, with scroll and zoom capability. gis is data overlayed on a gographic map
+schema shows a schematic view of a power grid, with scroll and zoom capability. gis is data overlayed on a geographic map
 
 data is live updated, and the view is animated. 
 

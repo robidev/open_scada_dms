@@ -348,7 +348,7 @@ def query_schema(x1,y1,x2,y2,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, and z-depth
+  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
 
@@ -397,6 +397,7 @@ def query_schema(x1,y1,x2,y2,z):
   return data
 
 
+#the schema render function
 @socketio.on('get_svg_for_schema')#, namespace='')
 def get_svg_for_schema(data):
 
@@ -426,8 +427,8 @@ def query_schema_geojson(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, and z-depth
-  # return list of svg items that fall within that box, thus should be drawn
+  # perform a query, based on a x/y box, FUTURE TODO:  and z-depth
+  # return list of svg items that (partly) fall within that box, thus should be drawn
   db = mongoclient.scada
   cursor = db.schema_geojson.find({ 
     '$and':[
@@ -459,8 +460,8 @@ def query_gis_geojson(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, and z-depth
-  # return list of svg items that fall within that box, thus should be drawn
+  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
+  # return list of svg items that (partly) fall within that box, thus should be drawn
   db = mongoclient.scada
   cursor = db.gis_objects.find({ 
     '$and':[
@@ -492,8 +493,8 @@ def query_gis_svg(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, and z-depth
-  # return list of svg items that fall within that box, thus should be drawn
+  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
+  # return list of svg items that (partly) fall within that box, thus should be drawn
   try:
     db = mongoclient.scada
     cursor = db.gis_objects.find({ 
@@ -578,12 +579,12 @@ def redis_dataUpdate(msg):
   data_u8 = data.decode("utf-8")
   
   logger.info("update: %s %s", str(key_u8), str(data_u8))
-  updateDataPoint( key_u8,data_u8) # emit to clients
+  updateDataPoint( key_u8,data_u8) # emit to connected webclients
   update_alarms( key_u8,data_u8 )
 
 
 def poll_dataUpdate(point, data):
-  updateDataPoint(point,data) # emit to clients
+  updateDataPoint(point,data) # emit to connected webclients
 
 
 def mongodb_get_value(point):
@@ -957,6 +958,46 @@ def get_event_table(param):
   socketio.emit('update_event_table', data)
 
 
+###############################################################
+###############################################################
+
+# retrieve RTU's from mongodb
+@socketio.on('get_rtu_list', namespace='')
+def get_RTU_list():
+  global mongoclient
+  db = mongoclient.scada
+  cursor = db.rtu_list.find({})
+
+  data = []
+  for object in cursor:
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+    data.append(object)
+
+  return data
+
+
+  # edit/add RTU's from mongodb
+@socketio.on('edit_rtu', namespace='')
+def add_RTU(rtu, enabled, IFS):
+  global mongoclient
+  db = mongoclient.scada
+  newvalues =  {
+      "enabled": enabled,
+      "IFS": IFS,
+    }
+  _id = db.rtu_list.insert_one({"RTU":rtu}, {"$set": newvalues}, upsert=True)
+  # ensure _id gets retrieved
+  return "_" + str(_id.inserted_id)
+
+
+  # delete RTU's from mongodb
+@socketio.on('del_rtu', namespace='')
+def del_RTU(uuid):
+  global mongoclient
+  db = mongoclient.scada
+  db.rtu_list.delete_one({'_id':ObjectId(uuid[1:])})
+
 
 ###############################################################
 ###############################################################
@@ -970,16 +1011,15 @@ def worker():
   interval_counter = 0
   while True:
     socketio.sleep(1)
-    if mongoclient == None:
-      logger.error("no mongodb connection")
+    if influxdb_client == None: #mongoclient == None:
+      logger.error("no db connection")
       socketio.sleep(10)
       continue
 
     for point in poll_datapoint:
-      if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint
+      if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
 
-        value = get_value(point)
-        #value = influxdb_get_value(point)
+        value = get_value(point)  #value = influxdb_get_value(point)
 
         if value == None:
           value = 'UNKNOWN'
@@ -1025,11 +1065,7 @@ if __name__ == '__main__':
     db = mongoclient.scada
     logger.info("mongodb: set db")
     get_alarm_logic()
-    logger.info("mongodb: got alarm logic")
-    cursor = db.data_timeseries.find({}).limit(1) # find newest value
-    logger.info("mongodb: found timeseries data")
-    for object in cursor:
-      logger.info("got data from mongodb")
+    logger.info("mongodb: alarm logic loaded")
 
   except Exception as e:
     logger.error("mongodb: exception while initialising mongodb connection: " + str(e))
