@@ -406,6 +406,12 @@ def query_schema_svg(x1,y1,x2,y2,z):
 
   data = []
   for object in cursor:
+    # check depth bounds
+    if 'z_min' in object['properties'] and z < object['properties']['z_min']:
+      continue
+    if 'z_max' in object['properties'] and z > object['properties']['z_max']:
+      continue
+
     svg = db.svg_templates.find_one({"name":object["svg"]})
     object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['properties']['datapoints']) + "</svg>"
     object["id"] = "_" + str(object["_id"])
@@ -467,6 +473,12 @@ def query_schema_geojson(w,n,e,s,z):
   })
   data = []
   for item in cursor:
+    # check depth bounds
+    if 'z_min' in item['properties'] and z < item['properties']['z_min']:
+      continue
+    if 'z_max' in item['properties'] and z > item['properties']['z_max']:
+      continue
+
     item['_id'] = "_" + str(item['_id'])
     data.append(item)
   return data
@@ -500,6 +512,12 @@ def query_gis_geojson(w,n,e,s,z):
   })
   data = []
   for item in cursor:
+    # check depth bounds
+    if 'z_min' in item['properties'] and z < item['properties']['z_min']:
+      continue
+    if 'z_max' in item['properties'] and z > item['properties']['z_max']:
+      continue
+
     item['_id'] = "_" + str(item['_id'])
     data.append(item)
   return data
@@ -536,6 +554,12 @@ def query_gis_svg(w,n,e,s,z):
   data = []
 
   for object in cursor:
+    # check depth bounds
+    if 'z_min' in object['properties'] and z < object['properties']['z_min']:
+      continue
+    if 'z_max' in object['properties'] and z > object['properties']['z_max']:
+      continue
+    
     svg = db.svg_templates.find_one({"name":object["properties"]["svg"]})
     object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object["properties"]['datapoints']) + "</svg>"
     object["id"] = "_" + str(object["_id"])
