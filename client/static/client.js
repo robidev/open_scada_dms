@@ -21,6 +21,9 @@ $(document).ready(function() {
   else if(focus === "3"){ // event view
     init_events();
   }
+  else if(focus === "4"){ // event view
+    init_dataproviders();
+  }
   else{ //default is schema view
     init_schema();
     init_mapelements();

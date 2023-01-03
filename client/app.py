@@ -66,7 +66,7 @@ def add_listener(point):
     # and/or increase reference count for subscribed data points
   #  return "rt"
 
-  #else subscribe for mongodb poll(keep reference count)
+  #else subscribe for db poll(keep reference count)
   if not point in poll_datapoint:
     poll_datapoint[point] = {}
     poll_datapoint[point]['refCount'] = 0
@@ -85,7 +85,7 @@ def remove_listener(point):
     # and/or decrease reference count
   #  return "rt"
 
-  #else unsubscribe for mongodb poll(keep reference count)
+  #else unsubscribe for db poll(keep reference count)
   if point in poll_datapoint:
     if poll_datapoint[point]['refCount'] > 0:
       poll_datapoint[point]['refCount'] -= 1
@@ -587,14 +587,14 @@ def poll_dataUpdate(point, data):
   updateDataPoint(point,data) # emit to connected webclients
 
 
-def mongodb_get_value(point):
-  global mongoclient
-  # query mongodb for possible update
-  db = mongoclient.scada
-  cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
-  for object in cursor:
-    return object['value']
-  return None
+#def mongodb_get_value(point):
+#  global mongoclient
+#  # query mongodb for possible update
+#  db = mongoclient.scada
+# cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
+#  for object in cursor:
+#    return object['value']
+#  return None
 
 
 def influxdb_get_value(point):
@@ -922,7 +922,7 @@ def save_alarm_rules(data):
 
 ### Event logic ###
 def publish_event(element,msg,value):
-  # IFS: rtu connect/discoonect (with additional values for substsation/bay info if available)
+  # IFS: dataprovider connect/discoonect (with additional values for substsation/bay info if available)
   # main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
   #   operate/select/cancel command and result (of action, and actual process)
   #   alarms trigger
@@ -961,42 +961,52 @@ def get_event_table(param):
 ###############################################################
 ###############################################################
 
-# retrieve RTU's from mongodb
-@socketio.on('get_rtu_list', namespace='')
-def get_RTU_list():
+# retrieve dataprovider's from mongodb
+@socketio.on('get_dataproviders', namespace='')
+def get_dataproviders(data):
   global mongoclient
+  global rt_db
+  
   db = mongoclient.scada
-  cursor = db.rtu_list.find({})
+  cursor = db.dataprovider_list.find({})
 
   data = []
   for object in cursor:
     object["id"] = "_" + str(object["_id"])
     object.pop("_id")
+
+    dataprovider_on = rt_db.get("connections:"+object["dataprovider"]+".active")
+    if dataprovider_on == b'1':
+      object["online"] = True
+    else:
+      object["online"] = False
+
     data.append(object)
 
   return data
 
 
-  # edit/add RTU's from mongodb
-@socketio.on('edit_rtu', namespace='')
-def add_RTU(rtu, enabled, IFS):
+  # edit/add dataprovider's from mongodb
+@socketio.on('edit_dataprovider', namespace='')
+def add_dataprovider(dataprovider, enabled, IFS, type):
   global mongoclient
   db = mongoclient.scada
   newvalues =  {
       "enabled": enabled,
       "IFS": IFS,
+      "type": type
     }
-  _id = db.rtu_list.insert_one({"RTU":rtu}, {"$set": newvalues}, upsert=True)
+  _id = db.dataprovider_list.insert_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
   # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
 
 
-  # delete RTU's from mongodb
-@socketio.on('del_rtu', namespace='')
-def del_RTU(uuid):
+  # delete dataprovider's from mongodb
+@socketio.on('del_dataprovider', namespace='')
+def dataprovider(uuid):
   global mongoclient
   db = mongoclient.scada
-  db.rtu_list.delete_one({'_id':ObjectId(uuid[1:])})
+  db.dataprovider_list.delete_one({'_id':ObjectId(uuid[1:])})
 
 
 ###############################################################
@@ -1096,8 +1106,7 @@ if __name__ == '__main__':
     influxdb_write_api = None
 
   # get values
-  get_value = influxdb_get_value
-  #get_value = mongodb_get_value
+  get_value = influxdb_get_value # mongodb_get_value
 
   logger.info("starting webserver")
   #publish_event("system","webserver ready","ok")

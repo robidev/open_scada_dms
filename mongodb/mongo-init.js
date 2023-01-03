@@ -12,18 +12,26 @@ db.createUser(
 );
 db = new Mongo().getDB("scada");
 
-db.createCollection("rtu_list");
+db.createCollection("dataprovider_list");
 db.rtu_list.insert([
-	{ "RTU":"127.0.0.1:2404","enabled":1,"IFS":"IFS_A" },
-	{ "RTU":"127.0.0.1:2405","enabled":0,"IFS":"IFS_A" },
-	{ "RTU":"127.0.0.1:2406","enabled":1,"IFS":"IFS_B" },
-	{ "RTU":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A" },
+	{ "dataprovider":"127.0.0.1:2404","enabled":1,"IFS":"IFS_A","type":"iec60870-5-104" },
+	{ "dataprovider":"127.0.0.1:2405","enabled":0,"IFS":"IFS_A","type":"iec60870-5-104" },
+	{ "dataprovider":"127.0.0.1:2406","enabled":1,"IFS":"IFS_B","type":"iec60870-5-104" },
+	{ "dataprovider":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A","type":"iec60870-5-104" },
 ]);
 
 db.createCollection("alarm_table");
-db.createCollection("alarm_logic");
+db.alarm_table.insert([
+{"_id":{"$oid":"620592203ed421f72de205c2"},"alert_id":1,"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101","acknowledged":false,"alarm":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"message":"OverVoltage","open":true,"time":"2022/02/10 - 10:00:00","value":"41"}
+])
 
-db.createCollection("data_timeseries");
+db.createCollection("alarm_logic");
+db.alarm_logic.insert([
+{"_id":{"$oid":"62aa3622b058888cd413b537"},"alert_id":1,"logic":">","value_1":89,"value_2":0,"action":{"set_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"},
+{"_id":{"$oid":"62aa3622b058888cd413b538"},"alert_id":1,"logic":"<","value_1":92,"value_2":0,"action":{"reset_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"}
+])
+
+//db.createCollection("data_timeseries");
 
 db.createCollection("svg_templates");
 db.svg_templates.insert([

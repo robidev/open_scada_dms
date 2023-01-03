@@ -31,27 +31,25 @@ def getAsduName(ASDU):
     if ASDU == 107:
         return "TestCommand_CP56Time2a" #	C_TS_TA_1; 107
 
-def update_datapoint_mongodb(tupl, ioa, ASDU, value):
-    global scada_database
-    data = {
-        "id":           "iec60870-5-104://" + tupl + "/" + getAsduName(ASDU) + "/" + str(ioa),
-        "rtu":          tupl,
-        "ioa":          ioa,
-        "value":        int(value),
-        "ASDU":         ASDU,
-        "quality":      "good",
-        "timestamp":    int(time.time()*1000)
-    }
-    scada_database.data_timeseries.insert_one(data)
+#def update_datapoint_mongodb(tupl, ioa, ASDU, value):
+#    global scada_database
+#    data = {
+#        "id":           "iec60870-5-104://" + tupl + "/" + getAsduName(ASDU) + "/" + str(ioa),
+#        "rtu":          tupl,
+#        "ioa":          ioa,
+#        "value":        int(value),
+#        "ASDU":         ASDU,
+#        "quality":      "good",
+#        "timestamp":    int(time.time()*1000)
+#    }
+#    scada_database.data_timeseries.insert_one(data)
 
 def update_datapoint_influxdb(rtu, ioa, ASDU, value):
     global influxdb_write_api
     id = "iec60870-5-104://" + rtu + "/" + getAsduName(ASDU) + "/" + str(ioa)
 
     p = Point("datapoint").tag("id", id).tag("quality", "good").field("value", int(value))
-
     influxdb_write_api.write(bucket="bucket_1", record=p)
- 
     return
 
 
@@ -60,9 +58,9 @@ def callback(tupl, data):
     print("RTU:" + tupl + " - update:" + str(data))
     for key, value in data.items():
         rt_db.set("data:iec60870-5-104://"+tupl+"/"+getAsduName(value['ASDU'])+"/"+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
-        # push timeseries data to mongodb 
+        # push timeseries data to time series db 
         update_datapoint(tupl, key, value['ASDU'], value['value'])
-        update_datapoint_influxdb(tupl, key, value['ASDU'], value['value'])
+        
 
 
 def operate_handler(message):
@@ -127,7 +125,7 @@ def testframe(rtu):
 # retrieve RTU's from mongodb
 def get_RTU_list():
     global scada_database
-    cursor = scada_database.rtu_list.find({"enabled": 1, "IFS": IFS_NAME}).distinct('RTU')
+    cursor = scada_database.dataprovider_list.find({"enabled": 1, "IFS": IFS_NAME}).distinct('dataprovider') # dataprovider is for this type of IFS an RTU
     if len(cursor) > LIMIT:
         print("too much RTU's for this IFS. limit: %i, found: %i" % (LIMIT, len(cursor)))
     return cursor[:LIMIT]
@@ -151,7 +149,7 @@ def mongo_watch_changes(stream):
 ################################################################
 if __name__ == '__main__':
     iecclient = libiec60870client.IEC60870_5_104_client(callback)
-    update_datapoint = update_datapoint_mongodb
+    update_datapoint = update_datapoint_influxdb #update_datapoint_mongodb
     print("start")
 
     if len(sys.argv) == 1:
@@ -189,7 +187,7 @@ if __name__ == '__main__':
     thread = call_p.run_in_thread(sleep_time=0.001)
 
     rtu_list = get_RTU_list() 
-    stream = scada_database.rtu_list.watch()
+    stream = scada_database.dataprovider_list.watch()
 
     #reset all RTU's
     for rtu in rtu_list:
