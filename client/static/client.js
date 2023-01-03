@@ -109,6 +109,24 @@ function init_mapelements(){
 
       // parse the json into leaflet layers
       local_geojsonlayer.addData(json);
+
+      for(let edititem in editableLayers._layers){
+        if('feature' in editableLayers._layers[edititem]){
+          let found = false;
+          for(let local_geoitem in local_geojsonlayer._layers){
+            if(editableLayers._layers[edititem].feature && 
+              editableLayers._layers[edititem].feature._id === local_geojsonlayer._layers[local_geoitem].feature._id){
+              found = true;
+              break;
+            }
+          }
+          if(found == false){
+            editableLayers.removeLayer(editableLayers._layers[edititem]);
+            geojsonlayer.removeLayer(editableLayers._layers[edititem]);
+          }
+        }
+      }
+
       //find what layer allready exist
       for(let local_geoitem in local_geojsonlayer._layers){
         let found = false;
