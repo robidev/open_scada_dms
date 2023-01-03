@@ -419,33 +419,32 @@ function show_Sidebar(e){
   sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   sidebar.show();
-  let save_fnc_wrap = function(){save_fnc(layer);};
 
   let save_btn = sidebar._container.querySelector('#sidebar-save');
   let new_save_btn = save_btn.cloneNode(true);
   save_btn.parentNode.replaceChild(new_save_btn, save_btn);
 
-  L.DomEvent.on(new_save_btn, 'click', save_fnc_wrap);
+  L.DomEvent.on(new_save_btn, 'click', function(e){ 
+    let layer = this;
+    layer._dataPoints = JSON.parse(sidebar._container.querySelector('#datapoints_field').value);
+    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value); //EDIT FIX
+    if(layer.type==="Feature"){
+      layer.setStyle();
+      setGeojsonStyle(layer, layer.feature);
+    }
+  
+    if(layer._map.options.mapType === "schema"){
+      schema_editedItems({"layers":{"_layers":{"0":layer}}});
+    }
+    else{
+      gis_editedItems({"layers":{"_layers":{"0":layer}}});
+    }
+  
+    sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
+    sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  }, layer);
 }
 
-var save_fnc = function(layer){ 
-  layer._dataPoints = JSON.parse(sidebar._container.querySelector('#datapoints_field').value);
-  if(layer.type==="Feature"){
-    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value);
-    layer.setStyle();
-    setGeojsonStyle(layer, layer.feature);
-  }
-
-  if(node._map.options.mapType === "schema"){
-    schema_editedItems({"layers":{"_layers":{"0":layer}}});
-  }
-  else{
-    gis_editedItems({"layers":{"_layers":{"0":layer}}});
-  }
-
-  sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
-};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

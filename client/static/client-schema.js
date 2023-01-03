@@ -42,7 +42,19 @@ function init_schema(){
     if(node == null){
       return;
     }
-    node._dataPoints = data['datapoints'];
+    //node._dataPoints = data['datapoints'];
+
+    if('properties' in data){
+      node._dataPoints = data["properties"]['datapoints'];
+      if('z_min' in data['properties']){
+        node.options.z_min = data['properties']['z_min'];
+      }
+      if('z_max' in data['properties']){
+        node.options.z_max = data['properties']['z_max'];
+      }
+    }
+
+
     node.on("click", show_Sidebar);
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
@@ -99,13 +111,16 @@ function schema_addItem(e) {
     }
 
     let bounds = layer.getBounds();
+    properties = layer.options;//EDIT
+    properties['datapoints'] = layer._dataPoints;
     socket.emit('schema_addItems', {
       'w':bounds._northEast.lng,
       'n':bounds._northEast.lat,
       'e':bounds._southWest.lng,
       's':bounds._southWest.lat,
       'svg':layer._templateName, 
-      'dataPoints': layer._dataPoints }, 
+      "properties": properties,
+      },
       function(ret){
         if (!layer.uuid){
           layer.uuid = ret;
@@ -152,13 +167,16 @@ function schema_editedItems(e){
     }
     else if(layer.type && layer.type === "Svg"){
       let bounds = layer.getBounds();
+      let properties = Object.assign({},layer.options);//EDIT
+      properties['datapoints'] = layer._dataPoints;
+
       socket.emit('schema_editedItems', {
         '_id':layer.uuid,
         'w':bounds._northEast.lng,
         'n':bounds._northEast.lat,
         'e':bounds._southWest.lng,
         's':bounds._southWest.lat,
-        'dataPoints': layer._dataPoints
+        "properties": properties,
       });
     }
   }
@@ -179,7 +197,7 @@ function schema_removeItems(e){
 var update_schema = function(){ 
   zoom = leafletmap.getZoom();
   bounds = leafletmap.getBounds();
-  socket.emit('get_svg_for_schema', {'w': bounds.getWest(), 'n': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'e': bounds.getEast(), 's': bounds.getNorth()});
+  socket.emit('get_objects_for_schema', {'w': bounds.getWest(), 'n': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'e': bounds.getEast(), 's': bounds.getNorth()});
 } 
 
 

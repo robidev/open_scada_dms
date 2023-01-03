@@ -110,7 +110,7 @@ def add_to_schema_database(data):
       'e':data['e'],
       's':data['s'],
       'svg':data['svg'], 
-      'datapoints': data['dataPoints'] }
+      'properties': data['properties'] }
       )
   # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
@@ -124,7 +124,11 @@ def add_geojson_to_schema_database(data):
     return None
 
   db = mongoclient.scada
-  _id = db.schema_geojson.insert_one({"type": data['type'], "geometry": data["geometry"], "properties": data["properties"]})
+  _id = db.schema_geojson.insert_one(
+    {"type": data['type'], 
+    "geometry": data["geometry"], 
+    "properties": data["properties"]}
+    )
     # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
 
@@ -142,7 +146,8 @@ def update_schema_database(data):
       'n':data['n'],
       'e':data['e'],
       's':data['s'],
-      'datapoints': data['dataPoints'] }
+      'properties': data['properties'] }
+      #'datapoints': data['dataPoints'] }
   db.schema_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
 
 
@@ -155,7 +160,10 @@ def update_schema_geojson_database(data):
 
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
-  newvalues = {"geometry": data["geometry"], "properties": data["properties"]} # x,y etc.
+  newvalues = {
+    "geometry": data["geometry"], 
+    "properties": data["properties"]
+    } # x,y etc.
   #newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.schema_geojson.update_one(myquery, {"$set": newvalues}, False) # update_many()
 
@@ -193,9 +201,17 @@ def add_to_gis_database(data):
 
   db = mongoclient.scada
   if data['type'] == 'Svg':
-    _id = db.gis_objects.insert_one({"type": data['type'], "location": data["location"], "properties": data["properties"]})
+    _id = db.gis_objects.insert_one(
+      {"type": data['type'], 
+      "location": data["location"], 
+      "properties": data["properties"]}
+      )
   else:
-    _id = db.gis_objects.insert_one({"type": data['type'], "geometry": data["geometry"], "properties": data["properties"]})
+    _id = db.gis_objects.insert_one(
+      {"type": data['type'], 
+      "geometry": data["geometry"], 
+      "properties": data["properties"]}
+      )
   # ensure _id gets retrieved
   return "_" + str(_id.inserted_id)
 
@@ -209,9 +225,11 @@ def update_gis_database(data):
   db = mongoclient.scada
   myquery = {'_id':ObjectId(data['_id'][1:])} # _id
   if data['type'] == 'Svg':
-    newvalues = {"location": data["location"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+    newvalues = {"location": data["location"], "properties": data["properties"]} # x,y etc.
+    #newvalues = {"location": data["location"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   else:
-    newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
+    newvalues = {"geometry": data["geometry"], "properties": data["properties"]} # x,y etc.
+    #newvalues = {"geometry": data["geometry"], "properties.datapoints": data["properties"]['datapoints']} # x,y etc.
   db.gis_objects.update_one(myquery, {"$set": newvalues}, False) # update_many()
 
 
@@ -343,7 +361,7 @@ def register_datapoint_finished(data):
   logger.info("register datapoint finished")
 
 # load svg schema data
-def query_schema(x1,y1,x2,y2,z):
+def query_schema_svg(x1,y1,x2,y2,z):
   global mongoclient
   if mongoclient == None:
     logger.error("no mongodb connection")
@@ -389,7 +407,7 @@ def query_schema(x1,y1,x2,y2,z):
   data = []
   for object in cursor:
     svg = db.svg_templates.find_one({"name":object["svg"]})
-    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['datapoints']) + "</svg>"
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['properties']['datapoints']) + "</svg>"
     object["id"] = "_" + str(object["_id"])
     object.pop("_id")
     data.append(object)
@@ -398,12 +416,12 @@ def query_schema(x1,y1,x2,y2,z):
 
 
 #the schema render function
-@socketio.on('get_svg_for_schema')#, namespace='')
-def get_svg_for_schema(data):
+@socketio.on('get_objects_for_schema')#, namespace='')
+def get_objects_for_schema(data):
 
   logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['w'],data['n'],data['e'],data['s'],data['z'])
   # query database for svg objects, based on coordinates
-  in_view_new = query_schema(data['w'],data['n'],data['e'],data['s'], data['z'])
+  in_view_new = query_schema_svg(data['w'],data['n'],data['e'],data['s'], data['z'])
 
   # remove old items that should not be in view anymore
   for item in data['in_view']:
@@ -495,42 +513,40 @@ def query_gis_svg(w,n,e,s,z):
     return {}
   # perform a query, based on a x/y box, FUTURE TODO: and z-depth
   # return list of svg items that (partly) fall within that box, thus should be drawn
-  try:
-    db = mongoclient.scada
-    cursor = db.gis_objects.find({ 
-      '$and':[
-        {
-          'type': 'Svg'
-        },
-        {
-          "location": {
-          "$geoIntersects": {
-              "$geometry": {
-                "type": "Polygon" ,
-                "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
-              }
+
+  db = mongoclient.scada
+  cursor = db.gis_objects.find({ 
+    '$and':[
+      {
+        'type': 'Svg'
+      },
+      {
+        "location": {
+        "$geoIntersects": {
+            "$geometry": {
+              "type": "Polygon" ,
+              "coordinates": [ [ [w,n],[e,n],[e,s],[w,s],[w,n] ] ] # square
             }
           }
         }
-      ]
-    })
+      }
+    ]
+  })
+  
+  data = []
 
-    data = []
-
-    for object in cursor:
-      svg = db.svg_templates.find_one({"name":object["properties"]["svg"]})
-      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object["properties"]['datapoints']) + "</svg>"
-      object["id"] = "_" + str(object["_id"])
-      object.pop("_id")
-      data.append(object)
-  except Exception as inst:
-    return None
+  for object in cursor:
+    svg = db.svg_templates.find_one({"name":object["properties"]["svg"]})
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object["properties"]['datapoints']) + "</svg>"
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+    data.append(object)
 
   return data
 
 
-@socketio.on('get_svg_for_gis', namespace='')
-def get_svg_for_gis(data):
+@socketio.on('get_objects_for_gis', namespace='')
+def get_objects_for_gis(data):
   # query database for svg objects, based on coordinates
   in_view_new = query_gis_svg(data['w'], data['n'], data['e'], data['s'], data['z'])
   if in_view_new == None:

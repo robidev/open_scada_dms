@@ -45,7 +45,18 @@ function init_gis(){
       return;
     }
     node.on("click", show_Sidebar);
-    node._dataPoints = data["properties"]['datapoints'];
+
+    if('properties' in data){
+      node._dataPoints = data["properties"]['datapoints'];
+      node.options.svg = data["properties"]['svg'];
+      if('z_min' in data['properties']){
+        node.options.z_min = data['properties']['z_min'];
+      }
+      if('z_max' in data['properties']){
+        node.options.z_max = data['properties']['z_max'];
+      }
+    }
+
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
@@ -160,6 +171,11 @@ function gis_editedItems(e){
     else if(layer.type && layer.type === "Svg"){
       let latlng = layer.getLatLng();
       let bounds = layer.getBounds();
+
+      let properties = Object.assign({},layer.options);//EDIT
+      properties['datapoints'] = layer._dataPoints;
+      properties['svg'] = layer.options.svg;
+
       socket.emit('gis_editedItems', {
         '_id':layer.uuid,
         'type': layer.type,
@@ -168,9 +184,12 @@ function gis_editedItems(e){
                       "height": bounds._northEast.lat - bounds._southWest.lat, 
                       "width": bounds._northEast.lng - bounds._southWest.lng, 
                     },
-        "properties": {
-          'datapoints': layer._dataPoints
-        } 
+        "properties": properties,
+        //{
+          //'datapoints': layer._dataPoints,
+          //'z_min': properties.z_min,
+          //'z_max': properties.z_max,
+        //} 
       });
     }
   }
@@ -188,7 +207,7 @@ function gis_removeItems(e){
 var update_gis = function(){ 
   zoom = leafletmap.getZoom();
   bounds = leafletmap.getBounds();
-  socket.emit('get_svg_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
+  socket.emit('get_objects_for_gis', {'w': bounds.getWest(), 'n': bounds.getNorth(), 'e': bounds.getEast(), 's': bounds.getSouth(), 'z': zoom, 'in_view': gis_in_view});
 } 
 
 
