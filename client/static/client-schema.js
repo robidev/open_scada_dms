@@ -42,7 +42,6 @@ function init_schema(){
     if(node == null){
       return;
     }
-    //node._dataPoints = data['datapoints'];
 
     if('properties' in data){
       node._dataPoints = data["properties"]['datapoints'];

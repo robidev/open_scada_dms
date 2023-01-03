@@ -138,24 +138,31 @@ function init_mapelements(){
           }
         }
         if(found == false){// if geojson is not found,
+          let layer = local_geojsonlayer._layers[local_geoitem];
           // add geojson objects to edit and geojson-layer
-          local_geojsonlayer._layers[local_geoitem].uuid = local_geojsonlayer._layers[local_geoitem]['feature']['_id'];
-          local_geojsonlayer._layers[local_geoitem].type = "Feature";
-          local_geojsonlayer._layers[local_geoitem].on("click", show_Sidebar);
-          local_geojsonlayer._layers[local_geoitem]._dataPoints = local_geojsonlayer._layers[local_geoitem]['feature']["properties"]['datapoints'];
-          for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
+          layer.uuid = layer['feature']['_id'];
+          layer.type = "Feature";
+          layer.on("click", show_Sidebar);
+          layer._dataPoints = layer['feature']["properties"]['datapoints'];
+          for (const [key, point] of Object.entries(layer._dataPoints)) {
             for (const [child_key, child_point] of Object.entries(point)) {
               socket.emit('register_datapoint', child_key);
               local_data_cache_norefresh[child_key] = false;
             }
           }
-          getGeojsonStyle(local_geojsonlayer._layers[local_geoitem]);
+          getGeojsonStyle(layer);
+          if('z_min' in layer.feature.properties){
+            layer.options.z_min = layer.feature.properties['z_min'];
+          }
+          if('z_max' in layer.feature.properties){
+            layer.options.z_max = layer.feature.properties['z_max'];
+          }
           //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
           //  socket.emit('register_datapoint', point);
           //}
 
-          editableLayers.addLayer(local_geojsonlayer._layers[local_geoitem]);
-          geojsonlayer.addLayer(local_geojsonlayer._layers[local_geoitem]);
+          editableLayers.addLayer(layer);
+          geojsonlayer.addLayer(layer);
         }
       }
     }
@@ -263,6 +270,7 @@ function setGeojsonStyle(layer, geojson){
 
   geojson.properties['smoothFactor'] = layer.options.smoothFactor;//": 1,
   geojson.properties['noClip'] = layer.options.noClip;// false,
+
   geojson = JSON.stringify(geojson);//make sure it is all valid geojson
 }
 
@@ -449,6 +457,12 @@ function show_Sidebar(e){
     if(layer.type==="Feature"){
       layer.setStyle();
       setGeojsonStyle(layer, layer.feature);
+      if('z_min' in layer.options){
+        layer.feature.properties['z_min'] = layer.options.z_min;
+      }
+      if('z_max' in layer.options){
+        layer.feature.properties['z_max'] = layer.options.z_max;
+      }
     }
   
     if(layer._map.options.mapType === "schema"){

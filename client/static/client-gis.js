@@ -6,7 +6,7 @@ function init_gis(){
   leafletmap = L.map('mmi_svg', { 
     renderer: L.svg(),
     mapType: "gis"
-  }).setView([51.980, 5.842], 17);
+  }).setView([51.99461, 5.82955], 17);
   //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'openstreetmap',

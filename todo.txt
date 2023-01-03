@@ -36,3 +36,5 @@ iccp-connector?
 iec61850 ifs?
 
 
+Bug:
+adding z_max, and then modifying it to z_min will add them both

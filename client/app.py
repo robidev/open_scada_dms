@@ -425,7 +425,7 @@ def query_schema_svg(x1,y1,x2,y2,z):
 @socketio.on('get_objects_for_schema')#, namespace='')
 def get_objects_for_schema(data):
 
-  logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['w'],data['n'],data['e'],data['s'],data['z'])
+  # logger.info("x: %i, y: %i, x2: %i, y2: %i, z: %i", data['w'],data['n'],data['e'],data['s'],data['z'])
   # query database for svg objects, based on coordinates
   in_view_new = query_schema_svg(data['w'],data['n'],data['e'],data['s'], data['z'])
 
