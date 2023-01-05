@@ -14,6 +14,19 @@ services:
     depends_on:
       - mongodb
       - redis
+      - influxdb
+
+
+  static_dataprovider:
+    build: ./static_dataprovider
+    env_file:
+      - .env
+    environment:
+      - IFS_REDIS_HOST=redis
+      - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      - influxdb
+      - redis
 
 # mongodb as persistent scada database
   mongodb:

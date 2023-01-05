@@ -15,21 +15,52 @@ IFS_NAME = "IFS_A"
 LIMIT = 100
 update_datapoint = None
 
-def getAsduName(ASDU):
-    if ASDU == 1:
-        return "SinglePointInformation" # 	M_SP_NA_1; 1
-    if ASDU == 3:
-        return "DoublePointInformation" #	M_DP_NA_1; 3
-    if ASDU == 11:
-        return "MeasuredValueScaled" #		M_ME_NB_1; 11
-    if ASDU == 35:
-        return "MeasuredValueScaled_CP56Time2a" #M_ME_TE_1; 35
-    if ASDU == 45:
-        return "SinglePointCommand" #		C_SC_NA_1; 45
-    if ASDU == 46:
-        return "DoublePointCommand" #		C_DC_NA_1; 46
-    if ASDU == 107:
-        return "TestCommand_CP56Time2a" #	C_TS_TA_1; 107
+# CP16Time2a - milisecond(int)
+# CP24Time2a - milisecond(int), minute(int), invalid(bool), substitute(bool)
+# CP32Time2a - milisecond(int), minute(int), hour(int), summertime(bool), invalid(bool), substitute(bool)
+# CP56Time2a - milisecond(int), minute(int), hour(int), summertime(bool), dayofweek(int), (dayofmonth), year(int), invalid(bool), substitute(bool)
+# only CP56Time2a should be used in IEC60870-5-104
+
+def getDatatype(datatype):
+    if datatype == 1:
+        return "SinglePointInformation" # 	            M_SP_NA_1; 1 (bool)
+    if datatype == 3:
+        return "DoublePointInformation" #	            M_DP_NA_1; 3 (2 bits enum)
+    if datatype == 7:
+        return "BitString32" #                          M_BO_NA_1; 7 (bits, max 32 bits )
+    if datatype == 9:
+        return "MeasuredValueNormalized" #              M_ME_NA_1; 9 (float normalized value between -1 and 1)
+    if datatype == 11:
+        return "MeasuredValueScaled" #		            M_ME_NB_1; 11 (int between -32.768 and 32.767)
+    if datatype == 13:
+        return "MeasuredValueShort" #                   M_ME_NC_1; 13 (float value)
+    if datatype == 35:
+        return "MeasuredValueScaled_CP56Time2a" #       M_ME_TE_1; 35 (int between -32.768 and 32.767 with timestamp)
+    if datatype == 45:
+        return "SinglePointCommand" #		            C_SC_NA_1; 45 (bool)
+    if datatype == 46:
+        return "DoublePointCommand" #		            C_DC_NA_1; 46 (2 bits enum)
+    if datatype == 47:        
+        return "RegulatingStepCommand" #                C_RC_NA_1; 47 (0=invalid, 1=lower, 2=higher, 3=invalid)
+    if datatype == 48:
+        return "SetpointCommandNormalized" #            C_SE_NA_1; 48 (float normalized value between -1 and 1)
+    if datatype == 49:
+        return "SetpointCommandScaled" #                C_SE_NB_1; 49 (int between -32.768 and 32.767)
+    if datatype == 50:
+        return "SetpointCommandShort" #                 C_SE_NC_1; 50 (float value)
+    if datatype == 51:
+        return "BitstringCommand" #                     C_BO_NA_1; 51 (bits, max 32 bits )
+    if datatype == 107:
+        return "TestCommand_CP56Time2a" #	            C_TS_TA_1; 107
+
+datatypes_match = {
+    "SinglePointCommand": "SinglePointInformation",
+    "DoublePointCommand": "DoublePointInformation",
+    "SetpointCommandNormalized":"MeasuredValueNormalized",
+    "SetpointCommandScaled":"MeasuredValueScaled",
+    "SetpointCommandShort":"MeasuredValueShort",
+    "BitstringCommand":"BitString32"
+}
 
 #def update_datapoint_mongodb(tupl, ioa, ASDU, value):
 #    global scada_database
