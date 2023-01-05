@@ -16,6 +16,7 @@ function init_schema(){
     mapType: "schema"
   }).setView([0, 0], 17);//setView([0,0], 1);
 
+  //register events for map display and edits
   leafletmap.on(L.Draw.Event.CREATED, schema_addItem);
   leafletmap.on(L.Draw.Event.EDITED, schema_editedItems);
   leafletmap.on(L.Draw.Event.DELETED, schema_removeItems);
@@ -32,17 +33,19 @@ function init_schema(){
     leafletmap.setZoom(18);
   }
 
-
-  socket.on('svg_object_add_to_schema', function (data) {
     //add svg to object
+  socket.on('svg_object_add_to_schema', function (data) {
+    //bail if object already in view
     if(schema_in_view.includes(data['id'])){
       return;
     }
+    //add svg to leaflet map
     node = svg_add_to_schema(data['w'],data['n'],data['e'],data['s'],data['svg'],data['id']);
-    if(node == null){
+    if(node == null){ //dont continue if object could not be added
       return;
     }
 
+    //TODO: user properties instead of options
     if('properties' in data){
       node._dataPoints = data["properties"]['datapoints'];
       if('z_min' in data['properties']){
@@ -52,18 +55,18 @@ function init_schema(){
         node.options.z_max = data['properties']['z_max'];
       }
     }
-
-
+    //register click event
     node.on("click", show_Sidebar);
+    //register datapoints for updating from server
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
         local_data_cache_norefresh[child_key] = false;
       }
     }
-    node._image.layerNode = node;//for onclick events in svg, to find the node back
+    node._image.layerNode = node;//reference for onclick events in svg, to find the node back
 
-    schema_in_view.push(data['id']);
+    schema_in_view.push(data['id']);//maintain a list of existing objects in view
   });
 
   socket.on('svg_object_remove_from_schema', function (data) {
@@ -92,7 +95,7 @@ function init_schema(){
 }
 
 
-
+//function if item(svg/geojson) is added via the editor
 function schema_addItem(e) {
   let type = e.layerType, layer = e.layer;
 
@@ -105,7 +108,7 @@ function schema_addItem(e) {
         'name':layer._templateName,
         'viewBox': layer._svgViewBox,
         'svg': layer._url.innerHTML,
-        'datapoint_amount':layer._dataPoints.length
+        'datapoint_amount':layer._dataPoints.length //TODO: is this even used?
       });
     }
 
@@ -166,7 +169,7 @@ function schema_editedItems(e){
     }
     else if(layer.type && layer.type === "Svg"){
       let bounds = layer.getBounds();
-      let properties = Object.assign({},layer.options);//EDIT
+      let properties = Object.assign({},layer.options);//TODO: improve for using layer.properties instead of .options
       properties['datapoints'] = layer._dataPoints;
 
       socket.emit('schema_editedItems', {

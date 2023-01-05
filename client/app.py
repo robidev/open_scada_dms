@@ -74,7 +74,6 @@ def add_listener(point):
 
   poll_datapoint[point]['refCount'] += 1
 
-  return "poll"
 
 
 def remove_listener(point):
@@ -90,7 +89,6 @@ def remove_listener(point):
     if poll_datapoint[point]['refCount'] > 0:
       poll_datapoint[point]['refCount'] -= 1
 
-  return "poll"
 
 
 ###############################################

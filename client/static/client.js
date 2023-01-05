@@ -65,10 +65,13 @@ function init_mapelements(){
     }
   };
   let drawControl = new L.Control.Draw(options);
+
+  //set default sidebar to info, and hide edit
   var isEditEnabled = false;
   document.getElementById("info_panel").style.display = "block";
   document.getElementById("edit_panel").style.display = "none";
 
+  //toggle the sidebar of the edit/info with the edit-button
   L.easyButton('fa-globe', function(){
     if(isEditEnabled == true){
       leafletmap.removeControl(drawControl);
@@ -83,6 +86,7 @@ function init_mapelements(){
     }  
   }).addTo( leafletmap );
 
+  //attach the sidebar for info/editing to leaflet
   document.getElementById("sidebar").style.display = "block";
   sidebar = L.control.sidebar('sidebar', {
     position: 'right',
@@ -94,6 +98,7 @@ function init_mapelements(){
     sidebar.hide();
   });
 
+  //register edit callbacks
   leafletmap.on('draw:editstart',   function() { sidebar.hide(); sidebar.removeFrom(leafletmap); } );
   leafletmap.on('draw:editstop',    function() { sidebar.hide(); sidebar.addTo(leafletmap); } );
   leafletmap.on('draw:deletestart', function() { sidebar.hide(); sidebar.removeFrom(leafletmap); } );
@@ -101,7 +106,10 @@ function init_mapelements(){
 
   // Set up the hash
   var hash = new L.Hash(leafletmap);
+  // END OF INIT VIEW CODE
 
+
+  //event to draw all visible geojson objets to a gis or schema map(i.e not svg, but geojson object such as polygon or polyline)
   socket.on('geojson_object_add_to_map', function (json) {
     //add geojson to object
     if (json) {
@@ -110,6 +118,7 @@ function init_mapelements(){
       // parse the json into leaflet layers
       local_geojsonlayer.addData(json);
 
+      //remove invisible layers
       for(let edititem in editableLayers._layers){
         if('feature' in editableLayers._layers[edititem]){
           let found = false;
@@ -121,6 +130,12 @@ function init_mapelements(){
             }
           }
           if(found == false){
+            //remove key for updating
+            for (const [key, point] of Object.entries(editableLayers._layers[edititem]._dataPoints)) {
+              for (const [child_key, child_point] of Object.entries(point)) {
+                socket.emit('unregister_datapoint', child_key); //register all datapoints, so updates for these points are sent to the browser
+              }
+            }
             editableLayers.removeLayer(editableLayers._layers[edititem]);
             geojsonlayer.removeLayer(editableLayers._layers[edititem]);
           }
@@ -140,34 +155,37 @@ function init_mapelements(){
         if(found == false){// if geojson is not found,
           let layer = local_geojsonlayer._layers[local_geoitem];
           // add geojson objects to edit and geojson-layer
-          layer.uuid = layer['feature']['_id'];
-          layer.type = "Feature";
-          layer.on("click", show_Sidebar);
-          layer._dataPoints = layer['feature']["properties"]['datapoints'];
+          layer.uuid = layer['feature']['_id'];//set uud, needed for deletion/editing
+          layer.type = "Feature"; // ensure type is set to Feature(i.e not svg, but geojson object such as polygon or polyline)
+          layer.on("click", show_Sidebar); //register event
+          layer._dataPoints = layer['feature']["properties"]['datapoints'];//set the datapoints related for this object
+
           for (const [key, point] of Object.entries(layer._dataPoints)) {
             for (const [child_key, child_point] of Object.entries(point)) {
-              socket.emit('register_datapoint', child_key);
-              local_data_cache_norefresh[child_key] = false;
+              socket.emit('register_datapoint', child_key); //register all datapoints, so updates for these points are sent to the browser
+              local_data_cache_norefresh[child_key] = false;// this seems needed to prevent multiple updates??
             }
           }
-          getGeojsonStyle(layer);
+
+          getGeojsonStyle(layer);// copy properties over to the geojsonstyle object, to apply them
+
+          // set the z-properties
           if('z_min' in layer.feature.properties){
             layer.options.z_min = layer.feature.properties['z_min'];
           }
           if('z_max' in layer.feature.properties){
             layer.options.z_max = layer.feature.properties['z_max'];
           }
-          //for (const [key, point] of Object.entries(local_geojsonlayer._layers[local_geoitem]._dataPoints)) {
-          //  socket.emit('register_datapoint', point);
-          //}
 
-          editableLayers.addLayer(layer);
-          geojsonlayer.addLayer(layer);
+          //finally add the layer to the maps
+          editableLayers.addLayer(layer); //the layer used when editing
+          geojsonlayer.addLayer(layer); // the normal view layer
         }
       }
     }
   });
 
+  //receive data from scada, and update items to display it(svg or geojson)
   socket.on('updateDataPoint', function (data) { 
     //console.log("called:" + data.toString());
     let key = data['key'];
@@ -191,11 +209,12 @@ function updateLayers(layers,key, value){
     let layer = layers[layer_id]
     for (const [d_key, point] of Object.entries(layer._dataPoints)) {
 
-      if (!(key in point)){
-        continue;
+      if (!(key in point)){ // check if the update value identifier(key) is part of the datapoints for this object
+        continue; // if key is not this datapoint, try next
       }
-      template_item = point[key];
-      //update
+      template_item = point[key]; // retrieve the element-id related to this datapoint, for updating
+
+      // update the element id if object type is svg
       if(layer.type === "Svg"){
         //template_item is id of svg element. class is used for type of display
         $("g",layer._image).find("*").each(function(idx, el){
@@ -223,9 +242,12 @@ function updateLayers(layers,key, value){
           }
         });
       }
+
+      // update the element id if object type is svg
       if(layer.type === "Feature"){
         //template_item is property modification of geojson element. class is used for type of display
-        //template_item = {"1":["color","gt","10","#00ff00"]};
+        //template_item = {"datapoint":['<element-id>','<comparisson>','<value>',<value to assing to element-id>]} 
+        // e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
         let result = null;
         if(template_item[1] == ">" && value > template_item[2]){ // greater then
           result = template_item[3];
@@ -243,7 +265,7 @@ function updateLayers(layers,key, value){
           result = template_item[4];
         }
         if(result !== null){
-          layer.options[template_item[0]] = result;
+          layer.options[template_item[0]] = result; //assign the result if a comparisson was made succesfull
           layer.setStyle();//update the layer style
         }        
       }
@@ -299,7 +321,8 @@ function getGeojsonStyle(layer){
 
 
 //////////////////////////////////////////////////////////////////////////
-	//.leaflet-modal
+//.leaflet-modal item for displaying the svg template window
+// this window allows to select existing svg templates, or upload a new one
 
 L.Draw.Svg.include({
 	  enable: function(){
@@ -348,14 +371,17 @@ L.Draw.Svg.include({
         
           width: 700,
         
+          //init event
           onShow: function(evt) {
             let modal = evt.modal;
             let imported = null;
-
+            
+            //fit the svg in the preview window
             fitSvg(templates[0]['svg'], modal._container.querySelector('#preview'));
 
+            //register several Dom events
             L.DomEvent
-            .on(modal._container.querySelector('.modal-ok'), 'click', function() {
+            .on(modal._container.querySelector('.modal-ok'), 'click', function() { //pressed ok, so create a new svg object on the map
               let sel = modal._container.querySelector('select[name="SVG-templates"]');
 
               if(imported == null){
@@ -389,15 +415,15 @@ L.Draw.Svg.include({
               L.Draw.SimpleShape.prototype.enable.call(drawsvg);
               modal.hide();
             })
-            .on(modal._container.querySelector('.modal-cancel'), 'click', function() {
+            .on(modal._container.querySelector('.modal-cancel'), 'click', function() { //dont create an svg object on the map
               modal.hide();
             })
-            .on(modal._container.querySelector('select[name="SVG-templates"]'), 'change', function() {
+            .on(modal._container.querySelector('select[name="SVG-templates"]'), 'change', function() {// select a different template from dropdown
               imported = null;
               fitSvg(templates[parseInt(this.value)]['svg'],  modal._container.querySelector('#preview'));
               modal._container.querySelector('#template_name').value = "";
             })
-            .on(modal._container.querySelector('#file-input'), 'change', function(e) {
+            .on(modal._container.querySelector('#file-input'), 'change', function(e) { // select svg from file
               let file = e.target.files[0];
               if (!file) {
                 return;
@@ -416,6 +442,7 @@ L.Draw.Svg.include({
    }
 });
 
+//calculate a fitting boundingbox around an svg, and set a preview window
 function fitSvg(contents, preview){
   let element = new DOMParser().parseFromString("<svg xmlns=\"http://www.w3.org/2000/svg\">" + contents + "</svg>", "image/svg+xml").documentElement;
   preview.innerHTML = "";
@@ -433,7 +460,7 @@ function fitSvg(contents, preview){
   return bbox;
 }
 
-
+//display of the info/edit sidebar
 function show_Sidebar(e){
   let layer = e.target;
   sidebar._container.querySelector('#info_control').style.display = "none";
@@ -442,21 +469,25 @@ function show_Sidebar(e){
   sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
   sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
 
+  //fill the 2 edit fields TODO: merge this into only the properties field?
   sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
   sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   sidebar.show();
 
   let save_btn = sidebar._container.querySelector('#sidebar-save');
-  let new_save_btn = save_btn.cloneNode(true);
-  save_btn.parentNode.replaceChild(new_save_btn, save_btn);
+  let new_save_btn = save_btn.cloneNode(true);//deep clone of the save button, to ensure the layer passed is correct
+  save_btn.parentNode.replaceChild(new_save_btn, save_btn);//replace the old button with this one
 
   L.DomEvent.on(new_save_btn, 'click', function(e){ 
     let layer = this;
+
+    //TODO: combine the fields and just copy the edit fields here over to layer.properties
+    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value); 
     layer._dataPoints = JSON.parse(sidebar._container.querySelector('#datapoints_field').value);
-    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value); //EDIT FIX
+
     if(layer.type==="Feature"){
       layer.setStyle();
-      setGeojsonStyle(layer, layer.feature);
+      setGeojsonStyle(layer, layer.feature);//TODO: make this redundant with code above, just make layer.properties leading
       if('z_min' in layer.options){
         layer.feature.properties['z_min'] = layer.options.z_min;
       }
@@ -471,7 +502,7 @@ function show_Sidebar(e){
     else{
       gis_editedItems({"layers":{"_layers":{"0":layer}}});
     }
-  
+    
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
     sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   }, layer);
@@ -486,10 +517,11 @@ function show_Sidebar(e){
 function open_control(event,datapoint){
   let id = datapoint;
 
+  //find the main layer-node for this object from its child-node
   let i = 0;
   let node = null;
   object = event.target;
-  while(i < 20 && object){
+  while(i < 20 && object){ //go to parent node, max 20 items deep
     if(object['layerNode']){
       node = object['layerNode'];
       break;
@@ -497,7 +529,8 @@ function open_control(event,datapoint){
     object = object.parentNode;
     i++;
   }
-  //let nod = this.template_item;
+
+  //find the child-node that is related to the datapoint element-id
   let status_point = "";
   let control_element = "";
   for (const [key, point] of Object.entries(node._dataPoints)) {
@@ -522,6 +555,7 @@ function open_control(event,datapoint){
 
 }
 
+//the actual operate functions
 function select(element, value) {
   socket.emit('publish', {'operation': 'select', 'element': element, 'value': value});
 }
@@ -538,6 +572,7 @@ function cancel(element) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //generic functions
 
+//function to shorten a number to a fixed length, and include units such as kilo, mega, etc
 function abbreviate_number(num, fixed) {
   if (num === null) { return null; } // terminate early
   if (num === 0) { return '0'; } // terminate early
