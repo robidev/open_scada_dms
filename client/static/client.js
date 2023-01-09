@@ -67,7 +67,7 @@ function init_mapelements(){
   let drawControl = new L.Control.Draw(options);
 
   //set default sidebar to info, and hide edit
-  var isEditEnabled = false;
+  isEditEnabled = false;
   document.getElementById("info_panel").style.display = "block";
   document.getElementById("edit_panel").style.display = "none";
 
@@ -522,8 +522,11 @@ function open_control(event,datapoint){
       }
     }
   }
-  event.preventDefault();
-  event.stopPropagation();
+  if(!isEditEnabled){ //else delete click is not caught
+    event.preventDefault();
+    event.stopPropagation(); 
+  }
+
 
   show_Sidebar({target:layer});
   sidebar._container.querySelector('#info_control').style.display = "block";
