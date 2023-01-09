@@ -40,27 +40,21 @@ function init_schema(){
       return;
     }
     //add svg to leaflet map
-    node = svg_add_to_schema(data['w'],data['n'],data['e'],data['s'],data['svg'],data['id']);
-    if(node == null){ //dont continue if object could not be added
+    let layer = svg_add_to_schema(data['w'],data['n'],data['e'],data['s'],data['svg'],data['id']);
+    if(layer == null){ //dont continue if object could not be added
       return;
     }
 
-    //TODO: user properties instead of options
     if('properties' in data){
-      node._dataPoints = data["properties"]['datapoints'];
-      if('z_min' in data['properties']){
-        node.options.z_min = data['properties']['z_min'];
-      }
-      if('z_max' in data['properties']){
-        node.options.z_max = data['properties']['z_max'];
-      }
+      layer.properties = data["properties"];
+      layer._dataPoints = data["properties"]['datapoints'];
     }
     //register click event
-    node.on("click", show_Sidebar);
-    node._image.layerNode = node;//reference for onclick events in svg, to find the node back
+    layer.on("click", show_Sidebar);
+    layer._image.layerNode = layer;//reference for onclick events in svg, to find the node back
     schema_in_view.push(data['id']);//maintain a list of existing objects in view
     //register datapoints for updating from server
-    for (const [key, point] of Object.entries(node._dataPoints)) {
+    for (const [key, point] of Object.entries(layer._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
         local_data_cache_norefresh[child_key] = false;
@@ -70,21 +64,21 @@ function init_schema(){
 
   socket.on('svg_object_remove_from_schema', function (data) {
     //remove svg from object
-    let obj = null
+    let layer = null
     for(let item in editableLayers._layers){
       if(editableLayers._layers[item].uuid === data){
-          obj = editableLayers._layers[item];
-          break; 
+        layer = editableLayers._layers[item];
+        break; 
       }
     }
-    if(obj != null){
+    if(layer != null){
       //unregister values in this svg
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
+      for (const [key, point] of Object.entries(layer._dataPoints)) {
         for (const [child_key, child_point] of Object.entries(point)) {
           socket.emit('unregister_datapoint', child_key);
         }
       }
-      editableLayers.removeLayer(obj);
+      editableLayers.removeLayer(layer);
       let index = schema_in_view.indexOf(data);
       if (index > -1) {
         schema_in_view.splice(index, 1);
@@ -112,15 +106,16 @@ function schema_addItem(e) {
     }
 
     let bounds = layer.getBounds();
-    properties = layer.options;//EDIT
-    properties['datapoints'] = layer._dataPoints;
+    layer.properties = layer.options;
+
+    layer.properties['datapoints'] = layer._dataPoints;
     socket.emit('schema_addItems', {
       'w':bounds._northEast.lng,
       'n':bounds._northEast.lat,
       'e':bounds._southWest.lng,
       's':bounds._southWest.lat,
       'svg':layer._templateName, 
-      "properties": properties,
+      "properties": layer.properties,
       },
       function(ret){
         if (!layer.uuid){
@@ -135,10 +130,24 @@ function schema_addItem(e) {
     layer.on("click", show_Sidebar);
 
     layer.feature = {"properties":{}};
-    setGeojsonStyle(layer, layer.feature);
-    let geojson = layer.toGeoJSON();
+    layer.feature.properties['fillEnabled'] = layer.options.fill;//true/false
+    layer.feature.properties['fill'] = layer.options.fillColor;
+    layer.feature.properties['fill-opacity'] = layer.options.fillOpacity;
+    layer.feature.properties["fillRule"] = layer.options.fillRule;
+    layer.feature.properties['strokeEnabled' ] = layer.options.stroke;//true/false
+    layer.feature.properties['stroke'] = layer.options.color;
+    layer.feature.properties['stroke-width'] = layer.options.weight;
+    layer.feature.properties['stroke-opacity'] = layer.options.opacity;
+    layer.feature.properties['stroke-cap'] = layer.options.lineCap;// "round",
+    layer.feature.properties['stroke-join'] = layer.options.lineJoin;// "round",
+    layer.feature.properties['stroke-dashArray'] = layer.options.dashArray;// null,
+    layer.feature.properties['stroke-dashOffset'] = layer.options.dashOffset;// null,
+    layer.feature.properties['smoothFactor'] = layer.options.smoothFactor;//": 1,
+    layer.feature.properties['noClip'] = layer.options.noClip;// false,
 
-    geojson["properties"]['datapoints'] = layer._dataPoints;
+    layer.feature.properties['datapoints'] = layer._dataPoints;
+
+    let geojson = layer.toGeoJSON();
     geojson['type'] = layer.type;
     socket.emit('schema_addGeojsonItem', geojson ,
     function(ret){
@@ -157,7 +166,6 @@ function schema_editedItems(e){
     if(layer.type && layer.type === "Feature"){
       let geojson = layer.toGeoJSON();
       geojson["properties"]['datapoints'] = layer._dataPoints;
-      //setGeojsonStyle(layer, geojson);
 
       socket.emit('schema_editedGeojsonItems', {
         '_id':layer.uuid,
@@ -168,8 +176,7 @@ function schema_editedItems(e){
     }
     else if(layer.type && layer.type === "Svg"){
       let bounds = layer.getBounds();
-      let properties = Object.assign({},layer.options);//TODO: improve for using layer.properties instead of .options
-      properties['datapoints'] = layer._dataPoints;
+      layer.properties['datapoints'] = layer._dataPoints;
 
       socket.emit('schema_editedItems', {
         '_id':layer.uuid,
@@ -177,7 +184,7 @@ function schema_editedItems(e){
         'n':bounds._northEast.lat,
         'e':bounds._southWest.lng,
         's':bounds._southWest.lat,
-        "properties": properties,
+        "properties": layer.properties,
       });
     }
   }

@@ -40,26 +40,20 @@ function init_gis(){
     if(gis_in_view.includes(data['id'])){
       return;
     }
-    let node = svg_add_to_gis(data['svg'],data['id'],data['location']);
-    if(node == null){
+    let layer = svg_add_to_gis(data['svg'],data['id'],data['location']);
+    if(layer == null){
       return;
     }
-    node.on("click", show_Sidebar);
+    layer.on("click", show_Sidebar);
 
     if('properties' in data){
-      node._dataPoints = data["properties"]['datapoints'];
-      node.options.svg = data["properties"]['svg'];
-      if('z_min' in data['properties']){
-        node.options.z_min = data['properties']['z_min'];
-      }
-      if('z_max' in data['properties']){
-        node.options.z_max = data['properties']['z_max'];
-      }
+      layer._dataPoints = data["properties"]['datapoints'];
+      layer.properties = data["properties"];
     }
 
-    node._image.layerNode = node;//for onclick events in svg, to find the node back
+    layer._image.layerNode = layer;//for onclick events in svg, to find the node back
     gis_in_view.push(data['id']);
-    for (const [key, point] of Object.entries(node._dataPoints)) {
+    for (const [key, point] of Object.entries(layer._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
         local_data_cache_norefresh[child_key] = false;
@@ -69,21 +63,21 @@ function init_gis(){
 
   socket.on('svg_object_remove_from_gis', function (data) {
     //remove svg from object
-    let obj = null
+    let layer = null
     for(let item in editableLayers._layers){
       if(editableLayers._layers[item].uuid === data){
-          obj = editableLayers._layers[item];
-          break; // If you want to break out of the loop once you've found a match
+        layer = editableLayers._layers[item];
+        break; // If you want to break out of the loop once you've found a match
       }
     }
-    if(obj != null){
-      for (const [key, point] of Object.entries(obj._dataPoints)) {
+    if(layer != null){
+      for (const [key, point] of Object.entries(layer._dataPoints)) {
         for (const [child_key, child_point] of Object.entries(point)) {
           socket.emit('unregister_datapoint', child_key);
         }
       }
 
-      editableLayers.removeLayer(obj);
+      editableLayers.removeLayer(layer);
       let index = gis_in_view.indexOf(data);
       if (index > -1) {
         gis_in_view.splice(index, 1);
@@ -136,10 +130,25 @@ function gis_addItem(e) {
     layer.on("click", show_Sidebar);
 
     layer.feature = {"properties":{}};
-    setGeojsonStyle(layer, layer.feature);
+    layer.feature.properties['fillEnabled'] = layer.options.fill;//true/false
+    layer.feature.properties['fill'] = layer.options.fillColor;
+    layer.feature.properties['fill-opacity'] = layer.options.fillOpacity;
+    layer.feature.properties["fillRule"] = layer.options.fillRule;
+    layer.feature.properties['strokeEnabled' ] = layer.options.stroke;//true/false
+    layer.feature.properties['stroke'] = layer.options.color;
+    layer.feature.properties['stroke-width'] = layer.options.weight;
+    layer.feature.properties['stroke-opacity'] = layer.options.opacity;
+    layer.feature.properties['stroke-cap'] = layer.options.lineCap;// "round",
+    layer.feature.properties['stroke-join'] = layer.options.lineJoin;// "round",
+    layer.feature.properties['stroke-dashArray'] = layer.options.dashArray;// null,
+    layer.feature.properties['stroke-dashOffset'] = layer.options.dashOffset;// null,
+    layer.feature.properties['smoothFactor'] = layer.options.smoothFactor;//": 1,
+    layer.feature.properties['noClip'] = layer.options.noClip;// false,
+
+    layer.feature["properties"]['datapoints'] = layer._dataPoints;
+
     let geojson = layer.toGeoJSON();
 
-    geojson["properties"]['datapoints'] = layer._dataPoints;
     geojson['type'] = layer.type;
     socket.emit('gis_addItem', geojson ,
     function(ret){
@@ -158,7 +167,6 @@ function gis_editedItems(e){
     if(layer.type && layer.type === "Feature"){
       let geojson = layer.toGeoJSON();
       geojson["properties"]['datapoints'] = layer._dataPoints;
-      //setGeojsonStyle(layer, geojson);
 
       socket.emit('gis_editedItems', {
         '_id':layer.uuid,
@@ -170,10 +178,7 @@ function gis_editedItems(e){
     else if(layer.type && layer.type === "Svg"){
       let latlng = layer.getLatLng();
       let bounds = layer.getBounds();
-
-      let properties = Object.assign({},layer.options);//EDIT
-      properties['datapoints'] = layer._dataPoints;
-      properties['svg'] = layer.options.svg;
+      layer.properties['datapoints'] = layer._dataPoints;
 
       socket.emit('gis_editedItems', {
         '_id':layer.uuid,
@@ -183,12 +188,7 @@ function gis_editedItems(e){
                       "height": bounds._northEast.lat - bounds._southWest.lat, 
                       "width": bounds._northEast.lng - bounds._southWest.lng, 
                     },
-        "properties": properties,
-        //{
-          //'datapoints': layer._dataPoints,
-          //'z_min': properties.z_min,
-          //'z_max': properties.z_max,
-        //} 
+        "properties": layer.properties,
       });
     }
   }

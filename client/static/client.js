@@ -162,14 +162,6 @@ function init_mapelements(){
 
           getGeojsonStyle(layer);// copy properties over to the geojsonstyle object, to apply them
 
-          // set the z-properties
-          if('z_min' in layer.feature.properties){
-            layer.options.z_min = layer.feature.properties['z_min'];
-          }
-          if('z_max' in layer.feature.properties){
-            layer.options.z_max = layer.feature.properties['z_max'];
-          }
-
           //finally add the layer to the maps
           editableLayers.addLayer(layer); //the layer used when editing
           geojsonlayer.addLayer(layer); // the normal view layer
@@ -218,15 +210,19 @@ function updateLayers(layers,key, value){
       if(layer.type === "Svg"){
         //template_item is id of svg element. class is used for type of display
         $("g",layer._image).find("*").each(function(idx, el){
-          let cl = el.classList.toString();
           if(el.id == template_item){ 
+            let cl = el.classList.toString();
             //register  
             if(cl == "XCBR" || cl == "XSWI"){ 
-              if(value == 1) {
+              if(value == 1 && !('lastAnim' in el && el['lastAnim'] == 'close')) {
                 $("#close",el)[0].beginElementAt(0.1); 
+                el['lastAnim'] = 'close';
+                //$("#close",el)[0].beginElement(); 
               }
-              else {
+              if(value != 1 && !('lastAnim' in el && el['lastAnim'] == 'open')) {
                 $("#open",el)[0].beginElementAt(0.1);
+                el['lastAnim'] = 'open';
+                //$("#open",el)[0].beginElement();
               }
             }
             if(cl == "MEAS"){ 
@@ -271,29 +267,6 @@ function updateLayers(layers,key, value){
       }
     }
   }
-}
-
-function setGeojsonStyle(layer, geojson){
-  //console.log(e);
-  geojson.properties['fillEnabled'] = layer.options.fill;//true/false
-  geojson.properties['fill'] = layer.options.fillColor;
-  geojson.properties['fill-opacity'] = layer.options.fillOpacity;
-  geojson.properties["fillRule"] = layer.options.fillRule;
-
-  geojson.properties['strokeEnabled' ] = layer.options.stroke;//true/false
-  geojson.properties['stroke'] = layer.options.color;
-  geojson.properties['stroke-width'] = layer.options.weight;
-  geojson.properties['stroke-opacity'] = layer.options.opacity;
-  
-  geojson.properties['stroke-cap'] = layer.options.lineCap;// "round",
-  geojson.properties['stroke-join'] = layer.options.lineJoin;// "round",
-  geojson.properties['stroke-dashArray'] = layer.options.dashArray;// null,
-  geojson.properties['stroke-dashOffset'] = layer.options.dashOffset;// null,
-
-  geojson.properties['smoothFactor'] = layer.options.smoothFactor;//": 1,
-  geojson.properties['noClip'] = layer.options.noClip;// false,
-
-  geojson = JSON.stringify(geojson);//make sure it is all valid geojson
 }
 
 function getGeojsonStyle(layer){
@@ -469,42 +442,46 @@ function show_Sidebar(e){
   sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
   sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
 
-  //fill the 2 edit fields TODO: merge this into only the properties field?
-  sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-  sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
+  if(layer.type==="Feature"){
+    sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
+  }
+  else{ //svg
+    sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.properties, null, 2);
+  }
   sidebar.show();
 
+  //set save button context
   let save_btn = sidebar._container.querySelector('#sidebar-save');
   let new_save_btn = save_btn.cloneNode(true);//deep clone of the save button, to ensure the layer passed is correct
   save_btn.parentNode.replaceChild(new_save_btn, save_btn);//replace the old button with this one
 
   L.DomEvent.on(new_save_btn, 'click', function(e){ 
     let layer = this;
-
-    //TODO: combine the fields and just copy the edit fields here over to layer.properties
-    layer.options = JSON.parse(sidebar._container.querySelector('#options_field').value); 
-    layer._dataPoints = JSON.parse(sidebar._container.querySelector('#datapoints_field').value);
-
+    //parse json, assign values to object and update
     if(layer.type==="Feature"){
-      layer.setStyle();
-      setGeojsonStyle(layer, layer.feature);//TODO: make this redundant with code above, just make layer.properties leading
-      if('z_min' in layer.options){
-        layer.feature.properties['z_min'] = layer.options.z_min;
-      }
-      if('z_max' in layer.options){
-        layer.feature.properties['z_max'] = layer.options.z_max;
-      }
-    }
-  
-    if(layer._map.options.mapType === "schema"){
-      schema_editedItems({"layers":{"_layers":{"0":layer}}});
+      layer.feature.properties = JSON.parse(sidebar._container.querySelector('#options_field').value); 
+
+      //assign modified values
+      layer._dataPoints = layer.feature.properties.datapoints;
+      getGeojsonStyle(layer);
+
+      sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
     }
     else{
+      layer.properties = JSON.parse(sidebar._container.querySelector('#options_field').value); 
+
+      //assing modified values
+      layer._dataPoints = layer.properties.datapoints;
+
+      sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.properties, null, 2);
+    }
+    //update database
+    if(layer._map.options.mapType === "schema"){ //schema view
+      schema_editedItems({"layers":{"_layers":{"0":layer}}});
+    }
+    else{ //gis view
       gis_editedItems({"layers":{"_layers":{"0":layer}}});
     }
-    
-    sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.options, null, 2);
-    sidebar._container.querySelector('#datapoints_field').value = JSON.stringify(layer._dataPoints, null, 2);
   }, layer);
 }
 
@@ -519,21 +496,23 @@ function open_control(event,datapoint){
 
   //find the main layer-node for this object from its child-node
   let i = 0;
-  let node = null;
+  let layer = null;
   object = event.target;
   while(i < 20 && object){ //go to parent node, max 20 items deep
     if(object['layerNode']){
-      node = object['layerNode'];
+      layer = object['layerNode'];
       break;
     }
     object = object.parentNode;
     i++;
   }
-
+  if(layer === null){
+    return
+  }
   //find the child-node that is related to the datapoint element-id
   let status_point = "";
   let control_element = "";
-  for (const [key, point] of Object.entries(node._dataPoints)) {
+  for (const [key, point] of Object.entries(layer._dataPoints)) {
     for (const [child_key, child_point] of Object.entries(point)) {
       if(child_point == datapoint){
         control_element = child_key;
@@ -546,7 +525,7 @@ function open_control(event,datapoint){
   event.preventDefault();
   event.stopPropagation();
 
-  show_Sidebar({target:node});
+  show_Sidebar({target:layer});
   sidebar._container.querySelector('#info_control').style.display = "block";
   sidebar._container.querySelector('#control_element').value = control_element;
   sidebar._container.querySelector('#control_value').value = local_data_cache[status_point];
