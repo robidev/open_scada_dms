@@ -57,15 +57,14 @@ function init_gis(){
       }
     }
 
+    node._image.layerNode = node;//for onclick events in svg, to find the node back
+    gis_in_view.push(data['id']);
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
         socket.emit('register_datapoint', child_key);
         local_data_cache_norefresh[child_key] = false;
       }
     }
-    node._image.layerNode = node;//for onclick events in svg, to find the node back
-
-    gis_in_view.push(data['id']);
   });
 
   socket.on('svg_object_remove_from_gis', function (data) {

@@ -57,6 +57,8 @@ function init_schema(){
     }
     //register click event
     node.on("click", show_Sidebar);
+    node._image.layerNode = node;//reference for onclick events in svg, to find the node back
+    schema_in_view.push(data['id']);//maintain a list of existing objects in view
     //register datapoints for updating from server
     for (const [key, point] of Object.entries(node._dataPoints)) {
       for (const [child_key, child_point] of Object.entries(point)) {
@@ -64,9 +66,6 @@ function init_schema(){
         local_data_cache_norefresh[child_key] = false;
       }
     }
-    node._image.layerNode = node;//reference for onclick events in svg, to find the node back
-
-    schema_in_view.push(data['id']);//maintain a list of existing objects in view
   });
 
   socket.on('svg_object_remove_from_schema', function (data) {

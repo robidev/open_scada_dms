@@ -15,3 +15,28 @@ start scada:
 seems mongodb needs mongodb to resolve to the server-ip, and app.py needs to adress the dns for replication
 to work. replication is needed for journaling
 easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts
+
+
+
+EDITING:
+open edit mode with lowest button on the left side on the map
+clicking on an item will open the side pane with items to modify
+
+add svg from template or db by using the edit buttons
+svg items have a size and position, and can be animated, but cannot be styled dynamic
+datapoints are mapped to svg-identifiers as such: [datapoint]:[svg-id] e.g. "iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/300" : "datapoint_1"
+onclick events in svg can directly call javascript. as such; operate menus are done by registering an onclick in the svg, that will modify the info-menu for displaying the operate buttons
+
+add a polygon/polyline also with the corresponding buttons
+these items can be styled in the edit menu, or styled dynamically via datapoints
+datapoints are mapped to style-variables as such: [datapoint]:['<style-id>','<comparisson>','<value>',<value to assing to element-id>]} 
+e.g. {"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/300":["color",">","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
+
+static values can be created for svg by defining datapoints, and operating on them to set a value. it will be stored in the historic db, and the latest value is retrieved when needed for display
+this is done by the static_dataprovider
+
+all items can be configured with a z_min and z_max value to show/hide objects depending on zoom level. This allows more detailed/small objects when zoomed in
+
+ 
+
+

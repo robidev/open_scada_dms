@@ -160,13 +160,6 @@ function init_mapelements(){
           layer.on("click", show_Sidebar); //register event
           layer._dataPoints = layer['feature']["properties"]['datapoints'];//set the datapoints related for this object
 
-          for (const [key, point] of Object.entries(layer._dataPoints)) {
-            for (const [child_key, child_point] of Object.entries(point)) {
-              socket.emit('register_datapoint', child_key); //register all datapoints, so updates for these points are sent to the browser
-              local_data_cache_norefresh[child_key] = false;// this seems needed to prevent multiple updates??
-            }
-          }
-
           getGeojsonStyle(layer);// copy properties over to the geojsonstyle object, to apply them
 
           // set the z-properties
@@ -180,6 +173,13 @@ function init_mapelements(){
           //finally add the layer to the maps
           editableLayers.addLayer(layer); //the layer used when editing
           geojsonlayer.addLayer(layer); // the normal view layer
+
+          for (const [key, point] of Object.entries(layer._dataPoints)) {
+            for (const [child_key, child_point] of Object.entries(point)) {
+              socket.emit('register_datapoint', child_key); //register all datapoints, so updates for these points are sent to the browser
+              local_data_cache_norefresh[child_key] = false;// this seems needed to prevent multiple updates??
+            }
+          }
         }
       }
     }

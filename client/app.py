@@ -308,18 +308,22 @@ def get_page_data(data):
 
 # register datapoint for polling/reporting
 @socketio.on('register_datapoint', namespace='')
-def register_datapoint(data):
+def register_datapoint(point):
   client = request.sid
-  logger.info("register datapoint:" + str(data) )
-  if not client in clients:
+  logger.info("register datapoint:" + str(point) )
+  if not client in clients: # create a new client list, if it did not yet exist
     clients[client] = []
   
-  add_listener(data)
+  add_listener(point) # increase refcount for listening to this datapoint
   # add to client list
-  clients[client].append(data)
-  ##########
-  # send data update, for testing only!
-  #updateDataPoint(data,"test")
+  clients[client].append(point)
+  # send data update for the point
+  value = get_value(point)  #value = influxdb_get_value(point)
+  if value == None:
+    value = 'UNKNOWN'
+  poll_datapoint[point]['value'] = value
+  updateDataPoint(point,value) # emit to connected webclients  
+
 
 def updateDataPoint(point, data_l):
   recepients = []
@@ -441,6 +445,7 @@ def get_objects_for_schema(data):
   in_view_geojson_schema = query_schema_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
   geojson = [{"type": "FeatureCollection", "features": in_view_geojson_schema }]
   socketio.emit("geojson_object_add_to_map",geojson )
+  
   
 
 # load svg gis data
@@ -620,9 +625,6 @@ def redis_dataUpdate(msg):
   updateDataPoint( key_u8,data_u8) # emit to connected webclients
   update_alarms( key_u8,data_u8 )
 
-
-def poll_dataUpdate(point, data):
-  updateDataPoint(point,data) # emit to connected webclients
 
 
 #def mongodb_get_value(point):
@@ -1051,33 +1053,40 @@ def dataprovider(uuid):
 ###############################################################
 ###############################################################
 
+def refresh_datapoints(force_update=True):
+  for point in poll_datapoint:
+    if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
+
+      value = get_value(point)  #value = influxdb_get_value(point)
+
+      if value == None:
+        value = 'UNKNOWN'
+
+      # check if data changed since last check
+      oldValue = poll_datapoint[point]['value']
+      if oldValue != value or force_update == True: # update value, only if value was changed, or if update is forced)
+        poll_datapoint[point]['value'] = value
+        updateDataPoint(point,value) # emit to connected webclients  
+
+
 #background thread
 def worker():
+  global poll_datapoint
   socketio.sleep(tick)
   logger.info("polling thread started")
-  interval = 10
+  interval = 50
   interval_counter = 0
   while True:
-    socketio.sleep(1)
+    socketio.sleep(0.2)
     if influxdb_client == None: #mongoclient == None:
       logger.error("no db connection")
       socketio.sleep(10)
       continue
 
-    for point in poll_datapoint:
-      if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
-
-        value = get_value(point)  #value = influxdb_get_value(point)
-
-        if value == None:
-          value = 'UNKNOWN'
-
-        # check if data changed since last check
-        oldValue = poll_datapoint[point]['value']
-        if oldValue != value or interval_counter % interval == 0: # update value, only if value was changed, and every 10 seconds (to keep client in sync)
-          poll_datapoint[point]['value'] = value
-          poll_dataUpdate(point, value)    
-    logger.debug("values polled")
+    if interval_counter % interval == 0: # update value, only if value was changed, and every 10 seconds (to keep client in sync)
+      refresh_datapoints(True)
+    else:
+      refresh_datapoints(False)
     interval_counter += 1
 
 
