@@ -21,7 +21,7 @@ update_datapoint = None
 # CP56Time2a - milisecond(int), minute(int), hour(int), summertime(bool), dayofweek(int), (dayofmonth), year(int), invalid(bool), substitute(bool)
 # only CP56Time2a should be used in IEC60870-5-104
 
-def getDatatype(datatype):
+def getAsduName(datatype):
     if datatype == 1:
         return "SinglePointInformation" # 	            M_SP_NA_1; 1 (bool)
     if datatype == 3:

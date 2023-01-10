@@ -1,16 +1,22 @@
-add dynamic values
-modify 2 edit-text windows into one
-adding/removing/editing dataproviders's
-static values in svg?
+periodic update/adding/removing/editing dataproviders's
+static instance values in svg? such as title/data
 add information objects
+(css)style hmi/control-dialog/..
 
 click to go to location, from alarm-window
-pre-config grafana dashboard voor trending datapunten?
 
 Publish!!!
 
 
 -- future --
+node-grid logic, i.e. simulate power flow, and allow lines to be updated accordingly
+ -for each defined node;
+ - get data from datapoints
+ - check connections, based on configured nodes
+ - walk nodes based on connections, and what switches are closed
+ - expose resulting datapoints, that wires can use for input
+  -todo: what happens when conflicting values arise? average out?
+
 editable layer/item order? map.getPane('labels').style.zIndex = 650???
 
 script fire on alarm logic
@@ -23,7 +29,6 @@ script fire on alarm logic
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
-
 
 iccp-connector?
 

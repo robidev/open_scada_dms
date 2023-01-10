@@ -121,6 +121,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
     user: "0"
     links:
       - influxdb
