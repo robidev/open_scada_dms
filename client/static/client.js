@@ -439,15 +439,21 @@ function show_Sidebar(e){
   sidebar._container.querySelector('#info_control').style.display = "none";
   sidebar._container.querySelector('#control_element').value = "";
   sidebar._container.querySelector('#control_value').value = "";
-  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layer.options.name + "<br>";;
-  sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layer.options.description + "<br>";;
 
   if(layer.type==="Feature"){
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
+    layerPropertyName = "name" in layer.feature.properties ? layer.feature.properties.name : "undefined";
+    layerPropertyDescription = "description" in layer.feature.properties ? layer.feature.properties.description : "undefined";
   }
   else{ //svg
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.properties, null, 2);
+    layerPropertyName = "name" in layer.properties ? layer.properties.name : "undefined";
+    layerPropertyDescription = "description" in layer.properties ? layer.properties.description : "undefined";
   }
+  
+  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layerPropertyName + "<br>";;
+  sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layerPropertyDescription + "<br>";;
+
   sidebar.show();
 
   //set save button context

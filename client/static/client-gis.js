@@ -49,6 +49,19 @@ function init_gis(){
     if('properties' in data){
       layer._dataPoints = data["properties"]['datapoints'];
       layer.properties = data["properties"];
+          //find svg elements that need instantiation in list of overrides
+      if("overrides" in data["properties"]){
+        data["properties"]['overrides'].forEach((override) => {
+          overridable_instance = override["element_id"];
+          overridable_property = override["property"];
+          instance_value = override["value"];
+          $("g",layer._image).find("*").each(function(idx, el){
+            if(el.id == overridable_instance){ 
+              el[overridable_property] = instance_value;
+            }
+          });
+        });
+      }
     }
 
     layer._image.layerNode = layer;//for onclick events in svg, to find the node back

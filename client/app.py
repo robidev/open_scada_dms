@@ -420,7 +420,7 @@ def query_schema_svg(x1,y1,x2,y2,z):
       object["id"] = "_" + str(object["_id"])
       object.pop("_id")
     except Exception as ex:
-      logger.error("while fetching svg template for '"+str(object["svg"])+"' : " + str(ex))
+      logger.error("while fetching svg template for '"+str(object["properties"]["svg"])+"' : " + str(ex))
       continue
     data.append(object)
 
@@ -573,7 +573,7 @@ def query_gis_svg(w,n,e,s,z):
       object["id"] = "_" + str(object["_id"])
       object.pop("_id")
     except Exception as ex:
-      logger.error("while fetching svg template for '"+str(object["svg"])+"' : " + str(ex))
+      logger.error("while fetching svg template for '"+str(object["properties"]["svg"])+"' : " + str(ex))
       continue
     data.append(object)
 

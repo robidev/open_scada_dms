@@ -1,5 +1,6 @@
 var schema_in_view; 
 
+//we use an inverted Y axis for this non geographic coordinate reference system
 //https://stackoverflow.com/questions/62305306/invert-y-axis-of-lcrs-simple-map-on-vue2-leaflet
 var CRSPixel = L.Util.extend(L.CRS.Simple, {
 	transformation: new L.Transformation(1,0,1,0)
@@ -10,7 +11,7 @@ function init_schema(){
 
   leafletmap = L.map('mmi_svg', { 
     renderer: L.svg(), 
-    crs: CRSPixel,
+    crs: CRSPixel, //non geographic map with inverted Y axis
     minZoom: 0,//-5
     maxZoom: 20,
     mapType: "schema"
@@ -48,7 +49,21 @@ function init_schema(){
     if('properties' in data){
       layer.properties = data["properties"];
       layer._dataPoints = data["properties"]['datapoints'];
+          //find svg elements that need instantiation in list of overrides
+      if("overrides" in data["properties"]){
+        data["properties"]['overrides'].forEach((override) => {
+          overridable_instance = override["element_id"];
+          overridable_property = override["property"];
+          instance_value = override["value"];
+          $("g",layer._image).find("*").each(function(idx, el){
+            if(el.id == overridable_instance){ 
+              el[overridable_property] = instance_value;
+            }
+          });
+        });
+      }
     }
+
     //register click event
     layer.on("click", show_Sidebar);
     layer._image.layerNode = layer;//reference for onclick events in svg, to find the node back
@@ -205,6 +220,7 @@ function schema_removeItems(e){
 var update_schema = function(){ 
   zoom = leafletmap.getZoom();
   bounds = leafletmap.getBounds();
+  //warning, due to different coordinate system, north and south are reversed
   socket.emit('get_objects_for_schema', {'w': bounds.getWest(), 'n': bounds.getSouth(), 'z': zoom, 'in_view': schema_in_view, 'e': bounds.getEast(), 's': bounds.getNorth()});
 } 
 

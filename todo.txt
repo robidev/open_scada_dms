@@ -1,8 +1,11 @@
 periodic update/adding/removing/editing dataproviders's
-static instance values in svg? such as title/data
-add information objects
-(css)style hmi/control-dialog/..
 
+improve (css)style hmi/control-dialog/..
+++
+make sim correct: 1 feed is mapped to the simulated server(and looks similar),  2 is not
+  wires are colored based on vt value (only below trafo but also all gis wire is colored)
+
+add some alarm logic
 click to go to location, from alarm-window
 
 Publish!!!
