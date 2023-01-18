@@ -572,3 +572,18 @@ function abbreviate_number(num, fixed) {
       e = d + ['', 'K', 'M', 'B', 'T'][k]; // append power
   return e;
 }
+
+function hideAllModalWindows () {
+  var modalFader = document.querySelector(".modal-fader");
+  var modalWindows = document.querySelectorAll(".modal-window");
+  
+  if(modalFader.className.indexOf("active") !== -1) {
+      modalFader.className = modalFader.className.replace("active", "");
+  }
+  
+  modalWindows.forEach(function (modalWindow) {
+      if(modalWindow.className.indexOf("active") !== -1) {
+          modalWindow.className = modalWindow.className.replace("active", "");
+      }
+  });
+}

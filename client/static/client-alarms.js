@@ -132,12 +132,12 @@ function init_alarm(){
     document.querySelector("#mmi_svg").parentElement.insertBefore(btn,document.querySelector("#mmi_svg"));//,null);
     btn.addEventListener("click", function () {
         hideAllModalWindows();
-        showModalWindow(this);
+        show_edit_alarm_ModalWindow(this);
       });
   
   }
   
-  function showModalWindow (buttonEl) {
+  function show_edit_alarm_ModalWindow (buttonEl) {
     var modalTarget = document.querySelector("#modal-1");
     document.querySelector(".modal-fader").className += " active";
     modalTarget.className += " active";
@@ -149,17 +149,3 @@ function init_alarm(){
     );
   }
   
-  function hideAllModalWindows () {
-    var modalFader = document.querySelector(".modal-fader");
-    var modalWindows = document.querySelectorAll(".modal-window");
-    
-    if(modalFader.className.indexOf("active") !== -1) {
-        modalFader.className = modalFader.className.replace("active", "");
-    }
-    
-    modalWindows.forEach(function (modalWindow) {
-        if(modalWindow.className.indexOf("active") !== -1) {
-            modalWindow.className = modalWindow.className.replace("active", "");
-        }
-    });
-  }

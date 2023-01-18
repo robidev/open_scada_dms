@@ -1033,25 +1033,39 @@ def get_dataproviders(data):
 
   return data
 
+def update_dataprovider_status(dataprovider):
+  dataprovider_on = rt_db.get("connections:"+object["dataprovider"]+".active")
+  online = False
+  if dataprovider_on == b'1':
+    online = True
+  emit('update_dataprovider_status',{'dataprovider':dataprovider,'online':online})
+
 
   # edit/add dataprovider's from mongodb
 @socketio.on('edit_dataprovider', namespace='')
-def add_dataprovider(dataprovider, enabled, IFS, type):
+def edit_dataprovider(data):
   global mongoclient
+  print(data)
+  item = json.loads(data)
+  dataprovider = item['dataprovider']
+  enabled = item['enabled'] == 1
+  IFS = item['IFS'] 
+  type = item['type']
+
   db = mongoclient.scada
   newvalues =  {
       "enabled": enabled,
       "IFS": IFS,
       "type": type
     }
-  _id = db.dataprovider_list.insert_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
+  _id = db.dataprovider_list.update_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
   # ensure _id gets retrieved
-  return "_" + str(_id.inserted_id)
+  return "_" + str(_id.upserted_id)
 
 
   # delete dataprovider's from mongodb
-@socketio.on('del_dataprovider', namespace='')
-def dataprovider(uuid):
+@socketio.on('delete_dataprovider', namespace='')
+def del_dataprovider(uuid):
   global mongoclient
   db = mongoclient.scada
   db.dataprovider_list.delete_one({'_id':ObjectId(uuid[1:])})

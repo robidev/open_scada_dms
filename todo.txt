@@ -1,5 +1,3 @@
-periodic update/adding/removing/editing dataproviders's
-
 improve (css)style hmi/control-dialog/..
 ++
 make sim correct: 1 feed is mapped to the simulated server(and looks similar),  2 is not
@@ -37,6 +35,3 @@ iccp-connector?
 
 iec61850 ifs?
 
-
-Bug:
-adding z_max, and then modifying it to z_min will add them both
