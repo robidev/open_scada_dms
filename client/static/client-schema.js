@@ -163,6 +163,10 @@ function schema_addItem(e) {
     layer.feature.properties['datapoints'] = layer._dataPoints;
 
     let geojson = layer.toGeoJSON();
+    if (layer instanceof L.Circle) { //add circles to geojson
+      geojson.properties.radius = layer.getRadius();
+    }
+    
     geojson['type'] = layer.type;
     socket.emit('schema_addGeojsonItem', geojson ,
     function(ret){
@@ -180,6 +184,10 @@ function schema_editedItems(e){
   for (const [key, layer] of Object.entries(e.layers._layers)) {
     if(layer.type && layer.type === "Feature"){
       let geojson = layer.toGeoJSON();
+      if (layer instanceof L.Circle) { //add circles to geojson
+        geojson.properties.radius = layer.getRadius();
+      }
+
       geojson["properties"]['datapoints'] = layer._dataPoints;
 
       socket.emit('schema_editedGeojsonItems', {

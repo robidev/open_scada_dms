@@ -54,9 +54,9 @@ function init_mapelements(){
           message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect 
         }
       },
-      circle: false, // Turns off this drawing tool 
+      circle: true, 
       rectangle: true,
-      marker: false,
+      marker: false, // Turns off this drawing tool 
       circlemarker: false
     },
     edit: {
@@ -113,10 +113,10 @@ function init_mapelements(){
   socket.on('geojson_object_add_to_map', function (json) {
     //add geojson to object
     if (json) {
-      let local_geojsonlayer = L.geoJSON();
-
+      //let local_geojsonlayer = L.geoJSON();
       // parse the json into leaflet layers
-      local_geojsonlayer.addData(json);
+      //local_geojsonlayer.addData(json);
+      let local_geojsonlayer = createLayersFromJson(json); //function that also adds circle
 
       //remove invisible layers
       for(let edititem in editableLayers._layers){
@@ -587,3 +587,26 @@ function hideAllModalWindows () {
       }
   });
 }
+
+
+
+function createLayersFromJson(data) {
+  const layers = L.geoJSON();
+
+  data.forEach(function (geo, id) {
+    L.geoJSON(geo, {
+      pointToLayer: (feature, latlng) => {
+        if (feature.properties.radius) {
+          return new L.Circle(latlng, feature.properties.radius);
+        } else {
+          return new L.Marker(latlng);
+        }
+      },
+      onEachFeature: (feature, layer) => {
+        layer.addTo(layers);
+      },
+    });
+  });
+  
+  return layers;
+};
