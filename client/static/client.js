@@ -209,7 +209,7 @@ function updateLayers(layers,key, value){
       // update the element id if object type is svg
       if(layer.type === "Svg"){
         //template_item is id of svg element. class is used for type of display
-        $("g",layer._image).find("*").each(function(idx, el){
+        $(layer._image).find("*").each(function(idx, el){
           if(el.id == template_item){ 
             let cl = el.classList.toString();
             //register  

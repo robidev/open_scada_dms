@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    <!--<script type="text/javascript" src="jquery-3.5.1.min.js" crossorigin=""></script>-->
+    <script type="text/javascript" src="http://code.jquery.com/jquery-3.5.1.min.js"></script>
+
+<script>
+function init(){
+  const input = document.querySelector('#file-input');
+  input.addEventListener('change', setSvg);
+}
+
+function setAnim(anim){
+  const svg_img = document.getElementById("svg_img");
+  const svgDoc = svg_img.contentDocument;
+  if(svgDoc === null){
+    console.log("could not retrieve contentDocument, did you load an SVG?");
+    return;
+  }
+  const svgRoot  = svgDoc.documentElement;
+  if(svgRoot === null){
+    console.log("could not retrieve svgRoot, did you load an SVG?");
+    return;
+  }
+
+  const element = document.querySelector('#element');
+  let elem_id = element.value;
+  $(svgRoot).find("*").each(function(idx, el){
+    if(el.id == elem_id){ 
+      try{
+        $("#"+anim,el)[0].beginElementAt(0.1); 
+      }catch{
+        console.log("cannot run animation:" + anim);
+      }
+          
+    }
+  });
+}
+
+function setSvg(event){
+  const input = document.querySelector('#file-input');
+  const svg_img = document.querySelector("#svg_img");
+
+  svg_img.addEventListener("load",function() {
+    svgDoc = svg_img.contentDocument;
+    if(svgDoc === null){
+      console.log("could not retrieve contentDocument, are you running from a webserver?");  
+      return;
+    }
+    svgRoot  = svgDoc.documentElement;
+    if(svgRoot === null){
+      console.log("could not retrieve svgRoot, are you running from a webserver?");
+      return;
+    }
+    console.log("SVG contentDocument Loaded!");
+ }, false);
+
+  svg_img.data = input.value.substring(input.value.lastIndexOf('\\')+1);
+}
+</script>
+
+	</head>
+	<body onload="init()">
+    WARNING! local file load in browser does not work. <br>run "$ python3 -m http.server" to run this tester from a (local) webserver
+    <br>
+		<label for="file-input">open:</label><input type="file" id="file-input" />
+		<br>
+    <label for="element">element name:</label><input type="text" id="element" value="datapoint"/>
+    <br>
+		<button type="button" onClick="setAnim('open');">open</button>
+		<button type="button" onClick="setAnim('transition');">intermediate</button>
+		<button type="button" onClick="setAnim('close');">close</button>
+		<button type="button" onClick="setAnim('error');">error</button>
+		<button type="button" onClick="setAnim('normal');">normal</button>
+		<button type="button" onClick="setAnim('fail');">fail</button>
+		<br>
+    
+    <object type="image/svg+xml" id="svg_img"></object>
+
+	</body>
+</html>

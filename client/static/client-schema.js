@@ -55,7 +55,7 @@ function init_schema(){
           overridable_instance = override["element_id"];
           overridable_property = override["property"];
           instance_value = override["value"];
-          $("g",layer._image).find("*").each(function(idx, el){
+          $(layer._image).find("*").each(function(idx, el){
             if(el.id == overridable_instance){ 
               el[overridable_property] = instance_value;
             }

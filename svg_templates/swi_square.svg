@@ -1,0 +1,19 @@
+<svg width="550" height="510" xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
+  <g class="draggable-group" stroke="blue" id="datapoint">
+  <g>
+    <title>SWI</title>
+    <!--<text id="datapoint_1"     class="MEAS" data-text="DIS: {value}" fill="white" x="296" y="314.666538" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">position: {value}</text>-->
+    <rect id="datapoint_2"    class="CSWI" height="19" width="19" y="300.49959" x="256.864387" fill="#000000" onclick="open_control(evt,\'datapoint_3\')"/> 
+    <line id="datapoint_2"     class="XSWI" stroke-linecap="undefined" stroke-linejoin="undefined" y2="320" x2="266" y1="300" x1="266" stroke-width="4" fill="none">
+        <animateTransform id="open" attributeName="transform"  type="rotate" to="90 266 310 " dur="100ms" fill="freeze" />
+        <animateTransform id="close" attributeName="transform"  type="rotate" to="0 266 310 " dur="100ms" fill="freeze" />
+        <animateTransform id="transition" attributeName="transform"  type="rotate" to="45 266 310 " dur="100ms" fill="freeze" />
+        <animateTransform id="error" attributeName="stroke"  to="red" dur="100ms" fill="freeze" />
+    </line>
+    <animate id="normal" attributeName="stroke"   to="inherit" dur="100ms" fill="freeze" /> 
+    <animate id="normal2" attributeName="fill"   to="inherit" dur="100ms" begin="normal.begin" fill="freeze" /> 
+    <animate id="fail" attributeName="stroke"   to="white" dur="100ms" fill="freeze" /> 
+    <animate id="fail2" attributeName="fill"   to="white" dur="100ms" begin="fail.begin" fill="freeze" /> 
+  </g>
+  </g>
+</svg>

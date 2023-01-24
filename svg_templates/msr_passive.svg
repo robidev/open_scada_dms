@@ -1,0 +1,45 @@
+<svg width="52" height="52" xmlns="http://www.w3.org/2000/svg">
+ <g id="msr" fill="blue" stroke="blue">
+  <title>MSR</title>
+  <line id="svg_3" y2="1.95172" x2="3.00001" y1="49.97081" x1="3.00001" stroke="inherit" fill="none"/>
+  <line id="svg_4" y2="5.34582" x2="34.9091" y1="5.34582" x1="3.14772" stroke="inherit" fill="none"/>
+  <line id="svg_5" y2="20.70946" x2="35.94666" y1="20.70946" x1="3.14772" stroke="inherit" fill="none"/>
+  <line id="svg_12" y2="20.6954" x2="25.87499" y1="33.11854" x1="25.87499" stroke="inherit" fill="none"/>
+  <line id="svg_13" y2="33.539" x2="25.43957" y1="33.539" x1="35.07955" stroke="inherit" fill="none"/>
+  <line id="svg_14" y2="46.70945" x2="35.30196" y1="46.70945" x1="2.99999" stroke="inherit" fill="none"/>
+
+  <rect id="CBR1" height="4.43182" width="4.43182" y="2.98219" x="13.49037" stroke="inherit" fill="inherit"/>
+  <rect id="CBR2" height="4.43182" width="4.43182" y="18.34582" x="13.49037" stroke="inherit" fill="inherit"/>
+  <rect id="CBR3" height="4.43182" width="4.43182" y="44.51627" x="13.49037" stroke="inherit" fill="inherit"/>
+
+  <g id="earth1">
+    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_16" cy="5.49355" cx="38.64771" stroke="yellow" fill="none"/>
+    <line id="svg_23" y2="5.18751" x2="45.50997" y1="5.18751" x1="42.37498" stroke="yellow" fill="none"/>
+    <line id="svg_24" y2="8.20057" x2="45.99998" y1="2.81251" x1="45.99998" stroke="yellow" fill="none"/>
+    <line id="svg_25" y2="7.18751" x2="47.37498" y1="3.68751" x1="47.37498" stroke="yellow" fill="none"/>
+    <line id="svg_26" y2="6.49554" x2="48.87498" y1="4.31251" x1="48.87498" stroke="yellow" fill="none"/>
+  </g>
+  <g id="earth2">
+    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_17" cy="33.26627" cx="38.64771" stroke="yellow" fill="none"/>
+    <line id="svg_31" y2="33.3125" x2="45.50997" y1="33.3125" x1="42.37498" stroke="yellow" fill="none"/>
+    <line id="svg_32" y2="36.32556" x2="45.99998" y1="30.9375" x1="45.99998" stroke="yellow" fill="none"/>
+    <line id="svg_33" y2="35.3125" x2="47.37498" y1="31.8125" x1="47.37498" stroke="yellow" fill="none"/>
+    <line id="svg_34" y2="34.62053" x2="48.87498" y1="32.4375" x1="48.87498" stroke="yellow" fill="none"/>
+  </g>
+  <g id="earth3">
+    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_19" cy="46.56172" cx="38.89771" stroke="yellow" fill="none"/>
+    <line id="svg_35" y2="46.4375" x2="45.50997" y1="46.4375" x1="42.37498" stroke="yellow" fill="none"/>
+    <line id="svg_36" y2="49.45056" x2="45.99998" y1="44.0625" x1="45.99998" stroke="yellow" fill="none"/>
+    <line id="svg_37" y2="48.4375" x2="47.37498" y1="44.9375" x1="47.37498" stroke="yellow" fill="none"/>
+    <line id="svg_38" y2="47.74553" x2="48.87498" y1="45.5625" x1="48.87498" stroke="yellow" fill="none"/>
+  </g>
+  <g id="trafo">
+    <ellipse stroke-width="0.4" ry="3.39773" rx="3.39773" id="svg_20" cy="20.85718" cx="39.22726" stroke="inherit" fill="none"/>
+    <ellipse stroke-width="0.4" ry="3.39773" rx="3.39773" id="svg_21" cy="20.85718" cx="42.22726" stroke="inherit" fill="none"/>
+  </g>
+
+
+
+ </g>
+
+</svg>
