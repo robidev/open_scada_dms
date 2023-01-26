@@ -5,23 +5,32 @@
     <script type="text/javascript" src="http://code.jquery.com/jquery-3.5.1.min.js"></script>
 
 <script>
+var toggle_anim = {};
+
 function init(){
   const input = document.querySelector('#file-input');
   input.addEventListener('change', setSvg);
 }
 
-function setAnim(anim){
-  const svg_img = document.getElementById("svg_img");
+function getSvgRoot(id)
+{
+  const svg_img = document.getElementById(id);
   const svgDoc = svg_img.contentDocument;
   if(svgDoc === null){
     console.log("could not retrieve contentDocument, did you load an SVG?");
-    return;
+    return null;
   }
   const svgRoot  = svgDoc.documentElement;
   if(svgRoot === null){
     console.log("could not retrieve svgRoot, did you load an SVG?");
-    return;
+    return null;
   }
+  return svgRoot;
+}
+
+function setAnim(anim){
+  const svgRoot = getSvgRoot("svg_img");
+  if(svgRoot === null){return;}
 
   const element = document.querySelector('#element');
   let elem_id = element.value;
@@ -33,6 +42,24 @@ function setAnim(anim){
         console.log("cannot run animation:" + anim);
       }
           
+    }
+  });
+}
+
+function setText(){
+  const svgRoot = getSvgRoot("svg_img");
+  if(svgRoot === null){return;}
+
+  const element = document.querySelector('#element');
+  let elem_id = element.value;
+  $(svgRoot).find("*").each(function(idx, el){
+    if(el.id == elem_id){ 
+      try{
+        const text = document.querySelector('#text').value;
+        el.textContent = el.dataset.text.replace("{value}",text);
+      }catch{
+        console.log("cannot set text for:" + elem_id);
+      }   
     }
   });
 }
@@ -52,10 +79,23 @@ function setSvg(event){
       console.log("could not retrieve svgRoot, are you running from a webserver?");
       return;
     }
+    svgDoc.open_control = open_control;
     console.log("SVG contentDocument Loaded!");
  }, false);
 
   svg_img.data = input.value.substring(input.value.lastIndexOf('\\')+1);
+}
+
+function open_control(evt, element){
+  const element_obj = document.querySelector('#element');
+  element_obj.value = element
+  if(element in toggle_anim && toggle_anim[element] == 1){
+    setAnim('open');
+    toggle_anim[element] = 0;
+  } else {
+    setAnim('close'); 
+    toggle_anim[element] = 1;   
+  } 
 }
 </script>
 
@@ -73,7 +113,12 @@ function setSvg(event){
 		<button type="button" onClick="setAnim('error');">error</button>
 		<button type="button" onClick="setAnim('normal');">normal</button>
 		<button type="button" onClick="setAnim('fail');">fail</button>
+		<button type="button" onClick="setAnim('normalall');">normalall</button>
+		<button type="button" onClick="setAnim('failall');">failall</button>
 		<br>
+    <label for="element">text:</label><input type="text" id="text" value="1234"/>
+    <button type="button" onClick="setText();">set text</button>
+    <br>
     
     <object type="image/svg+xml" id="svg_img"></object>
 

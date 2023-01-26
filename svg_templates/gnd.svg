@@ -1,11 +1,19 @@
 <svg width="52" height="28" xmlns="http://www.w3.org/2000/svg">
- <g id="gnd" stroke="yellow">
+ <g id="gnd" stroke="yellow" class="draggable-group" pointer-events="visible"><g>
   <title>GND</title>
-  <ellipse stroke-width="0.8" ry="11.5024" rx="11.5024" id="svg_16" cy="13.59822" cx="14.25239" stroke="inherit" fill="none"/>
+  <ellipse stroke-width="0.8" ry="11.5024" rx="11.5024" id="svg_16" cy="13.59822" cx="14.25239" stroke="inherit" fill="none" onclick="open_control(evt,'gnd')" >
+     <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
+     <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
+  </ellipse>
   <line id="svg_23" y2="13.31216" x2="38.85833" y1="13.31216" x1="25.8704" stroke="inherit" fill="none"/>
   <line id="svg_24" y2="22.76235" x2="39.14219" y1="4.52203" x1="39.14219" stroke="inherit" fill="none"/>
   <line id="svg_25" y2="19.3328" x2="43.797" y1="7.48418" x1="43.797" stroke="inherit" fill="none"/>
   <line id="svg_26" y2="16.99027" x2="48.87498" y1="9.60001" x1="48.87498" stroke="inherit" fill="none"/>
- </g>
 
+  <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
+  <animate id="fail2" attributeName="fill"  to="white" dur="100ms" begin="fail.begin" fill="freeze" /> 
+  <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
+  <animate id="normal2" attributeName="fill"  to="inherit" dur="100ms" begin="normal.begin" fill="freeze" /> 
+ </g>
+ </g>
 </svg>

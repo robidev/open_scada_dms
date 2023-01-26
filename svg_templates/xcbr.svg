@@ -1,19 +1,19 @@
-<svg width="550" height="510" xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
-  <g class="draggable-group" stroke="blue" fill="blue" id="datapoint">
-  <g>
+<svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
+<g class="draggable-group" stroke="blue" fill="blue" id="cbr" pointer-events="visible" >
+  <g class="XCBR">
     <title>CBR</title>
-    <!--<text id="datapoint_1"     class="MEAS" data-text="CBR: {value}" x="296" y="272.166593" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">position: {value}</text>-->
-    <rect id="datapoint_2"     class="CSWI" height="22.553162" width="19.999974" y="257.946454" x="256.364398" stroke-width="1.5" stroke="none" fill="none" onclick="open_control(evt,\'datapoint_3\')"/>
-    <rect id="datapoint_2"     class="XCBR" height="22.553162" width="19.999974" y="257.946454" x="256.364398" stroke-width="1.5" >
-      <animate id="open" attributeName="fill"  to="black" dur="100ms" fill="freeze" />
+    <rect height="20" width="20" y="0" x="0" onclick="open_control(evt,'cbr')">
+      <animate id="error" attributeName="fill"   to="red" dur="10ms" fill="freeze" />   
+      <animate id="open" attributeName="fill"  to="none" dur="100ms" fill="freeze" />
       <animate id="transition" attributeName="fill"  to="green" dur="10ms" fill="freeze" />
       <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
-      <animate id="error" attributeName="fill"   to="red" dur="10ms" fill="freeze" />          
     </rect>
-    <animate id="normal" attributeName="stroke"   to="inherit" dur="100ms" fill="freeze" /> 
-    <animate id="normal2" attributeName="fill"   to="inherit" dur="100ms" begin="normal.begin" fill="freeze" /> 
+
     <animate id="fail" attributeName="stroke"   to="white" dur="100ms" fill="freeze" /> 
     <animate id="fail2" attributeName="fill"   to="white" dur="100ms" begin="fail.begin" fill="freeze" /> 
+    <animate id="normal" attributeName="stroke"   to="inherit" dur="100ms" fill="freeze" /> 
+    <animate id="normal2" attributeName="fill"   to="inherit" dur="100ms" begin="normal.begin" fill="freeze" /> 
+
   </g>
 </g>
 </svg>

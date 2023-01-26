@@ -1,0 +1,10 @@
+<svg  xmlns="http://www.w3.org/2000/svg" height="100" width="400">
+<g id="text" fill="white" stroke="white">
+  <title>TEXT</title>
+  <text xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="24" id="svg_text" y="0" x="0"  fill="inherit" text-anchor="middle" dominant-baseline="middle">
+<tspan id="line1" dy="1.2em" x="50%">Line 1 </tspan>
+<tspan id="line2" dy="1.2em" x="50%">Line 2 </tspan>
+<tspan id="line3" dy="1.2em" x="50%">Line 3 </tspan>
+</text>
+</g>
+</svg>

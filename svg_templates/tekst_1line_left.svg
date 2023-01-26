@@ -1,0 +1,8 @@
+<svg  xmlns="http://www.w3.org/2000/svg" height="36" width="400">
+<g id="text" fill="white" stroke="white">
+  <title>TEXT</title>
+  <text xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="24" id="svg_text" y="0" x="0" dy="1.2em" fill="inherit" text-anchor="left" >
+Line 1 - a long line, left aligned...
+</text>
+</g>
+</svg>
