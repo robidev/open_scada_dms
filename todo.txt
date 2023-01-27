@@ -10,13 +10,6 @@ Publish!!!
 
 
 -- future --
-node-grid logic, i.e. simulate power flow, and allow lines to be updated accordingly
- -for each defined node;
- - get data from datapoints
- - check connections, based on configured nodes
- - walk nodes based on connections, and what switches are closed
- - expose resulting datapoints, that wires can use for input
-  -todo: what happens when conflicting values arise? average out?
 
 editable layer/item order? map.getPane('labels').style.zIndex = 650???
 
@@ -30,7 +23,7 @@ script fire on alarm logic
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
-
+scaling SVG images
 iccp-connector?
 
 iec61850 ifs?
