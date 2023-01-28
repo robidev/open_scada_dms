@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
 <g class="draggable-group" stroke="blue" fill="blue" id="cbr" pointer-events="visible" >
-  <g class="XCBR">
+  <g class="XCBR" id="xcbr">
     <title>CBR</title>
     <rect height="20" width="20" y="0" x="0" onclick="open_control(evt,'cbr')">
       <animate id="error" attributeName="fill"   to="red" dur="10ms" fill="freeze" />   

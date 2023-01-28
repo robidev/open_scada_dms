@@ -14,6 +14,72 @@ SVG objects can be imported or chosen from a library. basic shapes can be drawn 
 the editor bars allow objects to be added, edited and removed. 
 clicking an object allows to edit data regarding the coupling to datapoints
 
+objects can have values overwritten during initialisation, using javascript entities. e.g. to overwrite svg tekst, use an array of dicts: `"overrides" : [{ "element_id": "svg_text", "property":"textContent", "value": "substation 1" }]`, 
+```  "overrides": [
+    {
+      "element_id": "msr",
+      "property": "style",
+      "value": "stroke:blue;fill:blue"
+    }
+```
+check the svg file for the id to use.
+
+svg objects allow datapoints to be attached to control animations. based on the defined class in the svg element, certain animation id's are assumed. e.g. and XCBR and XSWI class element have an 'open' and 'close' animation. example:
+```
+  "datapoints": [
+    {
+      "static://local/DoublePointInformation/300": "datapoint_1"
+    },
+    {
+      "static://local/DoublePointInformation/300": "datapoint_2"
+    }
+  ]
+
+    "datapoints": [
+    {
+      "static://local/DoublePointInformation/300": "datapoint_1"
+    },
+    {
+      "static://local/DoublePointCommand/6000": "datapoint_3"
+    },
+    {
+      "static://local/DoublePointInformation/300": "datapoint_2"
+    }
+  ]
+  ```
+the "datapoint_*" element is defined as the (parent) element_id of the element that has the animation. it is found in the svg
+
+all schema network elements have a 'normal' and 'fail' mode animation. normal is the normal color. fail turns the item white.
+
+geojson objects can have logic attached to modify properties based on datapoints. example:
+```
+  "datapoints": [
+    {
+      "static://local/DoublePointInformation/300": [
+        "color",
+        ">",
+        "1",
+        "#00ffff"
+      ]
+    },
+    {
+      "static://local/DoublePointInformation/300": [
+        "color",
+        "<",
+        "2",
+        "#0000ff"
+      ]
+    }
+  ]
+```
+datapoints contain lists of dicts regarding the modifications that should occur. the key is the datapoint reference to use as input. Then the following list is used:
+template_item = {"datapoint":['<element-id>','<comparisson>','<value>',<value to assing to element-id>]} 
+e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
+
+each object can be viewed or hidden at a certain zoom level. use z_min and z_max to define the zoom level the object should be
+visible/hidden. the zoom level can be viewed in the url bar as part of the coordinate hash
+
+
 ## alarms and events
 alarms are shown in the alarms tab. alarm logic can be added, edited and removed via the edit button
 alarms can be open or closed, and acknowledged and unacknowledged. only closed alarms are hidden from the view, but can be seen in the event log.
@@ -34,7 +100,10 @@ admin-mongo 		for mongodb administation 	http/8081	admin		admin
 redis-commander 	for redis administration  	http/8082	admin		admin
 influxdb 		for influxdb administration	https/8086	admin		administrator
 portainer		for docker administration	https/9443	admin		Administrator
+
 ifs			for connection to RTU's		-		-		-
+static_dataprovider   for static datapoints
+solver    for solving power flow in the network
 
 
 # Testing

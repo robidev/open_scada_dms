@@ -50,17 +50,22 @@ function init_gis(){
       layer._dataPoints = data["properties"]['datapoints'];
       layer.properties = data["properties"];
           //find svg elements that need instantiation in list of overrides
-      if("overrides" in data["properties"]){
-        data["properties"]['overrides'].forEach((override) => {
-          overridable_instance = override["element_id"];
-          overridable_property = override["property"];
-          instance_value = override["value"];
-          $(layer._image).find("*").each(function(idx, el){
-            if(el.id == overridable_instance){ 
-              el[overridable_property] = instance_value;
-            }
+      try {
+        if("overrides" in data["properties"]){
+          data["properties"]['overrides'].forEach((override) => {
+            overridable_instance = override["element_id"];
+            overridable_property = override["property"];
+            instance_value = override["value"];
+            $(layer._image).find("*").each(function(idx, el){
+              if(el.id == overridable_instance){ 
+                el[overridable_property] = instance_value;
+              }
+            });
           });
-        });
+        }
+      } 
+      catch (error) {
+        console.log("error processing overrides:" + error)
       }
     }
 

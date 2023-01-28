@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
-  <g id="ct" fill="white" stroke="white">
+  <g id="ct" fill="white" stroke="none">
     <title>CTR</title>
     <text id="current_value" class="MEAS" data-text="Current: {value} A" fill="inherit" stroke="inherit" x="0" y="10" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">--- Current: {value} A ---</text>
   </g>

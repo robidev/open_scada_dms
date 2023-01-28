@@ -28,6 +28,22 @@ services:
       - influxdb
       - redis
 
+  solver:
+    build: ./solver
+    env_file:
+      - .env
+    environment:
+      - IFS_REDIS_HOST=redis
+      - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
+      - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+    depends_on:
+      - mongodb
+      - influxdb
+      - redis
+
+
 # mongodb as persistent scada database
   mongodb:
     image: mongo
@@ -142,22 +158,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
 
-#  yacht:
-#    container_name: yacht
-#    restart: unless-stopped
-#    ports:
-#      - 8000:8000
-#    volumes:
-#      - yacht:/config
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      - .:/compose
-#    environment:
-#      - PUID=0
-#      - PGID=0
-#      - COMPOSE_DIR=/compose
-#    image: selfhostedpro/yacht
 
 volumes:
   portainer_data:
-#  yacht:
+
 

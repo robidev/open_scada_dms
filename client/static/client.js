@@ -225,7 +225,7 @@ function updateLayers(layers,key, value){
                 //$("#open",el)[0].beginElement();
               }
             }
-            if(cl == "MEAS"){ 
+            else if(cl == "MEAS"){ 
               if(el.dataset.size > 0 || typeof(el.dataset.text) === "undefined"){
                 var desc = el.innerHTML;
                 el.textContent = value;
@@ -233,6 +233,16 @@ function updateLayers(layers,key, value){
               else{
                 var val = abbreviate_number(parseFloat(value),0)
                 el.textContent = el.dataset.text.replace("{value}",val);
+              }
+            }
+            else { //if no class defined, assume normal/fail state
+              if(value > 1 && !('lastAnim' in el && el['lastAnim'] == 'normal')) {
+                $("#normal",el)[0].beginElementAt(0.1); 
+                el['lastAnim'] = 'normal';
+              }
+              if(( value <= 1 || value == 0 || value == "UNKNOWN") && !('lastAnim' in el && el['lastAnim'] == 'fail')) {
+                $("#fail",el)[0].beginElementAt(0.1);
+                el['lastAnim'] = 'fail';
               }
             }
           }
@@ -244,6 +254,7 @@ function updateLayers(layers,key, value){
         //template_item is property modification of geojson element. class is used for type of display
         //template_item = {"datapoint":['<element-id>','<comparisson>','<value>',<value to assing to element-id>]} 
         // e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
+        // TODO: perhaps this should be a dict instead
         let result = null;
         if(template_item[1] == ">" && value > template_item[2]){ // greater then
           result = template_item[3];

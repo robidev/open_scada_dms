@@ -1,19 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-  viewBox="0 0 100 100" enable-background="new 0 0 0 0" xml:space="preserve">
+<svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
 
 <g fill="blue" stroke="blue" id="swi" class="draggable-group" pointer-events="visible" >
-  <g class="XSWI">
+  <g class="XSWI" id="xswi">
     <title>SWI</title>
-	<circle cx="50" cy="50" r="50" onclick="open_control(evt,'swi')" >
-          <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
-          <animate id="transition" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
+	<rect height="22" width="22" y="0" x="0" stroke="none" fill="none"/>
+	<circle cx="10.5" cy="10.5" r="10" onclick="open_control(evt,'swi')" >
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
+          <animate id="transition" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
+          <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
 	</circle>
 
-	<path d="M50 0A1 1 0 0150 100V0" fill="inherit" stroke="none">
-          <animate id="close1" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" begin="close.begin"/> 
-          <animate id="transition1" attributeName="fill"  to="inherit" dur="10ms" fill="freeze" begin="transition.begin"/>
+	<path d="M 10.5 0.5 A 1 1 0 0 0 10.5 20 V 0.5" fill="inherit" stroke="none">
           <animate id="open1" attributeName="fill" to="none" dur="100ms" fill="freeze" begin="open.begin"/>
+          <animate id="transition1" attributeName="fill"  to="inherit" dur="10ms" fill="freeze" begin="transition.begin"/>
+          <animate id="close1" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" begin="close.begin"/> 
 	</path>
 
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 

@@ -7,7 +7,7 @@
 # switch within property is also the connection of both datapoints : 
 #   properties: { "v_node_list" : [{ type, link1, link2, input},..] }
 #
-import logging, time
+import logging, time, os, sys
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
@@ -29,7 +29,7 @@ value_bucket = "bucket_1"
 #node = {
 #    "type": "coupling", # coupling, switch
 #    "link1": get_link_byref(links, "iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/100"), # URI
-#    "link2": get_link_byref(links, "solver://127.0.0.1/link/100"), # URI
+#    "link2": get_link_byref(links, "solver://link/100"), # URI
 #    "to_be_resolved": True
 #    #"input":"iec60870-5-104://127.0.0.1:2404/DoublePointValue/100"
 #}
@@ -91,7 +91,6 @@ def get_network_mongodb():
 
     # remove nonsensical nodes, where both refs are the same, and
     # remove all id's of type coupling with both nodes duplicate + warn,  keep duplicate switch nodes, but warn
-
     temp = []
     result_nodes = dict()
     for key, node in nodes.items():
@@ -270,11 +269,32 @@ if __name__ == "__main__":
     logger = logging.getLogger('solver')
     logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
 
+    mongodb_host = 'mongodb'
+    mongodb_username="aaa"
+    mongodb_password="bbb"
+
+    redis_host = 'localhost'
+    redis_password = "yourpassword"
+
+    influxdb_host = "http://127.0.0.1:8086"
+
+    if len(sys.argv) > 1:
+        logger.info("remote host parameters (for inside docker-compose network)")
+        mongodb_host = os.environ['IFS_MONGODB_HOST']
+        mongodb_username=os.environ['IFS_MONGODB_USERNAME']
+        mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
+
+        redis_host = os.environ['IFS_REDIS_HOST']
+        redis_password = os.environ['IFS_REDIS_PASSWORD']
+
+        influxdb_host = "http://influxdb:8086"
+
+
     #connect redis, mongodb and influxdb
     try:
-        mongoclient = pymongo.MongoClient('mongodb', 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
-            username="aaa",
-            password="bbb", 
+        mongoclient = pymongo.MongoClient(host=mongodb_host, port=27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
+            username=mongodb_username,
+            password=mongodb_password, 
             authSource='scada', 
             authMechanism='SCRAM-SHA-256', 
             connect=True, 
@@ -290,7 +310,7 @@ if __name__ == "__main__":
         mongoclient = None
 
     try:
-        rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+        rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
         #rt_pubsub = rt_db.pubsub()
         # TODO: should all keys be subscribed separately, and only when used, or filtered in python
         #rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
@@ -301,7 +321,7 @@ if __name__ == "__main__":
 
 
     try:
-        influxdb_client = InfluxDBClient(url="http://127.0.0.1:8086", 
+        influxdb_client = InfluxDBClient(url=influxdb_host, 
                 token="_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
                 org="scada")
         influxdb_query_api = influxdb_client.query_api()
@@ -327,7 +347,10 @@ if __name__ == "__main__":
             calculate_network(node_list, link_list)
             publish_signals(link_list)
             update = False
-            settime = int(time.monotonic()) + 10
+            curtime = int(time.monotonic())
+            settime = curtime + 10
+            logger.info("sleeping " + str(settime - curtime) + " seconds")
+            time.sleep(settime - curtime)
         # rerun calc periodic, 
         if timer > settime:
             update = True
