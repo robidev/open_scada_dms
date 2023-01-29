@@ -1,7 +1,8 @@
-improve (css)style hmi/control-dialog/..
-++
+fix oper control
 make sim correct: 1 feed is mapped to the simulated server(and looks similar),  2 is not
   wires are colored based on vt value (only below trafo but also all gis wire is colored)
+
+improve (css)style hmi/control-dialog/..
 
 add some alarm logic
 click to go to location, from alarm-window
@@ -23,7 +24,6 @@ script fire on alarm logic
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
-scaling SVG images
 iccp-connector?
 
 iec61850 ifs?

@@ -4,17 +4,10 @@
   <g class="XSWI" id="xswi">
     <title>SWI</title>
 	<rect height="22" width="22" y="0" x="0" stroke="none" fill="none"/>
-	<circle cx="10.5" cy="10.5" r="10" onclick="open_control(evt,'swi')" >
+	<circle cx="10.5" cy="10.5" r="10" onclick="open_control(evt,'swi_oper')" >
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
-          <animate id="transition" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
           <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
 	</circle>
-
-	<path d="M 10.5 0.5 A 1 1 0 0 0 10.5 20 V 0.5" fill="inherit" stroke="none">
-          <animate id="open1" attributeName="fill" to="none" dur="100ms" fill="freeze" begin="open.begin"/>
-          <animate id="transition1" attributeName="fill"  to="inherit" dur="10ms" fill="freeze" begin="transition.begin"/>
-          <animate id="close1" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" begin="close.begin"/> 
-	</path>
 
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
     <animate id="fail2" attributeName="fill"  to="white" dur="100ms" begin="fail.begin" fill="freeze" /> 

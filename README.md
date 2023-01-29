@@ -137,3 +137,26 @@ test_gateway can be used to simulate a gateway/RTU, and will open port 2404 to a
     bucket_1 - for timeseries data from IFS
     bucket_2 - for event data
   
+# Solver
+
+The solver can provide information about the network. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. coupling(such as Transformers) are also seen as connections. connected wires are seen as one.
+
+you add network information by adding a v_node_list:[] as a property. example:
+
+  "v_node_list": [
+    {
+      "type": "ext/link",
+      "uri": "<datapoint>"
+    },
+    {
+      "type": "coupling",
+      "link1": "<datapoint>",
+      "link2": "<datapoint>"
+    },
+    {
+      "type": "switch",
+      "link1": "<datapoint>",
+      "link2": "<datapoint>",
+      "input": "<datapoint>"
+    }
+  ]

@@ -1,0 +1,4 @@
+{"_id":{"$oid":"61fef1b2a5086fad0ee78cfa"},"dataprovider":"127.0.0.1:2404","enabled":1,"IFS":"IFS_A","type":"iec60870-5-104"}
+{"_id":{"$oid":"61fef1b2a5086fad0ee78cfb"},"dataprovider":"127.0.0.1:2405","enabled":false,"IFS":"IFS_A","type":"iec60870-5-104"}
+{"_id":{"$oid":"61fef1b2a5086fad0ee78cfc"},"dataprovider":"127.0.0.1:2406","enabled":1,"IFS":"IFS_B","type":"iec60870-5-104"}
+{"_id":{"$oid":"61fef1b2a5086fad0ee78cfd"},"dataprovider":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A","type":"iec60870-5-104"}

@@ -1,7 +1,7 @@
-#/usr/bin/env python
+#!/usr/bin/env python3
 #  
 # datapoints of normal/fail are the sensor-nodes, or the nodes coming from this dataprovider if no sensor in this network-part :
-#   properties: { "v_node_list" : [{ type, node },..] }
+#   properties: { "v_node_list" : [{ type, uri },..] }
 # transformers(geojson), within property is also the connection of both datapoints : 
 #   properties: { "v_node_list" : [{ type, link1, link2},..] }
 # switch within property is also the connection of both datapoints : 
@@ -50,26 +50,26 @@ def get_schema_data():
   links = {}
   nodes = {}
   for item in cursor1:
-    for subkey, subitem in item['properties']['v_node_list'].items():
+    for subkey, subitem in enumerate(item['properties']['v_node_list']):
         subitem["to_be_resolved"] = True
         if subitem['type'] == "ext" or subitem['type'] == "link":
             subitem["value"] = 0
-            links[str(item['_id']) + "_" + subkey ] = subitem
+            links[str(item['_id']) + "_" + str(subkey) ] = subitem
         if subitem['type'] == "coupling" or subitem['type'] == "switch":
-            nodes[str(item['_id']) + "_" + subkey ] = subitem
+            nodes[str(item['_id']) + "_" + str(subkey) ] = subitem
 
   cursor2 = db.schema_geojson.find(
         { 'properties.v_node_list': {'$exists': True } } , 
         { 'properties.v_node_list': 1 } 
     )
   for item in cursor2:
-    for subkey, subitem in item['properties']['v_node_list'].items():
+    for subkey, subitem in enumerate(item['properties']['v_node_list']):
         subitem["to_be_resolved"] = True
         if subitem['type'] == "ext" or subitem['type'] == "link":
             subitem["value"] = 0
-            links[str(item['_id']) + "_" + subkey ] = subitem
+            links[str(item['_id']) + "_" + str(subkey) ] = subitem
         if subitem['type'] == "coupling" or subitem['type'] == "switch":
-            nodes[str(item['_id']) + "_" + subkey ] = subitem
+            nodes[str(item['_id']) + "_" + str(subkey) ] = subitem
   return links, nodes
 
 
@@ -176,11 +176,16 @@ def influxdb_get_value(point):
 def re_init(list):
     for item in list:
         list[item]['to_be_resolved'] = True
+        if "value" in list[item]:
+            list[item]['value'] = 0
 
 
 # update the calculation if a redis update event happened
 def redis_dataUpdate(msg):
+    if msg['channel'].decode("utf-8").startswith("__keyspace@0__:data:solver://"):
+        return
     global update
+    logger.info("dataupdate!")
     # TODO: only update when an ext is updated
     update = True
 
@@ -311,9 +316,9 @@ if __name__ == "__main__":
 
     try:
         rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
-        #rt_pubsub = rt_db.pubsub()
+        rt_pubsub = rt_db.pubsub()
         # TODO: should all keys be subscribed separately, and only when used, or filtered in python
-        #rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
+        rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate}) # TODO: not working yet
         logger.info("connected to redis")
     except:
         logger.error("there is an issue with redis db")
@@ -350,21 +355,21 @@ if __name__ == "__main__":
             curtime = int(time.monotonic())
             settime = curtime + 10
             logger.info("sleeping " + str(settime - curtime) + " seconds")
-            time.sleep(settime - curtime)
+            #time.sleep(settime - curtime)
         # rerun calc periodic, 
         if timer > settime:
             update = True
+        #time.sleep(1)
 
-
-        #if rt_pubsub == None:
-        #    logger.error("no redis connection")
-        #    continue
-        #else:
-        #    message = rt_pubsub.get_message()
-        #    if message:
-        #        logger.warning("missed event:" + str(message))
-        #    else:
-        #        time.sleep(0.01)
+        if rt_pubsub == None:
+            logger.error("no redis connection")
+            continue
+        else:
+            message = rt_pubsub.get_message()
+            if message:
+                logger.warning("missed event:" + str(message))
+            else:
+                time.sleep(0.5)
         # update calc if mongodb updates
         #if mongo_watch_changes(stream_svg) == True or mongo_watch_changes(stream_geo) == True:
         #    node_list, link_list = get_network_mongodb()
