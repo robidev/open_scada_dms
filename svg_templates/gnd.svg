@@ -1,8 +1,8 @@
 <svg width="52" height="30" xmlns="http://www.w3.org/2000/svg">
- <g id="gnd" stroke="yellow" fill="yellow" class="draggable-group" pointer-events="visible"><g class="XSWI" id="xswi">
+ <g id="gnd" stroke="yellow" fill="yellow" class="draggable-group" pointer-events="visible"><g>
   <title>GND</title>
   <rect height="26" width="26" y="0" x="0" stroke="none" fill="none"/>
-  <ellipse stroke-width="0.8" ry="11.5024" rx="11.5024" id="svg_16" cy="13.59822" cx="14.25239" stroke="inherit" onclick="open_control(evt,'gnd_oper')" >
+  <ellipse stroke-width="0.8" ry="11.5024" rx="11.5024" cy="13.59822" cx="14.25239" stroke="inherit" class="XSWI" id="gnd_status" onclick="open_control(evt,'gnd_oper')" >
      <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
      <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
   </ellipse>

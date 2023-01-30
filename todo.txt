@@ -1,4 +1,3 @@
-fix oper control
 make sim correct: 1 feed is mapped to the simulated server(and looks similar),  2 is not
   wires are colored based on vt value (only below trafo but also all gis wire is colored)
 

@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
 
 <g fill="blue" stroke="blue" id="swi" class="draggable-group" pointer-events="visible" >
-  <g class="XSWI" id="xswi">
+  <g id="xswi">
     <title>SWI</title>
 	<rect height="22" width="22" y="0" x="0" stroke="none" fill="none"/>
-	<circle cx="10.5" cy="10.5" r="10" onclick="open_control(evt,'swi_oper')" >
+	<circle class="XSWI" cx="10.5" cy="10.5" r="10" id="swi_status" onclick="open_control(evt,'swi_oper')" >
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
           <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
 	</circle>
