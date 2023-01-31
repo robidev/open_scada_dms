@@ -309,6 +309,7 @@ def get_page_data(data):
 # register datapoint for polling/reporting
 @socketio.on('register_datapoint', namespace='')
 def register_datapoint(point):
+  global rt_db
   client = request.sid
   logger.info("register datapoint:" + str(point) )
   if not client in clients: # create a new client list, if it did not yet exist
@@ -318,7 +319,12 @@ def register_datapoint(point):
   # add to client list
   clients[client].append(point)
   # send data update for the point
-  value = get_value(point)  #value = influxdb_get_value(point)
+  value = rt_db.get("data:" + point )
+  if value != None:
+    value = value.decode("utf-8")
+  else:
+    value = get_value(point)  #value = influxdb_get_value(point)
+  #print("reg type:" + str(type(value)) + ", value:" + str(value))
   if value == None:
     value = 'UNKNOWN'
   poll_datapoint[point]['value'] = value
@@ -1076,11 +1082,16 @@ def del_dataprovider(uuid):
 ###############################################################
 
 def refresh_datapoints(force_update=True):
+  global rt_db
   for point in poll_datapoint:
     if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
 
-      value = get_value(point)  #value = influxdb_get_value(point)
-
+      value = rt_db.get("data:" + point )
+      if value != None:
+        value = value.decode("utf-8")
+      else:
+        value = get_value(point)  #value = influxdb_get_value(point)
+      #print("ref type:" + str(type(value)) + ", value:" + str(value))
       if value == None:
         value = 'UNKNOWN'
 
