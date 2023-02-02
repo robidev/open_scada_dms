@@ -15,9 +15,7 @@ db = new Mongo().getDB("scada");
 db.createCollection("dataprovider_list");
 db.dataprovider_list.insert([
 	{ "dataprovider":"127.0.0.1:2404","enabled":1,"IFS":"IFS_A","type":"iec60870-5-104" },
-	{ "dataprovider":"127.0.0.1:2405","enabled":0,"IFS":"IFS_A","type":"iec60870-5-104" },
-	{ "dataprovider":"127.0.0.1:2406","enabled":1,"IFS":"IFS_B","type":"iec60870-5-104" },
-	{ "dataprovider":"172.17.0.1:2404","enabled":0,"IFS":"IFS_A","type":"iec60870-5-104" },
+	{ "dataprovider":"10.1.0.10:2404","enabled":1,"IFS":"IFS_A","type":"iec60870-5-104" },
 ]);
 
 db.createCollection("alarm_table");

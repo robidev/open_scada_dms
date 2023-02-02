@@ -3,6 +3,11 @@ version: '3.8'
 services:
   ifs:
     build: ./ifs
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.20
+      wannetwork:
+        ipv4_address: 10.1.0.2
     env_file:
       - .env
     environment:
@@ -19,6 +24,9 @@ services:
 
   static_dataprovider:
     build: ./static_dataprovider
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.10
     env_file:
       - .env
     environment:
@@ -30,6 +38,9 @@ services:
 
   solver:
     build: ./solver
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.11
     env_file:
       - .env
     environment:
@@ -49,6 +60,9 @@ services:
     image: mongo
     container_name: mongodb
     hostname: mongodb
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.5
     env_file:
       - .env
     environment:
@@ -70,6 +84,9 @@ services:
 # redis as real-time database
   redis:
     image: "redis:alpine"
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.6
     env_file:
       - .env
     command: redis-server --requirepass ${REDIS_PASSWORD} --notify-keyspace-events K$$
@@ -79,6 +96,9 @@ services:
 # management interface for mongodb
   admin-mongo:
     image: mongo-express
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.30
     env_file:
       - .env
     ports:
@@ -102,6 +122,9 @@ services:
     container_name: redis-commander
     hostname: redis-commander
     image: rediscommander/redis-commander:latest
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.31
     env_file:
       - .env
     environment:
@@ -121,6 +144,9 @@ services:
       - "8086:8086"
       - "8090:8090"
       - "2003:2003"
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.7
     env_file:
       - .env
     volumes:
@@ -135,6 +161,9 @@ services:
     container_name: grafana
     ports:
       - "3000:3000"
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.8
     env_file:
       - .env
     environment:
@@ -154,6 +183,9 @@ services:
     ports:
       - "8000:8000"
       - "9443:9443"
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.9
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -162,4 +194,17 @@ services:
 volumes:
   portainer_data:
 
+networks:
+  scadanetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.2.0.0/24
 
+  wannetwork:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.1.0.0/24
