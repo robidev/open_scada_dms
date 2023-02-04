@@ -21,6 +21,13 @@ services:
       - redis
       - influxdb
 
+  #simulated gateway for testing
+  test_gateway:
+    build: ./test_gateway
+    networks:
+      wannetwork:
+        ipv4_address: 10.1.0.10
+
 
   static_dataprovider:
     build: ./static_dataprovider

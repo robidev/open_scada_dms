@@ -46,11 +46,12 @@ def read_value(id):
 
 def write_value(id, value):
   logger.info("write value:" + str(value) + ", element:" + str(id) )
+  retValue = -1
   if id == config['doublepointcommand'][6000]:
-    readvaluecallback(id,{"value":str(value)})
+    retValue = readvaluecallback(id,{"value":str(value)})
     return retValue, "no error"
   elif id == config['doublepointcommand'][6001]:
-    readvaluecallback(id,{"value":str(value)})
+    retValue = readvaluecallback(id,{"value":str(value)})
     return retValue, "no error"
   else:
     return retValue, "general error"
@@ -195,9 +196,14 @@ if __name__ == '__main__':
         continue
 
 
-  val1 = 147
-  val2 = 41
-  val3 = 200
+  val1 = 32 # primary current
+  val2 = 53 # secondary current
+  val3 = 29500 # secondary voltage
+
+  step1 = 1
+  step2 = 2
+  step3 = 100
+
   toggle = 0
   while True:
     time.sleep(INTERVAL)
@@ -213,15 +219,21 @@ if __name__ == '__main__':
       readvaluecallback(config['doublepointinformation'][301],{"value":str(1)})
     else:
       readvaluecallback(config['doublepointinformation'][301],{"value":str(2)})
-    val1 += 1
-    val2 += 1
-    val3 += 1
+    val1 += step1
+    val2 += step2
+    val3 += step3
     toggle += 1
-    if val1 == 200:
-      val1 = 147
-      val2 = 41
-      val3 = 200
+
+    if val3 == 30000:
+      step1 = abs(step1) * -1
+      step2 = abs(step2) * -1
+      step3 = abs(step3) * -1
       toggle = 0
+    if val3 == 29400:
+      step1 = abs(step1)
+      step2 = abs(step2)
+      step3 = abs(step3)
+
     for key in list(async_rpt):
       val = async_rpt.pop(key)
       logger.debug("%s updated via report" % key)

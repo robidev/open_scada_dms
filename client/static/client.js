@@ -1,6 +1,6 @@
 var socket;
 var local_data_cache, local_data_cache_norefresh;
-var sidebar, leafletmap, isEditEnabled, editableLayers, geojsonlayer;
+var sidebar, leafletmap, isEditEnabled,isGridEnabled, editableLayers, geojsonlayer;
 
 
 $(document).ready(function() {
@@ -106,8 +106,37 @@ function init_mapelements(){
 
   // Set up the hash
   var hash = new L.Hash(leafletmap);
-  // END OF INIT VIEW CODE
 
+  var GridOptions = {
+		xticks: 55,
+		yticks: 25,
+		lineStyle: {
+			stroke: false,
+			color: 'white',
+			opacity: 0.6,
+			weight: 1
+		},
+	};
+  var grid = L.grid(GridOptions).addTo(leafletmap);
+
+  isGridEnabled = false;
+  L.easyButton('fa-globe', function(){
+    if(isGridEnabled == true){
+      GridOptions.lineStyle.stroke = false;
+      L.Util.setOptions(grid, GridOptions);
+      grid.redraw();
+      isGridEnabled = false;
+      //console.log("off");
+    }else{
+      GridOptions.lineStyle.stroke = true;
+      L.Util.setOptions(grid, GridOptions);
+      grid.redraw();
+      isGridEnabled = true;
+      //console.log("on");
+    }  
+  }).addTo( leafletmap );
+
+  // END OF INIT VIEW CODE
 
   //event to draw all visible geojson objets to a gis or schema map(i.e not svg, but geojson object such as polygon or polyline)
   socket.on('geojson_object_add_to_map', function (json) {

@@ -13,7 +13,7 @@ function init_schema(){
     renderer: L.svg(), 
     crs: CRSPixel, //non geographic map with inverted Y axis
     minZoom: 0,//-5
-    maxZoom: 20,
+    maxZoom: 22,
     mapType: "schema"
   }).setView([0, 0], 17);//setView([0,0], 1);
 
@@ -30,7 +30,7 @@ function init_schema(){
   leafletmap.on('draw:deletestart', function(){leafletmap.off('moveend', update_schema); leafletmap.off('zoomend', update_schema);} );
   leafletmap.on('draw:deletestop', function(){leafletmap.on('moveend', update_schema); leafletmap.on('zoomend', update_schema);} );
 
-  if(location.hash === ""){ //ensure were not setting a location in the url
+  if(location.hash === ""){ //ensure we're not setting a location in the url
     leafletmap.setZoom(18);
   }
 

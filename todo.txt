@@ -1,5 +1,4 @@
-make sim correct: 1 feed is mapped to the simulated server(and looks similar),  2 is not
-  wires are colored based on vt value (only below trafo but also all gis wire is colored)
+bug: enable dataprovider is bool, not value
 
 improve (css)style hmi/control-dialog/..
 
@@ -26,5 +25,7 @@ scaling values in GUI (only on display)
 iccp-connector?
 
 iec61850 ifs?
+
+snap leaflet
 
 https://yqnn.github.io/svg-path-editor/
