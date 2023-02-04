@@ -1054,7 +1054,7 @@ def edit_dataprovider(data):
   print(data)
   item = json.loads(data)
   dataprovider = item['dataprovider']
-  enabled = item['enabled'] == 1
+  enabled = int(item['enabled'])
   IFS = item['IFS'] 
   type = item['type']
 
