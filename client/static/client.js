@@ -39,6 +39,38 @@ $(document).ready(function() {
 function init_mapelements(){
   geojsonlayer = L.geoJSON().addTo(leafletmap);
 
+  //draw grid
+  var GridOptions = {
+		xticks: 55,
+		yticks: 25,
+		lineStyle: {
+			stroke: false,
+			color: 'white',
+			opacity: 0.6,
+			weight: 1
+		},
+	};
+  var grid = L.grid(GridOptions).addTo(leafletmap);
+
+  isGridEnabled = false;
+  L.easyButton('fa-table-cells', function(){
+    if(isGridEnabled == true){
+      GridOptions.lineStyle.stroke = false;
+      L.Util.setOptions(grid, GridOptions);
+      grid.redraw();
+      isGridEnabled = false;
+      //console.log("off");
+    }else{
+      GridOptions.lineStyle.stroke = true;
+      L.Util.setOptions(grid, GridOptions);
+      grid.redraw();
+      isGridEnabled = true;
+      //console.log("on");
+    }  
+  }).addTo( leafletmap );
+
+
+  //draw edit controls
   //https://codepen.io/mochaNate/pen/bWNveg
   editableLayers = new L.FeatureGroup();
   leafletmap.addLayer(editableLayers);
@@ -72,7 +104,7 @@ function init_mapelements(){
   document.getElementById("edit_panel").style.display = "none";
 
   //toggle the sidebar of the edit/info with the edit-button
-  L.easyButton('fa-globe', function(){
+  L.easyButton('fa-pen-to-square', function(){
     if(isEditEnabled == true){
       leafletmap.removeControl(drawControl);
       document.getElementById("info_panel").style.display = "block";
@@ -106,35 +138,6 @@ function init_mapelements(){
 
   // Set up the hash
   var hash = new L.Hash(leafletmap);
-
-  var GridOptions = {
-		xticks: 55,
-		yticks: 25,
-		lineStyle: {
-			stroke: false,
-			color: 'white',
-			opacity: 0.6,
-			weight: 1
-		},
-	};
-  var grid = L.grid(GridOptions).addTo(leafletmap);
-
-  isGridEnabled = false;
-  L.easyButton('fa-globe', function(){
-    if(isGridEnabled == true){
-      GridOptions.lineStyle.stroke = false;
-      L.Util.setOptions(grid, GridOptions);
-      grid.redraw();
-      isGridEnabled = false;
-      //console.log("off");
-    }else{
-      GridOptions.lineStyle.stroke = true;
-      L.Util.setOptions(grid, GridOptions);
-      grid.redraw();
-      isGridEnabled = true;
-      //console.log("on");
-    }  
-  }).addTo( leafletmap );
 
   // END OF INIT VIEW CODE
 

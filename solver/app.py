@@ -250,7 +250,7 @@ def calculate_network(node_list, link_list):
             if node_list[node]['type'] == 'switch':
                 # one should here be tresolved, and the other not, if so, check switch state
                 conducting = get_datapoint_value(node_list[node]['input'])
-                if conducting > 0: # if switch is conducting, copy value, else leave them unknown
+                if conducting != 0 and conducting != 2: # if switch is conducting, copy value, else leave them unknown
                     if link1['to_be_resolved'] == True:
                         link1['value'] = link2['value'] 
                         link1['to_be_resolved'] = False

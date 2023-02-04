@@ -6,9 +6,14 @@
 	background-image: url('images/svg-icon.png');
 	background-image: linear-gradient(transparent, transparent), url('images/svg-icon.svg');
 	background-repeat: no-repeat;
-	background-size: 30px 30px;
+	background-size: 30px 30px; /* 300px 30px; */
 	background-clip: padding-box;
 /*	background-position: -122px -2px;*/
+}
+
+.leaflet-retina .leaflet-draw-toolbar .leaflet-draw-draw-svg {
+	background-image: url('images/svg-icon-2x.png');
+	background-image: linear-gradient(transparent, transparent), url('images/svg-icon.svg');
 }
 
 /* ================================================================== */

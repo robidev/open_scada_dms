@@ -1,3 +1,4 @@
+test_gateway: have operate work, and periodic trip simulate
 improve (css)style hmi/control-dialog/..
 
 add some alarm logic
@@ -25,5 +26,7 @@ iccp-connector?
 iec61850 ifs?
 
 snap leaflet
+
+solve trafo values, do disconnect/ground detect, and detect value conflics
 
 https://yqnn.github.io/svg-path-editor/

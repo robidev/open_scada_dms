@@ -1677,7 +1677,7 @@ L.Draw.Circle = L.Draw.SimpleShape.extend({
 			this._drawShape(latlng);
 
 			// Get the new radius (rounded to 1 dp)
-			radius = this._shape.getRadius().toFixed(1);
+			radius = this._shape.getRadius();//.toFixed(1);
 
 			var subtext = '';
 			if (showRadius) {
@@ -3231,8 +3231,11 @@ L.LatLngUtil = {
 					// show metres when distance is < 1km, then show km
 					if (distance > 1000) {
 						distanceStr = L.GeometryUtil.formattedNumber(distance / 1000, precision['km']) + ' km';
-					} else {
+					} else if (distance > 0.5) {
 						distanceStr = L.GeometryUtil.formattedNumber(distance, precision['m']) + ' m';
+					}
+					else {
+						distanceStr = L.GeometryUtil.formattedNumber(distance * 100000, precision['mm']) + ' units';
 					}
 					break;
 				case 'feet':
