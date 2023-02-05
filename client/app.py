@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os, sys
 from flask import Flask, render_template, session, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
 
@@ -1142,10 +1143,30 @@ if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     level=logging.INFO)
 
+  mongodb_host = 'mongodb'
+  mongodb_username="aaa"
+  mongodb_password="bbb"
+
+  redis_host = 'localhost'
+  redis_password = "yourpassword"
+
+  influxdb_host = "http://127.0.0.1:8086"
+
+  if len(sys.argv) > 1:
+      logger.info("remote host parameters (for inside docker-compose network)")
+      mongodb_host = os.environ['IFS_MONGODB_HOST']
+      mongodb_username=os.environ['IFS_MONGODB_USERNAME']
+      mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
+
+      redis_host = os.environ['IFS_REDIS_HOST']
+      redis_password = os.environ['IFS_REDIS_PASSWORD']
+
+      influxdb_host = "http://influxdb:8086"
+
   try:
-    mongoclient = pymongo.MongoClient('mongodb', 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
-      username="aaa",
-      password="bbb", 
+    mongoclient = pymongo.MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
+      username=mongodb_username,
+      password=mongodb_password, 
       authSource='scada', 
       authMechanism='SCRAM-SHA-256', 
       connect=True, 
@@ -1162,7 +1183,7 @@ if __name__ == '__main__':
     mongoclient = None
 
   try:
-    rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+    rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
     rt_pubsub = rt_db.pubsub()
     # TODO: should all keys be subscribed separately, and only when used, or filtered in python
     rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
@@ -1174,7 +1195,7 @@ if __name__ == '__main__':
 
 
   try:
-    influxdb_client = InfluxDBClient(url="http://127.0.0.1:8086", 
+    influxdb_client = InfluxDBClient(url=influxdb_host, 
             token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
             org="scada")
     influxdb_query_api = influxdb_client.query_api()

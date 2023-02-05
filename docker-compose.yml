@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  client:
+    build: ./client
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.20
+    env_file:
+      - .env
+    environment:
+      - IFS_REDIS_HOST=redis
+      - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
+      - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+    depends_on:
+      - mongodb
+      - redis
+      - influxdb
+    ports:
+      - "5000:5000"
+
   ifs:
     build: ./ifs
     networks:

@@ -3,7 +3,19 @@ display errors in json format
 
 add some alarm logic
 click to go to location, from alarm-window
-web-app to container
+close-alarm comments
+
+add grafana gaphs (click on button next to measurement, to open small window with grafana graph of that measurement)
+
+documentation:
+ - getting started
+ - overview operations
+ - document functions
+ - schematic overview of whole system
+
+move login/keys into env variables
+
+screenshot of scada-schema (with correct values)
 Publish!!!
 
 
@@ -17,7 +29,7 @@ script fire on alarm logic
  - shell?
  - trigger other events?
  - modify scada views?
- - sms?
+ - email/sms?
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
@@ -29,6 +41,7 @@ tase.2 ifs?
 dnp3 ifs?
 opc ifs?
 
+edit dataprovider ip
 
 snap leaflet
 
