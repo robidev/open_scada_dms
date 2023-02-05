@@ -1,9 +1,9 @@
-test_gateway: have operate work, and periodic trip simulate
-improve (css)style hmi/control-dialog/..
+improve (css)style hmi/control-dialog/.., 
+display errors in json format
 
 add some alarm logic
 click to go to location, from alarm-window
-
+web-app to container
 Publish!!!
 
 
@@ -24,6 +24,11 @@ scaling values in GUI (only on display)
 iccp-connector?
 
 iec61850 ifs?
+modbus ifs?
+tase.2 ifs?
+dnp3 ifs?
+opc ifs?
+
 
 snap leaflet
 

@@ -17,6 +17,7 @@ async_msg = []
 async_rpt = {}
 INTERVAL = 2
 dp_info = 1
+run_sim = 1
 
 def read_value(id):
   logger.debug("read value:" + str(id)  )
@@ -58,7 +59,8 @@ def write_value(id, value):
 
 
 def operate(id, value):
-  logger.debug("operate:" + str(id) + " v:" + str(value)  )
+  logger.info("operate:" + str(id) + " v:" + str(value)  )
+
   readvaluecallback(id,{"value":str(value)})
   return True #send event oper
 
@@ -118,8 +120,17 @@ def read_60870_callback(ioa, ioa_data, iec104server):
 
 
 def command_60870_callback(ioa, ioa_data, iec104server, select_value):
+  global run_sim
+  global config
   print("operate callback called from lib60870")
   for item_type in config:
+    if ioa >= 6000 and ioa < 7000:
+      ioa = (ioa-6000) + 300
+      logger.info("replaced ioa:" + str(ioa)  )
+    if ioa == 5000:
+      run_sim = int(ioa_data['data'])
+      return 1
+
     if ioa in config[item_type]:
       if select_value == True:
         return select(config[item_type][ioa],  ioa_data['data'])
@@ -148,7 +159,7 @@ if __name__ == '__main__':
   iec104_server = libiec60870server.IEC60870_5_104_server()
   iec104_server.start()
 
-  #REGISTER ALL IOA's and associated IEC61850 datapoints
+  #REGISTER ALL IOA's and associated datapoints
   if 'measuredvaluescaled' in config:
     for item in config['measuredvaluescaled']:
       #create 104 data for GI
@@ -202,37 +213,42 @@ if __name__ == '__main__':
 
   step1 = 1
   step2 = 2
-  step3 = 100
+  step3 = 50
 
   toggle = 0
+
+  readvaluecallback(config['doublepointinformation'][300],{"value":str(1)})
+  readvaluecallback(config['doublepointinformation'][301],{"value":str(1)})
+
   while True:
     time.sleep(INTERVAL)
-    logger.debug("values polled")
-    readvaluecallback(config['measuredvaluescaled'][100],{"value":str(val1)})
-    readvaluecallback(config['measuredvaluescaled'][101],{"value":str(val2)})
-    readvaluecallback(config['measuredvaluescaled'][102],{"value":str(val3)})
-    if (toggle % 4) & 0x01 > 0:
-      readvaluecallback(config['doublepointinformation'][300],{"value":str(1)})
-    else:
-      readvaluecallback(config['doublepointinformation'][300],{"value":str(2)})
-    if (toggle % 4) & 0x02 > 0:
-      readvaluecallback(config['doublepointinformation'][301],{"value":str(1)})
-    else:
-      readvaluecallback(config['doublepointinformation'][301],{"value":str(2)})
-    val1 += step1
-    val2 += step2
-    val3 += step3
-    toggle += 1
+    if run_sim == 1:
+      logger.debug("values polled")
+      readvaluecallback(config['measuredvaluescaled'][100],{"value":str(val1)})
+      readvaluecallback(config['measuredvaluescaled'][101],{"value":str(val2)})
+      readvaluecallback(config['measuredvaluescaled'][102],{"value":str(val3)})
 
-    if val3 == 30000:
-      step1 = abs(step1) * -1
-      step2 = abs(step2) * -1
-      step3 = abs(step3) * -1
-      toggle = 0
-    if val3 == 29400:
-      step1 = abs(step1)
-      step2 = abs(step2)
-      step3 = abs(step3)
+      if (toggle % 8) & 0x04 > 0:
+        readvaluecallback(config['singlepointinformation'][200],{"value":str(1)})
+        readvaluecallback(config['doublepointinformation'][300],{"value":str(1)})
+      else:
+        readvaluecallback(config['singlepointinformation'][200],{"value":str(0)})
+        readvaluecallback(config['doublepointinformation'][300],{"value":str(2)})
+
+      val1 += step1
+      val2 += step2
+      val3 += step3
+      toggle += 1
+
+      if val3 == 30000:
+        step1 = abs(step1) * -1
+        step2 = abs(step2) * -1
+        step3 = abs(step3) * -1
+        toggle = 0
+      if val3 == 29400:
+        step1 = abs(step1)
+        step2 = abs(step2)
+        step3 = abs(step3)
 
     for key in list(async_rpt):
       val = async_rpt.pop(key)
