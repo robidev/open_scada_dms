@@ -13,10 +13,8 @@ documentation:
  - document functions
  - schematic overview of whole system
 
-move login/keys into env variables
-
 screenshot of scada-schema (with correct values)
-for influxdb, an API key needs to be set via env
+bug: cannot start mongodb from fresh install
 Publish!!!
 
 

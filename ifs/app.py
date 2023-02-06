@@ -15,6 +15,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 IFS_NAME = "IFS_A"
 LIMIT = 100
 update_datapoint = None
+value_bucket = "bucket_1"
 
 # CP16Time2a - milisecond(int)
 # CP24Time2a - milisecond(int), minute(int), invalid(bool), substitute(bool)
@@ -81,7 +82,7 @@ def update_datapoint_influxdb(rtu, ioa, ASDU, value):
     id = "iec60870-5-104://" + rtu + "/" + getAsduName(ASDU) + "/" + str(ioa)
 
     p = Point("datapoint").tag("id", id).tag("quality", "good").field("value", int(value))
-    influxdb_write_api.write(bucket="bucket_1", record=p)
+    influxdb_write_api.write(bucket=value_bucket, record=p)
     return
 
 
@@ -193,7 +194,7 @@ if __name__ == '__main__':
     redis_password = "yourpassword"
 
     influxdb_host = "http://127.0.0.1:8086"
-    influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+    influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
     influxdb_org = "scada"
 
     if len(sys.argv) > 1:

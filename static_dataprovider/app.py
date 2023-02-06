@@ -97,7 +97,7 @@ if __name__ == '__main__':
     redis_password = "yourpassword"
 
     influxdb_host = "http://127.0.0.1:8086"
-    influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+    influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
     influxdb_org = "scada"
 
     if len(sys.argv) > 1:

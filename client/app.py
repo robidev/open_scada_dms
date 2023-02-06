@@ -5,6 +5,7 @@ from flask_socketio import SocketIO, emit
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.bucket_api import BucketsApi
 
 import string
 import logging
@@ -1151,7 +1152,7 @@ if __name__ == '__main__':
   redis_password = "yourpassword"
 
   influxdb_host = "http://127.0.0.1:8086"
-  influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+  influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
   influxdb_org = "scada"
 
   if len(sys.argv) > 1:
@@ -1185,6 +1186,7 @@ if __name__ == '__main__':
   except Exception as e:
     logger.error("mongodb: exception while initialising mongodb connection: " + str(e))
     mongoclient = None
+    exit(-1)
 
   try:
     rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
@@ -1196,7 +1198,7 @@ if __name__ == '__main__':
   except:
     logger.error("there is an issue with redis db")
     rt_db = None
-
+    exit(-1)
 
   try:
     influxdb_client = InfluxDBClient(url=influxdb_host, 
@@ -1204,10 +1206,25 @@ if __name__ == '__main__':
             org=influxdb_org)
     influxdb_query_api = influxdb_client.query_api()
     influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
-  except:
-    logger.error("there is an issue with influxdb")
+
+    influxdb_bucket_api = influxdb_client.buckets_api()
+    vbucket = influxdb_bucket_api.find_bucket_by_name(value_bucket)
+    if vbucket == None:
+      logger.error("cannot find value bucket, is the influxdb initialised?")
+      exit(-1)
+
+    ebucket = influxdb_bucket_api.find_bucket_by_name(event_bucket)
+    if ebucket == None:
+      logger.warning("cannot find event bucket, creating it")
+      influxdb_bucket_api.create_bucket(bucket_name=event_bucket, description="a bucket for events", retention_rules=vbucket.retention_rules)
+    else:
+      logger.debug("found event bucket")
+
+  except Exception as e:
+    logger.error("there is an issue with influxdb:" + str(e))
     influxdb_client = None
     influxdb_write_api = None
+    exit(-1)
 
   # get values
   get_value = influxdb_get_value # mongodb_get_value
