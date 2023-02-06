@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=
 RUN git clone -b master https://github.com/mz-automation/lib60870.git /tmp/lib60870
 
 RUN cd /tmp/lib60870/lib60870-C && make dynlib \
-	&& cp build/lib60870.so /usr/local/lib/
+	&& cp build/liblib60870.so /usr/local/lib/lib60870.so
 
 
 COPY . /srv/test_gateway

@@ -2,28 +2,69 @@ start db's:
 
 sudo docker-compose up mongodb redis influxdb
 
+seems mongodb needs mongodb to resolve to the server-ip, and app.py needs to adress the dns for replication
+to work. replication is needed for journaling
+easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts
+
 start admins:
 
 sudo docker-compose up redis-commander admin-mongo 
 sudo docker-compose up grafana
 sudo docker-compose up portainer
 
+
+start services:
+sudo docker-compose up ifs static_dataprovider solver
+
 start scada:
 
-./app.py
+sudo docker-compose up client
 
-seems mongodb needs mongodb to resolve to the server-ip, and app.py needs to adress the dns for replication
-to work. replication is needed for journaling
-easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts
+optional: start gateway simulator
+sudo docker-compose up test_gateway
+
+- or -
+
+start simulated substation;
+sudo docker-compose -f substation.yml -f substation.simulator.yml -f gateway.yml up 
+
+-----------------------------------------------------------------------------------
+
+USE SCHEMA
+
+scroll
+zoom
+click
+operate
+
+USE GIS
 
 
+EVENTS
+
+
+DATAPROVIDER STATUS
+
+
+Graph in grafana
+
+
+portainer
+
+
+administration of redis, influxdb and mongodb
+
+
+SCADA:
 
 EDITING:
-open edit mode with lowest button on the left side on the map
+open edit mode with pen button on the left side on the map
 clicking on an item will open the side pane with items to modify
+a grid can be displayed as a helper to align items to.
 
 add svg from template or db by using the edit buttons
-svg items have a size and position, and can be animated, but cannot be styled dynamic
+svg items have a size and position, and can be animated. overrides can be used to statically override some properties on creation. This can be used for example to modify text, or change style/color of an svg
+
 datapoints are mapped to svg-identifiers as such: [datapoint]:[svg-id] e.g. "iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/300" : "datapoint_1"
 onclick events in svg can directly call javascript. as such; operate menus are done by registering an onclick in the svg, that will modify the info-menu for displaying the operate buttons
 
@@ -37,6 +78,22 @@ this is done by the static_dataprovider
 
 all items can be configured with a z_min and z_max value to show/hide objects depending on zoom level. This allows more detailed/small objects when zoomed in
 
- 
+some premade svg have been provided that include a datapoint and animation for open, close and loss of power(normal/fail). each svg uses id's for defning the element the datapoint should connect to. the class provides information how the animation should be called
+
+the solver is used to modify a style(i.e color) of an element, based on the power-flow. By addind negwork information to all elements on how they are connected, a network model is made, to estimate what items have power, and which ones do not. Based on that model, each connection i nthe model provides a datapoint, that can be connected to a style of an element.
+
+ADD DATAPROVIDER
+
+all datapoints need a dataprovider. by default, there is a static dataprovider front-end that just allows a datapoint to be defined. after writing a value to a datapoint, it exists, and can be updated.
+
+the solver is another dataprovider front-end, but one that is not stored in the historical database, as it is only a visual aid
+
+the IFS is a dataprovider front-end for actual data retrieved from external devices. currently only iec60870-5-104 is supported, but implementing support for modbus, iec61850, tase.2, dnp3 or iec60870-5-101 should be easy enough. After a new dataporvider front end is added, the dataproviders and datapoints it retrieves can be used immediatly by the scada.
+
+dataproviders can be added, modified or removed. modifying the IP will always create a new dataprovider. the IFS and type defines the dataprovider front-end to be used
+
+EDIT ALARMS
+
+
 
 

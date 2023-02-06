@@ -1,6 +1,6 @@
 #!/bin/bash
 
-KEY_NAME=mongodb2.key
+KEY_NAME=mongodb.key
 
 echo "generating $KEY_NAME"
 openssl rand -base64 741 > $KEY_NAME

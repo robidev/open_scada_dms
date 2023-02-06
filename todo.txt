@@ -5,7 +5,7 @@ add some alarm logic
 click to go to location, from alarm-window
 close-alarm comments
 
-add grafana gaphs (click on button next to measurement, to open small window with grafana graph of that measurement)
+add grafana graphs (click on button next to measurement, to open small window with grafana graph of that measurement)
 
 documentation:
  - getting started
@@ -16,6 +16,7 @@ documentation:
 move login/keys into env variables
 
 screenshot of scada-schema (with correct values)
+for influxdb, an API key needs to be set via env
 Publish!!!
 
 
