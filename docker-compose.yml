@@ -14,6 +14,9 @@ services:
       - IFS_MONGODB_HOST=mongodb
       - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
       - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+      - IFS_INFLUXDB_HOST=http://influxdb:8086
+      - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+      - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
       - mongodb
       - redis
@@ -36,6 +39,9 @@ services:
       - IFS_MONGODB_HOST=mongodb
       - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
       - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+      - IFS_INFLUXDB_HOST=http://influxdb:8086
+      - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+      - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
       - mongodb
       - redis
@@ -59,6 +65,9 @@ services:
     environment:
       - IFS_REDIS_HOST=redis
       - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - IFS_INFLUXDB_HOST=http://influxdb:8086
+      - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+      - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
       - influxdb
       - redis
@@ -181,6 +190,7 @@ services:
       # sudo mkdir -p /srv/docker/influxdb/data
       - /srv/docker/influxdb/data:/var/lib/influxdb
     #USER = admin, PASSWORD = administrator
+
 
 # timeseries dashboard, username:admin, password: admin
   grafana:

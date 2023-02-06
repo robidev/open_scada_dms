@@ -3,6 +3,7 @@
 import os
 import time
 import sys
+import logging
 import redis
 import libiec60870client
 
@@ -86,7 +87,7 @@ def update_datapoint_influxdb(rtu, ioa, ASDU, value):
 
 def callback(tupl, data):
     global rt_db
-    print("RTU:" + tupl + " - update:" + str(data))
+    logger.debug("RTU:" + tupl + " - update:" + str(data))
     for key, value in data.items():
         rt_db.set("data:iec60870-5-104://"+tupl+"/"+getAsduName(value['ASDU'])+"/"+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
         # push timeseries data to time series db 
@@ -96,24 +97,24 @@ def callback(tupl, data):
 
 def operate_handler(message):
     global iecclient
-    print("> operate:"+str(message))
+    logger.debug("> operate:"+str(message))
     # TODO: try/catch for int conversion
     iecclient.operate(message['channel'][8:].decode("utf-8") , int(message['data'].decode("utf-8")) )
 
 
 def select_handler(message):
     global iecclient
-    print("> select:"+str(message))
+    logger.debug("> select:"+str(message))
     # TODO: try/catch for int conversion
     iecclient.select(message['channel'][7:].decode("utf-8") , int(message['data'].decode("utf-8")) )
 
 def cancel_handler(message):
     global iecclient
-    print("> cancel:"+str(message))
+    logger.debug("> cancel:"+str(message))
 
 
 def ifs_status(message):
-    print("ifs:"+str(message))
+    logger.info("ifs:"+str(message))
 
 
 def get_RTU(rtu):
@@ -158,7 +159,7 @@ def get_RTU_list():
     global scada_database
     cursor = scada_database.dataprovider_list.find({"enabled": 1, "IFS": IFS_NAME}).distinct('dataprovider') # dataprovider is for this type of IFS an RTU
     if len(cursor) > LIMIT:
-        print("too much RTU's for this IFS. limit: %i, found: %i" % (LIMIT, len(cursor)))
+        logger.error("too much RTU's for this IFS. limit: %i, found: %i" % (LIMIT, len(cursor)))
     return cursor[:LIMIT]
 
 
@@ -168,9 +169,9 @@ def mongo_watch_changes(stream):
         change = stream.try_next()
         # Note that the ChangeStream's resume token may be updated
         # even when no changes are returned.
-        print("Current resume token: %r" % (stream.resume_token,))
+        logger.debug("Current resume token: %r" % (stream.resume_token,))
         if change is not None:
-            print("Change document: %r" % (change,))
+            logger.debug("Change document: %r" % (change,))
             return True
         else:
             return False
@@ -179,46 +180,79 @@ def mongo_watch_changes(stream):
 
 ################################################################
 if __name__ == '__main__':
+    logger = logging.getLogger('webserver')
+    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        level=logging.INFO)
+    logger.info("starting IFS")
+
+    mongodb_host = 'mongodb'
+    mongodb_username="aaa"
+    mongodb_password="bbb"
+
+    redis_host = 'localhost'
+    redis_password = "yourpassword"
+
+    influxdb_host = "http://127.0.0.1:8086"
+    influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+    influxdb_org = "scada"
+
+    if len(sys.argv) > 1:
+        logger.info("remote host parameters (for inside docker-compose network)")
+        mongodb_host = os.environ['IFS_MONGODB_HOST']
+        mongodb_username=os.environ['IFS_MONGODB_USERNAME']
+        mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
+
+        redis_host = os.environ['IFS_REDIS_HOST']
+        redis_password = os.environ['IFS_REDIS_PASSWORD']
+
+        influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
+        influxdb_api = os.environ['IFS_INFLUXDB_API']
+        influxdb_org = os.environ['IFS_INFLUXDB_ORG']
+
+    try:
+        mongodb_client = MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
+        username=mongodb_username,
+        password=mongodb_password, 
+        authSource='scada', 
+        authMechanism='SCRAM-SHA-256', 
+        connect=True, 
+        connectTimeoutMS=2000,
+        socketTimeoutMS=2000)
+        logger.info("connected to mongodb")
+        scada_database = mongodb_client.scada
+    except Exception as e:
+        logger.error("mongodb: exception while initialising mongodb connection: " + str(e))
+        mongodb_client = None
+        exit(-1)
+
+    try:
+        rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
+        logger.info("connected to redis")
+        #subscribe redis events for select/operate
+        call_p = rt_db.pubsub()
+        call_p.subscribe(**{ "ifs_status": ifs_status })
+        thread = call_p.run_in_thread(sleep_time=0.001)
+    except:
+        logger.error("there is an issue with redis db")
+        rt_db = None
+        exit(-1)
+
+    try:
+        influxdb_client = InfluxDBClient(url=influxdb_host, 
+                token=influxdb_api, 
+                org=influxdb_org)
+        influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+    except:
+        logger.error("there is an issue with influxdb")
+        exit(-1)
+
+
+    logger.info("init")
     iecclient = libiec60870client.IEC60870_5_104_client(callback)
     update_datapoint = update_datapoint_influxdb #update_datapoint_mongodb
-    print("start")
-
-    if len(sys.argv) == 1:
-        print("localhost")
-        #client = MongoClient('localhost', 27017)
-        mongodb_client = MongoClient('mongodb', 27017, username="aaa",password="bbb", authSource='scada', authMechanism='SCRAM-SHA-256')
-    #    rt_db = redis.Redis(host='localhost', port=6379)
-        rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
-
-        influxdb_client = InfluxDBClient(url="http://127.0.0.1:8086", 
-            token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
-            org="scada")
-
-    else:
-        print("remote")
-        #client = MongoClient('mongo', 27017)
-        mongodb_client = MongoClient(os.environ['IFS_MONGODB_HOST'], 27017, username=os.environ['IFS_MONGODB_USERNAME'],password=os.environ['IFS_MONGODB_PASSWORD'], authSource='scada', authMechanism='SCRAM-SHA-256')
-    #    rt_db = redis.Redis(host='redis', port=6379)
-        rt_db = redis.Redis(host=os.environ['IFS_REDIS_HOST'], port=6379, password=os.environ['IFS_REDIS_PASSWORD'])
-
-        influxdb_client = InfluxDBClient(url="http://influxdb:8086", 
-            token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
-            org="scada")
-
-
-    scada_database = mongodb_client.scada
-
-    influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
-
-    print("init")
-
-    #subscribe redis events for select/operate
-    call_p = rt_db.pubsub()
-    call_p.subscribe(**{ "ifs_status": ifs_status })
-    thread = call_p.run_in_thread(sleep_time=0.001)
 
     rtu_list = get_RTU_list() 
-    print("rtus:" + str(rtu_list) )
+    logger.info("rtus:" + str(rtu_list) )
     
     stream = scada_database.dataprovider_list.watch()
 
@@ -226,7 +260,7 @@ if __name__ == '__main__':
     for rtu in rtu_list:
         rt_db.set("connections:"+rtu+".active", b'0')
 
-    print("init done: %s" % str(rtu_list))
+    logger.info("init done: %s" % str(rtu_list))
 
     while True:
         time.sleep(1)
@@ -236,7 +270,7 @@ if __name__ == '__main__':
             # check if new_list removed some connections, if so disconnect that RTU
             remove = set(list(rtu_list)) - set(list(new_rtu_list))
             for rem_rtu in remove:
-                print("removing RTU:" + rem_rtu)
+                logger.info("removing RTU:" + rem_rtu)
                 remove_RTU(rem_rtu)
                 rem_oper = "operate:%s" % ("iec60870-5-104://" + rem_rtu + "/*")
                 rem_sel = "select:%s" % ("iec60870-5-104://" + rem_rtu + "/*")
@@ -255,7 +289,7 @@ if __name__ == '__main__':
                     rt_db.set("connections:"+rtu+".active", b'0') # reset status if testframe returns -1
             else:
                 if get_RTU(rtu) == 0: # register and connect RTU's, set status in redis
-                    print("RTU connected:"+rtu)
+                    logger.info("RTU connected:"+rtu)
                     rt_db.set('connections:'+rtu+".active", b'1')
                     # register this IFS with RTU
                     oper = "operate:%s" % ("iec60870-5-104://" + rtu + "/*")
@@ -267,7 +301,7 @@ if __name__ == '__main__':
                             cancl:cancel_handler, 
                         })
                 else:
-                    print("failed to connect RTU:"+rtu)
+                    logger.error("failed to connect RTU:"+rtu)
                     # retry periodically, set status in redis
                     rt_db.set("connections:"+rtu+".active", b'0')
 

@@ -91,35 +91,52 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     level=logging.INFO)
 
-    update_datapoint = update_datapoint_influxdb
     logger.info("starting static_dataprovider")
 
-    if len(sys.argv) == 1:
-        logger.info("using localhost config")
-        rt_db = redis.Redis(host='localhost', port=6379, password="yourpassword")
+    redis_host = 'localhost'
+    redis_password = "yourpassword"
 
-        influxdb_client = InfluxDBClient(url="http://127.0.0.1:8086", 
-            token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
-            org="scada")
-    else:
-        logger.info("using docker config")
-        rt_db = redis.Redis(host=os.environ['IFS_REDIS_HOST'], port=6379, password=os.environ['IFS_REDIS_PASSWORD'])
+    influxdb_host = "http://127.0.0.1:8086"
+    influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+    influxdb_org = "scada"
 
-        influxdb_client = InfluxDBClient(url="http://influxdb:8086", 
-            token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
-            org="scada")
+    if len(sys.argv) > 1:
+        logger.info("remote host parameters (for inside docker-compose network)")
+        redis_host = os.environ['IFS_REDIS_HOST']
+        redis_password = os.environ['IFS_REDIS_PASSWORD']
 
-    influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
-    influxdb_query_api = influxdb_client.query_api()
+        influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
+        influxdb_api = os.environ['IFS_INFLUXDB_API']
+        influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
-    # subscribe redis events for operate
-    call_p = rt_db.pubsub()
-    call_p.subscribe(**{ "ifs_status": dataprovider_status })
-    thread = call_p.run_in_thread(sleep_time=0.001)
 
-    oper = "operate:%s" % ("static://local/*")
-    call_p.psubscribe(**{ oper:operate_handler })
+    try:
+        rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
+        logger.info("connected to redis")
+          # subscribe redis events for operate
+        call_p = rt_db.pubsub()
+        call_p.subscribe(**{ "ifs_status": dataprovider_status })
+        thread = call_p.run_in_thread(sleep_time=0.001)
 
+        oper = "operate:%s" % ("static://local/*")
+        call_p.psubscribe(**{ oper:operate_handler })
+    except:
+        logger.error("there is an issue with redis db")
+        rt_db = None
+        exit(-1)
+
+    try:
+        influxdb_client = InfluxDBClient(url=influxdb_host, 
+                token=influxdb_api, 
+                org=influxdb_org)
+        influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+        influxdb_query_api = influxdb_client.query_api()
+    except:
+        logger.error("there is an issue with influxdb")
+        exit(-1)
+
+
+    update_datapoint = update_datapoint_influxdb
     # update redis with historic influxdb data
     result = influxdb_get_datapoints()
     if result != None:

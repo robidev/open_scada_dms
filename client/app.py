@@ -1151,6 +1151,8 @@ if __name__ == '__main__':
   redis_password = "yourpassword"
 
   influxdb_host = "http://127.0.0.1:8086"
+  influxdb_api = "_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw=="
+  influxdb_org = "scada"
 
   if len(sys.argv) > 1:
       logger.info("remote host parameters (for inside docker-compose network)")
@@ -1161,7 +1163,9 @@ if __name__ == '__main__':
       redis_host = os.environ['IFS_REDIS_HOST']
       redis_password = os.environ['IFS_REDIS_PASSWORD']
 
-      influxdb_host = "http://influxdb:8086"
+      influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
+      influxdb_api = os.environ['IFS_INFLUXDB_API']
+      influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
   try:
     mongoclient = pymongo.MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
@@ -1196,10 +1200,9 @@ if __name__ == '__main__':
 
   try:
     influxdb_client = InfluxDBClient(url=influxdb_host, 
-            token="iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==", #"_gJ3M3xVsoQKUFJTpFS4-OzEdGeNz2hKl_TJ2jXyfT4Tnf_QXTOWvS3z3sPfSqruhBEX0ztQkzJ8mmVQZpftzw==", 
-            org="scada")
+            token=influxdb_api, 
+            org=influxdb_org)
     influxdb_query_api = influxdb_client.query_api()
-
     influxdb_write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
   except:
     logger.error("there is an issue with influxdb")
