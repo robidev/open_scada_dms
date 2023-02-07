@@ -1,10 +1,16 @@
+Docker version 20.10.12, build 20.10.12-0ubuntu4
+docker-compose version 1.29.2, build unknown
+
+
 start db's:
 
 sudo docker-compose up mongodb redis influxdb
 
-seems mongodb needs mongodb to resolve to the server-ip, and app.py needs to adress the dns for replication
+seems mongodb needs the 'mongodb' DNS entry to resolve to the mongodb server-ip, and app.py needs to adress the dns for replication
 to work. replication is needed for journaling
-easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts
+easy solution: run in docker, or add mongodb 127.0.0.1 to /etc/hosts for local connection
+
+a key needs to be generated before mongodb can start in replication mode. use generate_key.sh for this
 
 start admins:
 
