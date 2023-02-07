@@ -31,6 +31,8 @@ services:
 # redis as real-time database for current values
   redis:
     image: "redis:alpine"
+    container_name: redis
+    hostname: redis
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.3
@@ -46,6 +48,7 @@ services:
   influxdb:
     image: influxdb:latest
     container_name: influxdb
+    hostname: influxdb
     ports:
       - "8083:8083"
       - "8086:8086"
@@ -64,8 +67,10 @@ services:
 
 
 # the HMI webserver the user interacts with
-  client:
+  scada_client:
     build: ./client
+    container_name: scada_client
+    hostname: scada_client
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.5
@@ -92,6 +97,7 @@ services:
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana
+    hostname: grafana
     ports:
       - "3000:3000"
     networks:
@@ -114,6 +120,7 @@ services:
   portainer:
     image: portainer/portainer-ce
     container_name: portainer
+    hostname: portainer
     ports:
       - "8000:8000"
       - "9443:9443"
@@ -130,6 +137,8 @@ services:
 # dataprovider for simple static values
   static_dataprovider:
     build: ./static_dataprovider
+    container_name: static_dataprovider
+    hostname: static_dataprovider
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.10
@@ -148,6 +157,8 @@ services:
 # a solver of network data
   solver:
     build: ./solver
+    container_name: solver
+    hostname: solver
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.11
@@ -167,6 +178,8 @@ services:
 # an IEC60870-5-104 connector
   ifs:
     build: ./ifs
+    container_name: ifs
+    hostname: ifs
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.12
@@ -194,6 +207,8 @@ services:
   #simulated gateway for testing
   test_gateway:
     build: ./test_gateway
+    container_name: test_gateway
+    hostname: test_gateway
     networks:
       wannetwork:
         ipv4_address: 10.1.0.10
@@ -204,6 +219,8 @@ services:
 # management interface for mongodb
   admin-mongo:
     image: mongo-express
+    container_name: admin-mongo
+    hostname: admin-mongo
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.30
