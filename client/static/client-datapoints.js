@@ -73,26 +73,52 @@ function init_dataproviders(){
     document.querySelectorAll(".modal-save").forEach(function (saveBtn) {
       saveBtn.addEventListener("click", function () {
         var modalTarget = document.querySelector("#modal-2");
-        socket.emit('edit_dataprovider', modalTarget.childNodes[3].value, 
-          function(ret){
-            location.reload(); 
-            console.log("save ok");
-          }
-        );
+        let error_msg = document.querySelector('#modal-2_error-message');
+        try{
+          let dataprovider = modalTarget.childNodes[3].value;
+          let temp = JSON.parse(dataprovider);
+          socket.emit('edit_dataprovider', dataprovider, 
+            function(ret){
+              location.reload(); 
+              if(ret == true){
+                console.log("save ok");
+                error_msg.innerHTML = "Saved";
+                error_msg.style = "color:green";
+              }else{
+                alert("could not save dataprovider");
+              }
+            }
+          );
+        } catch(err) {
+          error_msg.innerHTML = err.message;
+          error_msg.style = "color:red";
+        }
       });
     });
 
-    document.querySelectorAll(".modal-delete").forEach(function (deleteBtn) {
+    document.querySelectorAll(".modal-delete").forEach(function (deleteBtn) {     
       deleteBtn.addEventListener("click", function () {
         var modalTarget = document.querySelector("#modal-2");
-        if('dataprovider_id' in modalTarget && modalTarget.dataprovider_id[0] === '_'){
-          socket.emit('delete_dataprovider', modalTarget.dataprovider_id, 
-            function(ret){
-              location.reload(); 
-              console.log("delete ok");
-            }
-          );
-        }
+        let error_msg = document.querySelector('#modal-2_error-message');
+        try{
+          if('dataprovider_id' in modalTarget && modalTarget.dataprovider_id[0] === '_'){
+            socket.emit('delete_dataprovider', modalTarget.dataprovider_id, 
+              function(ret){
+                location.reload(); 
+                if(ret == true){
+                  console.log("save ok");
+                  error_msg.innerHTML = "Saved";
+                  error_msg.style = "color:green";
+                }else{
+                  alert("could not delete dataprovider");
+                }
+              }
+            );
+          }
+          } catch(err) {
+            error_msg.innerHTML = err.message;
+            error_msg.style = "color:red";
+          }
       });
     });
   

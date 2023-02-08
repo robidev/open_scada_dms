@@ -215,6 +215,7 @@ function init_mapelements(){
     let key = data['key'];
     let value = data['value'];
 
+    //check if cached data is still accurate, and if an update is forced (norefresh=false)
     if(local_data_cache[key] == value && local_data_cache_norefresh[key] == true){
       return;
     }
@@ -480,8 +481,13 @@ function fitSvg(contents, preview){
 function show_Sidebar(e){
   let layer = e.target;
   sidebar._container.querySelector('#info_control').style.display = "none";
+  sidebar._container.querySelector('#info_control_bool').style.display = "none";
+  sidebar._container.querySelector('#info_control_doublepos').style.display = "none";
+  sidebar._container.querySelector('#info_control_int').style.display = "none";
   sidebar._container.querySelector('#control_element').value = "";
   sidebar._container.querySelector('#control_value').value = "";
+  sidebar._container.querySelector('#edit_panel_error-message').innerHTML = "";
+  sidebar._container.querySelector('#edit_panel_error-message').style = "color:black";
 
   if(layer.type==="Feature"){
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
@@ -497,53 +503,68 @@ function show_Sidebar(e){
   sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layerPropertyName + "<br>";;
   sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layerPropertyDescription + "<br>";;
 
-  sidebar.show();
-
   //set save button context
   let save_btn = sidebar._container.querySelector('#sidebar-save');
   let new_save_btn = save_btn.cloneNode(true);//deep clone of the save button, to ensure the layer passed is correct
   save_btn.parentNode.replaceChild(new_save_btn, save_btn);//replace the old button with this one
 
-  L.DomEvent.on(new_save_btn, 'click', function(e){ 
-    let layer = this;
-    //parse json, assign values to object and update
-    if(layer.type==="Feature"){
-      layer.feature.properties = JSON.parse(sidebar._container.querySelector('#options_field').value); 
+  L.DomEvent.on(new_save_btn, 'click', saveEditField, layer);
 
+  sidebar.show();
+}
+
+function saveEditField(e)
+{ 
+  let layer = this;
+  let error_msg = sidebar._container.querySelector('#edit_panel_error-message');
+  //parse json, assign values to object and update
+  if(layer.type==="Feature"){
+    try{
+      layer.feature.properties = JSON.parse(sidebar._container.querySelector('#options_field').value);
       //assign modified values
       layer._dataPoints = layer.feature.properties.datapoints;
       getGeojsonStyle(layer);
 
       sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
-    }
-    else{
-      layer.properties = JSON.parse(sidebar._container.querySelector('#options_field').value); 
 
-      //assing modified values
+      error_msg.innerHTML = "Saved";
+      error_msg.style = "color:green";
+    } catch(err) {
+      error_msg.innerHTML = err.message;
+      error_msg.style = "color:red";
+    }
+  }
+  else{
+    try{
+      layer.properties = JSON.parse(sidebar._container.querySelector('#options_field').value); 
+      //assesing modified values
       layer._dataPoints = layer.properties.datapoints;
 
       sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.properties, null, 2);
+
+      error_msg.innerHTML = "Saved";
+      error_msg.style = "color:green";
+    } catch(err) {
+      error_msg.innerHTML = err.message;
+      error_msg.style = "color:red";
     }
-    //update database
-    if(layer._map.options.mapType === "schema"){ //schema view
-      schema_editedItems({"layers":{"_layers":{"0":layer}}});
-    }
-    else{ //gis view
-      gis_editedItems({"layers":{"_layers":{"0":layer}}});
-    }
-  }, layer);
+  }
+  //update database
+  if(layer._map.options.mapType === "schema"){ //schema view
+    schema_editedItems({"layers":{"_layers":{"0":layer}}});
+  }
+  else{ //gis view
+    gis_editedItems({"layers":{"_layers":{"0":layer}}});
+  }
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // operate functions
 
 
 function open_control(event,datapoint){
-  let id = datapoint;
-
   //find the main layer-node for this object from its child-node
+  //we need this to find the associated leaflet layer object, as what we click might be a (sub)child-object of the layer
   let i = 0;
   let layer = null;
   object = event.target;
@@ -561,12 +582,16 @@ function open_control(event,datapoint){
   //find the child-node that is related to the datapoint element-id
   let status_point = "";
   let control_element = "";
+  let type = "undefined";
   for (const [key, point] of Object.entries(layer._dataPoints)) {
     for (const [child_key, child_point] of Object.entries(point)) {
-      if(child_point == datapoint){
+      if(child_point == datapoint){ //the control element (this is modified when operate is set)
         control_element = child_key;
+        if('type' in point){ // if type is set, ajust control dialog for this type
+          type = point.type;
+        }
       }
-      if(child_point == event.target.id){
+      if(child_point == event.target.id){ // the status element (this is read, and updated after a control action)
         status_point = child_key;
       }
     }
@@ -576,12 +601,39 @@ function open_control(event,datapoint){
     event.stopPropagation(); 
   }
 
-
   show_Sidebar({target:layer});
-  sidebar._container.querySelector('#info_control').style.display = "block";
-  sidebar._container.querySelector('#control_element').value = control_element;
-  sidebar._container.querySelector('#control_value').value = local_data_cache[status_point];
-  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>";
+  if(type == "bool"){
+    //status = true/false
+    //oper   = true/false (suggest inverse)
+    sidebar._container.querySelector('#info_control_bool').style.display = "block";
+    sidebar._container.querySelector('#control_element_bool').value = control_element;
+    sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point];
+    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
+  
+  } else if(type == "doublepos"){
+    //status = 01/10
+    //oper   =  0/1 (suggest inverse)
+    sidebar._container.querySelector('#info_control_doublepos').style.display = "block";
+    sidebar._container.querySelector('#control_element_doublepos').value = control_element;
+    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point];
+    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
+  
+  } else if(type == "int"){
+    //status is value
+    //oper is value, +1, -1
+    sidebar._container.querySelector('#info_control_int').style.display = "block";
+    sidebar._container.querySelector('#control_element_int').value = control_element;
+    sidebar._container.querySelector('#control_value_int').value = local_data_cache[status_point];
+    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
+  
+  } else {
+    //simple dialog
+    sidebar._container.querySelector('#info_control').style.display = "block";
+    sidebar._container.querySelector('#control_element').value = control_element;
+    sidebar._container.querySelector('#control_value').value = local_data_cache[status_point];
+    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
+  
+  } 
 
 
 }

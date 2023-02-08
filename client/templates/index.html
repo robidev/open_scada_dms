@@ -76,7 +76,39 @@
         value: <input id="control_value" value="True"><br>
         <button onclick="select($('#control_element').val(),$('#control_value').val())">select</button>
         <button onclick="operate($('#control_element').val(),$('#control_value').val())">operate</button>
+
         <button onclick="cancel($('#control_element').val())">cancel</button>
+      </div>
+      <div id="info_control_bool">
+        <h1>Control</h1> 
+        element: <input id="control_element_bool"  value="/"  style="width:400px;"><br>
+        value: 
+        <select id="control_value_bool">
+          <option value="0">Open</option>
+          <option value="1">Close</option>
+        </select>  <br>
+        <button onclick="select($('#control_element_bool').val(),$('#control_value_bool').val())">select</button>
+        <button onclick="operate($('#control_element_bool').val(),$('#control_value_bool').val())">operate</button>
+        <button onclick="cancel($('#control_element_bool').val())">cancel</button>
+      </div>
+      <div id="info_control_doublepos">
+        <h1>Control</h1> 
+        element: <input id="control_element_doublepos"  value="/"  style="width:400px;"><br>
+        value:         <select id="control_value_doublepos">
+          <option value="2">Open</option>
+          <option value="1">Close</option>
+        </select>  <br><br>
+        <button onclick="select($('#control_element_doublepos').val(),$('#control_value_doublepos').val())">select</button>
+        <button onclick="operate($('#control_element_doublepos').val(),$('#control_value_doublepos').val())">operate</button>
+        <button onclick="cancel($('#control_element_doublepos').val())">cancel</button>
+      </div>
+      <div id="info_control_int">
+        <h1>Control</h1> 
+        element: <input id="control_element_int"  value="/"  style="width:400px;"><br>
+        value: <input type="number" id="control_value_int" value="-"><br>
+        <button onclick="select($('#control_element_int').val(),$('#control_value_int').val())">select</button>
+        <button onclick="operate($('#control_element_int').val(),$('#control_value_int').val())">set</button>
+        <button onclick="cancel($('#control_element_int').val())">cancel</button>
       </div>
     </div> 
     <div id="edit_panel">
@@ -92,6 +124,7 @@
         placeholder="{&quot;options&quot;:&quot;🎉&quot;}" 
         rows="25"></textarea>
       <button id="sidebar-save">Save</button>
+      <div id="edit_panel_error-message"></div>
     </div>
   </div>
 
@@ -108,6 +141,7 @@
       rows="15"></textarea><br>
     <button class="modal-btn modal-save">Save</button>&nbsp;&nbsp;
     <button class="modal-btn modal-hide">Close</button>
+    <div id="modal-1_error-message"></div>
   </div>
 
   <div id="modal-2" class="modal-window">
@@ -124,6 +158,7 @@
     <button class="modal-btn modal-save">Save</button>&nbsp;&nbsp;
     <button class="modal-btn modal-delete">Delete</button>&nbsp;&nbsp;
     <button class="modal-btn modal-hide">Close</button>
+    <div id="modal-2_error-message"></div>
   </div>
 
   <input type="hidden" id="user_id>" name="user_id" value="{{ user_id }}">

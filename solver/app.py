@@ -196,9 +196,9 @@ def mongo_watch_changes(stream):
         change = stream.try_next()
         # Note that the ChangeStream's resume token may be updated
         # even when no changes are returned.
-        print("Current resume token: %r" % (stream.resume_token,))
+        logger.debug("Current resume token: %r" % (stream.resume_token,))
         if change is not None:
-            print("Change document: %r" % (change,))
+            logger.debug("Change document: %r" % (change,))
             return True
         else:
             return False

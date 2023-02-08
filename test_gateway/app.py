@@ -97,7 +97,7 @@ def readvaluecallback(key,data):
       if config[item_type][ioa] == key:
           iec104_server.update_ioa(int(ioa), data['value'])
           return
-  print("could not find IOA for key:" + key)
+  logger.error("could not find IOA for key:" + key)
 
 # callback commandtermination
 def cmdTerm_cb(msg):
@@ -111,7 +111,7 @@ def Rpt_cb(key, value):
 
 def read_60870_callback(ioa, ioa_data, iec104server):
   global config
-  print("read callback called from lib60870")
+  logger.debug("read callback called from lib60870")
   for item_type in config:
     if ioa in config[item_type]:
       return read_value(config[item_type][ioa])
@@ -122,7 +122,7 @@ def read_60870_callback(ioa, ioa_data, iec104server):
 def command_60870_callback(ioa, ioa_data, iec104server, select_value):
   global run_sim
   global config
-  print("operate callback called from lib60870")
+  logger.debug("operate callback called from lib60870")
   for item_type in config:
     if ioa >= 6000 and ioa < 7000:
       ioa = (ioa-6000) + 300
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     for item in config['singlepointcommand']:
       #create 104 data for GI
       if iec104_server.add_ioa(int(item), lib60870.SingleCommand,0,command_60870_callback,False) == 0:
-        print("SingleCommand registered")
+        logger.info("SingleCommand registered")
       else:
         logger.error("duplicate IOA:" + item + ", IOA not added to list")
         continue
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     for item in config['doublepointcommand']:
       #create 104 data for GI
       if iec104_server.add_ioa(int(item), lib60870.DoubleCommand,0,command_60870_callback,False) == 0:
-        print("DoubleCommand registered")
+        logger.info("DoubleCommand registered")
       else:
         logger.error("duplicate IOA:" + item + ", IOA not added to list")
         continue

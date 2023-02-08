@@ -1,11 +1,9 @@
-improve (css)style hmi/control-dialog/.., 
-display errors in json format
+add grafana graphs (click on button next to measurement, to open small window with grafana graph of that measurement)
+improve (css)style hmi/control-dialog/..
 
 add some alarm logic
 click to go to location, from alarm-window
 close-alarm comments
-
-add grafana graphs (click on button next to measurement, to open small window with grafana graph of that measurement)
 
 documentation:
  - getting started
@@ -14,7 +12,6 @@ documentation:
  - schematic overview of whole system
 
 screenshot of scada-schema (with correct values)
-bug: cannot start mongodb from fresh install
 Publish!!!
 
 

@@ -107,11 +107,25 @@ function init_alarm(){
     document.querySelectorAll(".modal-save").forEach(function (saveBtn) {
       saveBtn.addEventListener("click", function () {
         var modalTarget = document.querySelector("#modal-1");
-        socket.emit('save_alarm_rules', modalTarget.childNodes[3].value, 
-          function(ret){
-            console.log("save ok");
-          }
-        );
+        let error_msg = document.querySelector('#modal-1_error-message');
+        try{
+          let rules = modalTarget.childNodes[3].value;
+          let temp = JSON.parse(rules);
+          socket.emit('save_alarm_rules', rules, 
+            function(ret){ 
+              if(ret == true){
+                console.log("save ok");
+                error_msg.innerHTML = "Saved";
+                error_msg.style = "color:green";
+              }else{
+                alert("could not save alarm rules");
+              }
+            }
+          );
+        } catch(err) {
+          error_msg.innerHTML = err.message;
+          error_msg.style = "color:red";
+        }
       });
     });
   

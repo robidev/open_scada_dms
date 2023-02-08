@@ -326,7 +326,7 @@ def register_datapoint(point):
     value = value.decode("utf-8")
   else:
     value = get_value(point)  #value = influxdb_get_value(point)
-  #print("reg type:" + str(type(value)) + ", value:" + str(value))
+  logger.debug("reg type:" + str(type(value)) + ", value:" + str(value))
   if value == None:
     value = 'UNKNOWN'
   poll_datapoint[point]['value'] = value
@@ -722,7 +722,7 @@ def trigger_alarm(key, alarm, value):
   if "set_alarm" in alarm['action']:
     # if alarm can be retriggered, or if not, only trigger if state changes
     if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != True):
-      print("set alarm: " + key)
+      logger.debug("set alarm: " + key)
       alarm_list[key][alert_id] = True
       update = True
       # add/update item in alarm_table @ mongodb
@@ -746,7 +746,7 @@ def trigger_alarm(key, alarm, value):
 
   if "reset_alarm"in alarm['action']:
     if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != False):
-      print("reset alarm: " + key)
+      logger.debug("reset alarm: " + key)
       alarm_list[key][alert_id] = False
       update = True
       # update item in alarm_table @ mongodb
@@ -770,7 +770,7 @@ def trigger_alarm(key, alarm, value):
     publish_event(alarm['element'],alarm['action']['event'],value)
 
   if "script" in alarm['action']:
-    print("run script:" + alarm['action']['script'])
+    logger.debug("run script:" + alarm['action']['script'])
     # subprocess....
   return
 
@@ -832,10 +832,10 @@ def update_alarm_state(dataitem):
   open = dataitem['open']
 
   if not datapoint in alarm_list:
-    print("could not find datapoint in alarm list")
+    logger.warning("could not find datapoint in alarm list")
     return
   if not alert_id in alarm_list[datapoint]:
-    print("could not find alert_id in alarm list[datapoint]")
+    logger.warning("could not find alert_id in alarm list[datapoint]")
     return
 
   db = mongoclient.scada
@@ -852,11 +852,11 @@ def update_alarm_state(dataitem):
     oldopen = object['open']
   # set net values
   db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
-  print("++update_alarm_state")
+  logger.debug("++update_alarm_state")
   # check if event needs to be made
   for alarm_item in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm_item['alert_id'] == alert_id:
-      print("-- ack:" + str(ack) + " open:" + str(open) + " alarm:" + str(alarm))
+      logger.debug("-- ack:" + str(ack) + " open:" + str(open) + " alarm:" + str(alarm))
       if ack != oldack:
         if ack  == True:
           publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",True)
@@ -961,19 +961,29 @@ def get_alarm_rules(data):
 
 @socketio.on('save_alarm_rules', namespace='')
 def save_alarm_rules(data):
-  local_alarm_list = json.loads(data)
-  global mongoclient
-  db = mongoclient.scada
+  try:
+    local_alarm_list = json.loads(data)
+  except:
+    logger.error("could not parse json data")
+    return False
 
-  db.alarm_logic.drop()
-  #db.createCollection("alarm_logic")
-  for datapoint in local_alarm_list:
-    for alarm in local_alarm_list[datapoint]['alarm_logic_list']:
-      alarm['datapoint'] = datapoint
-      db.alarm_logic.insert_one(alarm)
-  
+  try:
+    global mongoclient
+    db = mongoclient.scada
+
+    db.alarm_logic.drop()
+    #db.createCollection("alarm_logic")
+    for datapoint in local_alarm_list:
+      for alarm in local_alarm_list[datapoint]['alarm_logic_list']:
+        alarm['datapoint'] = datapoint
+        db.alarm_logic.insert_one(alarm)
+  except:
+    logger.error("could not save alarm rule data")
+    return False
+
   global alarm_list
   alarm_list = local_alarm_list
+  return True
 
 
 ### Event logic ###
@@ -983,7 +993,7 @@ def publish_event(element,msg,value):
   #   operate/select/cancel command and result (of action, and actual process)
   #   alarms trigger
   el = json.dumps(element)
-  # print("-- element: %s, message: %s, value: %s" % (el, msg, str(value)))
+  # logger.debug("-- element: %s, message: %s, value: %s" % (el, msg, str(value)))
   # add event item @ influxdb
   global influxdb_write_api
   p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
@@ -1053,22 +1063,25 @@ def update_dataprovider_status(dataprovider):
 @socketio.on('edit_dataprovider', namespace='')
 def edit_dataprovider(data):
   global mongoclient
-  print(data)
-  item = json.loads(data)
-  dataprovider = item['dataprovider']
-  enabled = int(item['enabled'])
-  IFS = item['IFS'] 
-  type = item['type']
+  try:
+    item = json.loads(data)
+    dataprovider = item['dataprovider']
+    enabled = int(item['enabled'])
+    IFS = item['IFS'] 
+    type = item['type']
 
-  db = mongoclient.scada
-  newvalues =  {
-      "enabled": enabled,
-      "IFS": IFS,
-      "type": type
-    }
-  _id = db.dataprovider_list.update_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
-  # ensure _id gets retrieved
-  return "_" + str(_id.upserted_id)
+    db = mongoclient.scada
+    newvalues =  {
+        "enabled": enabled,
+        "IFS": IFS,
+        "type": type
+      }
+    _id = db.dataprovider_list.update_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
+    # ensure _id gets retrieved
+    return "_" + str(_id.upserted_id)
+  except:
+    logger.error("could not edit dataprovider")
+    return False
 
 
   # delete dataprovider's from mongodb
@@ -1076,7 +1089,12 @@ def edit_dataprovider(data):
 def del_dataprovider(uuid):
   global mongoclient
   db = mongoclient.scada
-  db.dataprovider_list.delete_one({'_id':ObjectId(uuid[1:])})
+  try:
+    db.dataprovider_list.delete_one({'_id':ObjectId(uuid[1:])})
+    return True
+  except:
+    logger.error("could not delete dataprovider")
+    return False
 
 
 ###############################################################
@@ -1093,7 +1111,7 @@ def refresh_datapoints(force_update=True):
         value = value.decode("utf-8")
       else:
         value = get_value(point)  #value = influxdb_get_value(point)
-      #print("ref type:" + str(type(value)) + ", value:" + str(value))
+      #logger.debug("ref type:" + str(type(value)) + ", value:" + str(value))
       if value == None:
         value = 'UNKNOWN'
 
