@@ -1,5 +1,5 @@
 add grafana graphs (click on button next to measurement, to open small window with grafana graph of that measurement)
-improve (css)style hmi/control-dialog/..
+enter all nameplate/description data
 
 add some alarm logic
 click to go to location, from alarm-window
@@ -16,6 +16,8 @@ Publish!!!
 
 
 -- future --
+
+oper dialog status msg after succes/failed oper
 
 editable layer/item order? map.getPane('labels').style.zIndex = 650???
 

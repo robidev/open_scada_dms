@@ -398,3 +398,47 @@ div.tabcontents {
   border-radius: 3px;
   text-decoration: none;
 }
+
+.OperSidebar {
+  font-size: 18px;
+  line-height: 18px;
+}
+
+.OperBorder {
+  border: solid rgb(0, 0, 0);
+}
+
+.Btn {
+  background: #dadada;
+  border: none;
+  color: #000000;
+  padding: 6px 9px;
+  margin: 5px;
+  box-shadow: none;
+  border-radius: 3px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 18px;
+}
+
+.Btn.SelectBtn {
+  width: 193px;
+}
+
+.Btn.CancelBtn {
+  width: 193px;
+  margin: 5px -8px 5px 5px;
+}
+
+.Btn.OperBtn {
+  width: 400px;
+}
+
+.Btn:hover {
+  background-color: rgba(149, 149, 149, 0.692);
+}
+
+.Btn:active {
+  transition: 0s;
+  background-color: rgb(109, 109, 109);
+}

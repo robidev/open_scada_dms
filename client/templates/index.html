@@ -66,49 +66,55 @@
 
 </head>
 <body>
-  <div id="sidebar" style="color:black; display:none;">
-    <div id="info_panel">
+  <div id="sidebar" style="color:black; display:none;" >
+    <div id="info_panel" class="OperSidebar">
       <h1>Information</h1>
       <div id="info_items"></div>
+      <div id="info_status">
+        <h1>Status</h1> 
+        Element <input id="status_element" disabled="disabled"  value="?"  class="Btn OperBtn" style="width:400px;" onclick="open_graph($('#status_element').val())"><br><br>
+        Value <input id="status_value" disabled="disabled" value="?"  class="Btn OperBtn" style="width:400px;">
+      </div>
       <div id="info_control">
         <h1>Control</h1> 
-        element: <input id="control_element"  value="/"  style="width:400px;"><br>
-        value: <input id="control_value" value="True"><br>
-        <button onclick="select($('#control_element').val(),$('#control_value').val())">select</button>
-        <button onclick="operate($('#control_element').val(),$('#control_value').val())">operate</button>
-
-        <button onclick="cancel($('#control_element').val())">cancel</button>
-      </div>
-      <div id="info_control_bool">
-        <h1>Control</h1> 
-        element: <input id="control_element_bool"  value="/"  style="width:400px;"><br>
-        value: 
-        <select id="control_value_bool">
-          <option value="0">Open</option>
-          <option value="1">Close</option>
-        </select>  <br>
-        <button onclick="select($('#control_element_bool').val(),$('#control_value_bool').val())">select</button>
-        <button onclick="operate($('#control_element_bool').val(),$('#control_value_bool').val())">operate</button>
-        <button onclick="cancel($('#control_element_bool').val())">cancel</button>
-      </div>
-      <div id="info_control_doublepos">
-        <h1>Control</h1> 
-        element: <input id="control_element_doublepos"  value="/"  style="width:400px;"><br>
-        value:         <select id="control_value_doublepos">
-          <option value="2">Open</option>
-          <option value="1">Close</option>
-        </select>  <br><br>
-        <button onclick="select($('#control_element_doublepos').val(),$('#control_value_doublepos').val())">select</button>
-        <button onclick="operate($('#control_element_doublepos').val(),$('#control_value_doublepos').val())">operate</button>
-        <button onclick="cancel($('#control_element_doublepos').val())">cancel</button>
-      </div>
-      <div id="info_control_int">
-        <h1>Control</h1> 
-        element: <input id="control_element_int"  value="/"  style="width:400px;"><br>
-        value: <input type="number" id="control_value_int" value="-"><br>
-        <button onclick="select($('#control_element_int').val(),$('#control_value_int').val())">select</button>
-        <button onclick="operate($('#control_element_int').val(),$('#control_value_int').val())">set</button>
-        <button onclick="cancel($('#control_element_int').val())">cancel</button>
+        Element <input id="control_element" disabled="disabled"  value="?"  class="Btn OperBtn" style="width:400px;"><br><br>
+        <input type="hidden" id="hidden_type" value="none">
+        <div id="info_control_bool">
+          Set to <br>
+          <select id="control_value_bool" class="Btn OperBtn">
+            <option value="0">Open</option>
+            <option value="1">Close</option>
+          </select>  <br><br>
+          Action  <br>
+          <div id="info_control_bool_SBO">
+            <button onclick="select($('#control_element').val(),$('#control_value_bool').val())" class="Btn SelectBtn">select</button>
+            <button onclick="cancel($('#control_element').val())" class="Btn CancelBtn">cancel</button>
+          </div>
+          <button onclick="operate($('#control_element').val(),$('#control_value_bool').val())" class="Btn OperBtn">operate</button>
+        </div>
+        <div id="info_control_doublepos">
+          Set to <br>
+          <select id="control_value_doublepos" class="Btn OperBtn">
+            <option value="2">Open</option>
+            <option value="1">Close</option>
+          </select>  <br><br>
+          Action <br>
+          <div id="info_control_doublepos_SBO">
+            <button onclick="select($('#control_element').val(),$('#control_value_doublepos').val())" class="Btn SelectBtn">select</button>
+             <button onclick="cancel($('#control_element').val())" class="Btn CancelBtn">cancel</button>
+          </div>
+          <button onclick="operate($('#control_element').val(),$('#control_value_doublepos').val())" class="Btn OperBtn">operate</button>
+        </div>
+        <div id="info_control_int">
+          Set to <br>
+          <input type="number" id="control_value_int" value="-" class="Btn OperBtn"><br><br>
+          Action <br>
+          <div id="info_control_int_SBO">
+            <button onclick="select($('#control_element').val(),$('#control_value_int').val())" class="Btn SelectBtn">select</button>
+            <button onclick="cancel($('#control_element').val())" class="Btn CancelBtn">cancel</button>
+          </div>
+          <button onclick="operate($('#control_element').val(),$('#control_value_int').val())" class="Btn OperBtn">set</button>
+        </div>
       </div>
     </div> 
     <div id="edit_panel">

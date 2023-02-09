@@ -223,7 +223,13 @@ function init_mapelements(){
     local_data_cache_norefresh[key] = true;
     //console.log("key:" + key.toString() + " value:" + value.toString());
     // update svg items and geojson
-    updateLayers(editableLayers._layers, key, value);
+    try{
+      updateLayers(editableLayers._layers, key, value);
+    }catch (ex){
+      console.log(ex);
+    }
+    
+    updateEditDialog(key, value);
   });
 
 }
@@ -481,23 +487,19 @@ function fitSvg(contents, preview){
 function show_Sidebar(e){
   let layer = e.target;
   sidebar._container.querySelector('#info_control').style.display = "none";
-  sidebar._container.querySelector('#info_control_bool').style.display = "none";
-  sidebar._container.querySelector('#info_control_doublepos').style.display = "none";
-  sidebar._container.querySelector('#info_control_int').style.display = "none";
-  sidebar._container.querySelector('#control_element').value = "";
-  sidebar._container.querySelector('#control_value').value = "";
+  sidebar._container.querySelector('#info_status').style.display = "none";
   sidebar._container.querySelector('#edit_panel_error-message').innerHTML = "";
   sidebar._container.querySelector('#edit_panel_error-message').style = "color:black";
 
   if(layer.type==="Feature"){
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.feature.properties, null, 2);
-    layerPropertyName = "name" in layer.feature.properties ? layer.feature.properties.name : "undefined";
-    layerPropertyDescription = "description" in layer.feature.properties ? layer.feature.properties.description : "undefined";
+    layerPropertyName = "nameplate" in layer.feature.properties ? layer.feature.properties.nameplate : "?";
+    layerPropertyDescription = "description" in layer.feature.properties ? layer.feature.properties.description : "";
   }
   else{ //svg
     sidebar._container.querySelector('#options_field').value = JSON.stringify(layer.properties, null, 2);
-    layerPropertyName = "name" in layer.properties ? layer.properties.name : "undefined";
-    layerPropertyDescription = "description" in layer.properties ? layer.properties.description : "undefined";
+    layerPropertyName = "nameplate" in layer.properties ? layer.properties.nameplate : "?";
+    layerPropertyDescription = "description" in layer.properties ? layer.properties.description : "";
   }
   
   sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layerPropertyName + "<br>";;
@@ -583,6 +585,8 @@ function open_control(event,datapoint){
   let status_point = "";
   let control_element = "";
   let type = "undefined";
+  let nameplate = "?";
+  let description = "";
   for (const [key, point] of Object.entries(layer._dataPoints)) {
     for (const [child_key, child_point] of Object.entries(point)) {
       if(child_point == datapoint){ //the control element (this is modified when operate is set)
@@ -590,6 +594,12 @@ function open_control(event,datapoint){
         if('type' in point){ // if type is set, ajust control dialog for this type
           type = point.type;
         }
+        if('nameplate' in point){ // if type is set, ajust control dialog for this type
+          nameplate = point.nameplate;
+        }
+        if('description' in point){ // if type is set, ajust control dialog for this type
+          description = point.description;
+        }        
       }
       if(child_point == event.target.id){ // the status element (this is read, and updated after a control action)
         status_point = child_key;
@@ -602,40 +612,73 @@ function open_control(event,datapoint){
   }
 
   show_Sidebar({target:layer});
-  if(type == "bool"){
+  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + nameplate;
+  sidebar._container.querySelector('#info_items').innerHTML += "<br>" + " Description: " +  description;
+
+  sidebar._container.querySelector('#info_status').style.display = "block";
+  sidebar._container.querySelector('#hidden_type').value = type;
+  sidebar._container.querySelector('#status_element').value = status_point;
+  sidebar._container.querySelector('#status_element').title = status_point;
+
+  sidebar._container.querySelector('#info_control_bool').style.display = "none";
+  sidebar._container.querySelector('#info_control_doublepos').style.display = "none";
+  sidebar._container.querySelector('#info_control_int').style.display = "none";
+
+  sidebar._container.querySelector('#info_control').style.display = "block";
+  sidebar._container.querySelector('#control_element').value = control_element;
+  sidebar._container.querySelector('#control_element').title = control_element;
+  if(type == "bool_SBO"){
     //status = true/false
     //oper   = true/false (suggest inverse)
     sidebar._container.querySelector('#info_control_bool').style.display = "block";
-    sidebar._container.querySelector('#control_element_bool').value = control_element;
-    sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point];
-    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
-  
-  } else if(type == "doublepos"){
+    sidebar._container.querySelector('#info_control_bool_SBO').style.display = "block";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point]==1? 0:1;
+
+  } else if(type == "doublepos_SBO"){
     //status = 01/10
     //oper   =  0/1 (suggest inverse)
     sidebar._container.querySelector('#info_control_doublepos').style.display = "block";
-    sidebar._container.querySelector('#control_element_doublepos').value = control_element;
-    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point];
-    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
-  
-  } else if(type == "int"){
+    sidebar._container.querySelector('#info_control_doublepos_SBO').style.display = "block";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 2:1;
+
+  } else if(type == "int_SBO"){
     //status is value
     //oper is value, +1, -1
     sidebar._container.querySelector('#info_control_int').style.display = "block";
-    sidebar._container.querySelector('#control_element_int').value = control_element;
+    sidebar._container.querySelector('#info_control_int_SBO').style.display = "block";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point];
     sidebar._container.querySelector('#control_value_int').value = local_data_cache[status_point];
-    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
-  
+
+  } else if(type == "bool_direct"){
+    //status = true/false
+    //oper   = true/false (suggest inverse)
+    sidebar._container.querySelector('#info_control_bool').style.display = "block";
+    sidebar._container.querySelector('#info_control_bool_SBO').style.display = "none";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point]==1? 0:1;
+
+  } else if(type == "doublepos_direct"){
+    //status = 01/10
+    //oper   =  0/1 (suggest inverse)
+    sidebar._container.querySelector('#info_control_doublepos').style.display = "block";
+    sidebar._container.querySelector('#info_control_doublepos_SBO').style.display = "none";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 2:1;
+
+  } else if(type == "int_direct"){
+    //status is value
+    //oper is value, +1, -1
+    sidebar._container.querySelector('#info_control_int').style.display = "block";
+    sidebar._container.querySelector('#info_control_int_SBO').style.display = "none";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point];
+    sidebar._container.querySelector('#control_value_int').value = local_data_cache[status_point];
+
   } else {
-    //simple dialog
-    sidebar._container.querySelector('#info_control').style.display = "block";
-    sidebar._container.querySelector('#control_element').value = control_element;
-    sidebar._container.querySelector('#control_value').value = local_data_cache[status_point];
-    sidebar._container.querySelector('#info_items').innerHTML = "Name: " + event.target.parentNode.id + "<br>" + " type:" + type;
-  
+    //simple info dialog
+    sidebar._container.querySelector('#info_control').style.display = "none";
   } 
-
-
 }
 
 //the actual operate functions
@@ -649,6 +692,32 @@ function operate(element, value) {
 
 function cancel(element) {
   socket.emit('publish', {'operation': 'cancel', 'element': element, 'value': ""});
+}
+
+function updateEditDialog(key, value) {
+  if(key != sidebar._container.querySelector('#status_element').value){
+    return;
+  }
+  let type = sidebar._container.querySelector('#hidden_type').value;
+  if(type == "bool_SBO"){
+    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+  } else if(type == "doublepos_SBO"){
+    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+  } else if(type == "int_SBO"){
+    sidebar._container.querySelector('#status_value').value = value;
+  } else if(type == "bool_direct"){
+    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+  } else if(type == "doublepos_direct"){
+    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+  } else if(type == "int_direct"){
+    sidebar._container.querySelector('#status_value').value = value;
+  } else {
+    sidebar._container.querySelector('#status_value').value = value;
+  } 
+}
+
+function open_graph(element){
+  //alert(element.toString());
 }
 
 

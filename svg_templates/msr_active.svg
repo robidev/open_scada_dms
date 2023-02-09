@@ -35,8 +35,8 @@ earth3: close, open - class:XSWI
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
     <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
   </line>
-  <g id="earth1" class="XSWI">
-    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_16" cy="5.49355" cx="38.64771" stroke="yellow" fill="none" onclick="open_control(evt,'earth1')" >
+  <g id="earth1_g" >
+    <ellipse class="XSWI" stroke-width="0.8" ry="3.39773" rx="3.39773" id="earth1_status" cy="5.49355" cx="38.64771" stroke="yellow" fill="none" onclick="open_control(evt,'earth1_oper')" >
           <animate id="close" attributeName="fill"   to="yellow" dur="100ms" fill="freeze" /> 
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
     </ellipse>
@@ -64,8 +64,8 @@ earth3: close, open - class:XSWI
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
     <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
   </g>
-  <g id="earth2" class="XSWI" >
-    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_17" cy="33.26627" cx="38.64771" stroke="yellow" fill="none"  onclick="open_control(evt,'earth2')" >
+  <g id="earth2_g" >
+    <ellipse class="XSWI" stroke-width="0.8" ry="3.39773" rx="3.39773" id="earth2_status" cy="33.26627" cx="38.64771" stroke="yellow" fill="none"  onclick="open_control(evt,'earth2_oper')" >
           <animate id="close" attributeName="fill"   to="yellow" dur="100ms" fill="freeze" /> 
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
     </ellipse>
@@ -94,8 +94,8 @@ earth3: close, open - class:XSWI
   </rect>
 
 
-  <g id="earth3" class="XSWI" >
-    <ellipse stroke-width="0.8" ry="3.39773" rx="3.39773" id="svg_19" cy="46.56172" cx="38.89771" stroke="yellow" fill="none" onclick="open_control(evt,'earth3')" >
+  <g id="earth3_g" >
+    <ellipse class="XSWI" stroke-width="0.8" ry="3.39773" rx="3.39773" id="earth3_status" cy="46.56172" cx="38.89771" stroke="yellow" fill="none" onclick="open_control(evt,'earth3_oper')" >
           <animate id="close" attributeName="fill"   to="yellow" dur="100ms" fill="freeze" /> 
           <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
     </ellipse>
