@@ -1,5 +1,4 @@
-add grafana graphs (click on button next to measurement, to open small window with grafana graph of that measurement)
-enter all nameplate/description data
+enter all nameplate/description/oper/status data, and BACKUP!
 
 add some alarm logic
 click to go to location, from alarm-window

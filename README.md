@@ -49,7 +49,9 @@ svg objects allow datapoints to be attached to control animations. based on the 
   ```
 the "datapoint_*" element is defined as the (parent) element_id of the element that has the animation. it is found in the svg
 
-all schema network elements have a 'normal' and 'fail' mode animation. normal is the normal color. fail turns the item white.
+all schema network elements in the example have a 'normal' and 'fail' mode animation. normal is the normal color. fail turns the item white.
+
+the operate dialog is triggered by making an svg element clickable, and calling the open_control(event, datapoint) function via onclick. the event is passed from the svg element. the datapoint should contain the element to operate on. the id of the svg element that is clicked is used as the associated status element. by convention it is easy to consider all interactive switches to contain 2 datapoint, e.g. swi_status and swi_oper. the oper element can be the same datapoint as the status. but with some protocols sich as iec60870-5-104 and modbus, it is common to write to a different point, than what reads the status.
 
 geojson objects can have logic attached to modify properties based on datapoints. example:
 ```
@@ -78,6 +80,7 @@ e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
 
 each object can be viewed or hidden at a certain zoom level. use z_min and z_max to define the zoom level the object should be
 visible/hidden. the zoom level can be viewed in the url bar as part of the coordinate hash
+
 
 
 ## alarms and events
