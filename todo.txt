@@ -10,9 +10,6 @@ click to go to location, from alarm-window
 close-alarm comments
 
 
-maybe portainer init too
-
-
 documentation:
  - getting started
  - overview operations

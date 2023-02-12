@@ -61,6 +61,7 @@ services:
     volumes:
       # Data persistency
       # sudo mkdir -p /srv/docker/influxdb/data
+      # TODO: is this used for persistence or not? no data seems to be stored here on host..
       - /srv/docker/influxdb/data:/var/lib/influxdb
 
 
