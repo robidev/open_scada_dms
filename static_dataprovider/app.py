@@ -14,6 +14,7 @@ import time
 import sys
 import redis
 import logging
+import pickle
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -100,15 +101,17 @@ if __name__ == '__main__':
     influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
     influxdb_org = "scada"
 
+    export_file = "saved_static_datapoints.pkl"
+
     if len(sys.argv) > 1:
-        logger.info("remote host parameters (for inside docker-compose network)")
-        redis_host = os.environ['IFS_REDIS_HOST']
-        redis_password = os.environ['IFS_REDIS_PASSWORD']
+        if sys.argv[1] == "remote":
+            logger.info("remote host parameters (for inside docker-compose network)")
+            redis_host = os.environ['IFS_REDIS_HOST']
+            redis_password = os.environ['IFS_REDIS_PASSWORD']
 
-        influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
-        influxdb_api = os.environ['IFS_INFLUXDB_API']
-        influxdb_org = os.environ['IFS_INFLUXDB_ORG']
-
+            influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
+            influxdb_api = os.environ['IFS_INFLUXDB_API']
+            influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
     try:
         rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
@@ -137,6 +140,40 @@ if __name__ == '__main__':
 
 
     update_datapoint = update_datapoint_influxdb
+
+    # import/export default values
+    if len(sys.argv) > 2:
+        if sys.argv[2] == "export":
+            logger.info("exporting static values to:" + export_file)
+            result = influxdb_get_datapoints()
+            if result != None:
+                dictionary = {}
+                for table in result:
+                    for record in table.records:
+                        value = record.get_value() # return first result
+                        point = record.values.get("id")
+                        dictionary[point] = value
+                with open(export_file, 'wb') as f:
+                    pickle.dump(dictionary, f)
+                    f.close()
+            logger.info("export done")
+            del influxdb_client
+            del rt_db
+            os._exit(0) # hard exit
+
+        if sys.argv[2] == "import":
+            logger.info("importing file:" + export_file)
+            with open(export_file, 'rb') as f:
+                loaded_dict = pickle.load(f)
+                for item in loaded_dict:
+                    logger.info("importing:" + str(item) + ", with value:" + str(loaded_dict[item]))
+                    update_datapoint(item, loaded_dict[item] )
+                f.close()
+            logger.info("import done")
+            del influxdb_client
+            del rt_db
+            os._exit(0) # hard exit
+
     # update redis with historic influxdb data
     result = influxdb_get_datapoints()
     if result != None:
