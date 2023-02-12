@@ -742,14 +742,16 @@ function updateEditDialog(key, value) {
 
 function open_graph(element){
   //Admin_01
-  //TODO open grafana with this measurement
   //  http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&from=now-7d&to=now&var-dataprovider=static://local/DoublePointInformation/300&editPanel=4
   // &var-dataprovider=static://local/DoublePointInformation/300&kiosk
   // <iframe src="http://127.0.0.1:3000/d-solo/0qabI_pVz/test-dashboard?orgId=1&var-dataprovider=static%3A%2F%2Flocal%2FDoublePointInformation%2F300&from=1675411683672&to=1676016483673&panelId=4" width="450" height="200" frameborder="0"></iframe>
   // http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&from=1675412329996&to=1676017129996&viewPanel=4&var-dataprovider=static://local/DoublePointInformation/300&kiosk
+
+  // http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&from=1675412329996&to=1676017129996&viewPanel=4&var-dataprovider=static://local/DoublePointInformation/300&kiosk=tv
+
   //alert(element.toString());
   //event.preventDefault();
-  var url = "http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&from=1675412329996&to=1676017129996&viewPanel=4&var-dataprovider="+element+"&kiosk";
+  var url = "http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&viewPanel=4&var-dataprovider="+element+"&kiosk=tv";
   var x = 0;//window.outerWidth + window.screenX;
   var y = 0;//window.screenY;
   var h = 300; //window.outerHeight - 37;

@@ -106,13 +106,17 @@ services:
       - .env
     environment:
       - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
     user: "0"
     links:
       - influxdb
     volumes:
       # Data persistency
       # sudo mkdir -p /srv/docker/grafana/data; chown 472:472 /srv/docker/grafana/data
-      - /srv/docker/grafana/data:/var/lib/grafana
+      # - /srv/docker/grafana/data:/var/lib/grafana
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
 
 
 # manage containers, password: Administrator

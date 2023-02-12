@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB_v2_Flux
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    uid: G479iV-nz
+    jsonData:
+      version: Flux
+      organization: scada
+      defaultBucket: bucket_1
+      tlsSkipVerify: true
+    secureJsonData:
+      token: iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==

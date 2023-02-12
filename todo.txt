@@ -6,15 +6,13 @@ Main alarms include
  - Point status change alarms
  - Control actions
  - communication alarms, dataprovider or Front End
-
-
 click to go to location, from alarm-window
 close-alarm comments
 
 
-init grafana config+no login,
-add test-gateway button status
+run one-time import of static_dataprovider values
 maybe portainer init too
+add test-gateway button status
 
 
 documentation:
@@ -22,8 +20,9 @@ documentation:
  - overview operations
  - document functions
  - schematic overview of whole system
-
 screenshot of scada-schema (with correct values)
+
+
 Publish!!!
 
 
