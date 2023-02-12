@@ -276,12 +276,26 @@ function updateLayers(layers,key, value){
             }
             else { //if no class defined, assume normal/fail state
               if(value > 1 && !('lastAnim' in el && el['lastAnim'] == 'normal')) {
-                $("#normal",el)[0].beginElementAt(0.1); 
-                el['lastAnim'] = 'normal';
+                try{
+                  $("#normal",el)[0].beginElementAt(0.1); 
+                  el['lastAnim'] = 'normal';
+                  $("#normal2",el)[0].beginElementAt(0.1); 
+                  $("#normal3",el)[0].beginElementAt(0.1); 
+                }
+                catch(ex){
+                  //fail silently
+                }
               }
               if(( value <= 1 || value == 0 || value == "UNKNOWN") && !('lastAnim' in el && el['lastAnim'] == 'fail')) {
-                $("#fail",el)[0].beginElementAt(0.1);
-                el['lastAnim'] = 'fail';
+                try{
+                  $("#fail",el)[0].beginElementAt(0.1);
+                  el['lastAnim'] = 'fail';
+                  $("#fail2",el)[0].beginElementAt(0.1);
+                  $("#fail3",el)[0].beginElementAt(0.1);
+                }
+                catch(ex){
+                  //fail silently
+                }
               }
             }
           }
@@ -502,8 +516,8 @@ function show_Sidebar(e){
     layerPropertyDescription = "description" in layer.properties ? layer.properties.description : "";
   }
   
-  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + layerPropertyName + "<br>";;
-  sidebar._container.querySelector('#info_items').innerHTML += "Description: " + layerPropertyDescription + "<br>";;
+  sidebar._container.querySelector('#info_items').innerHTML = "<b>Name:</b> " + layerPropertyName + "<br>";;
+  sidebar._container.querySelector('#info_items').innerHTML += "<b>Description:</b> " + layerPropertyDescription + "<br>";;
 
   //set save button context
   let save_btn = sidebar._container.querySelector('#sidebar-save');
@@ -587,6 +601,16 @@ function open_control(event,datapoint){
   let type = "undefined";
   let nameplate = "?";
   let description = "";
+
+  if('properties' in layer){
+    if('nameplate' in layer.properties){
+      nameplate = layer.properties.nameplate;
+    }
+    if('description' in layer.properties){
+      description = layer.properties.description;
+    }
+  }
+
   for (const [key, point] of Object.entries(layer._dataPoints)) {
     for (const [child_key, child_point] of Object.entries(point)) {
       if(child_point == datapoint){ //the control element (this is modified when operate is set)
@@ -612,8 +636,8 @@ function open_control(event,datapoint){
   }
 
   show_Sidebar({target:layer});
-  sidebar._container.querySelector('#info_items').innerHTML = "Name: " + nameplate;
-  sidebar._container.querySelector('#info_items').innerHTML += "<br>" + " Description: " +  description;
+  sidebar._container.querySelector('#info_items').innerHTML = "<b>Name:</b> " + nameplate;
+  sidebar._container.querySelector('#info_items').innerHTML += "<br>" + " <b>Description:</b> " +  description;
 
   sidebar._container.querySelector('#info_status').style.display = "block";
   sidebar._container.querySelector('#hidden_type').value = type;

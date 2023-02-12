@@ -1,4 +1,5 @@
-enter all nameplate/description/oper/status data, and BACKUP!
+init grafana config, and static_dataprovider initial values
+maybe portainer
 
 add some alarm logic
 click to go to location, from alarm-window

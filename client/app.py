@@ -424,12 +424,18 @@ def query_schema_svg(x1,y1,x2,y2,z):
     
     try:
       svg = db.svg_templates.find_one({"name":object["svg"]})
-      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object['properties']['datapoints']) + "</svg>"
-      object["id"] = "_" + str(object["_id"])
-      object.pop("_id")
     except Exception as ex:
-      logger.error("while fetching svg template for '"+str(object["properties"]["svg"])+"' : " + str(ex))
+      logger.error("while fetching svg template for '"+str(object["svg"])+"' : " + str(ex))
       continue
+  
+    result_svg = svg["svg"]
+    if 'datapoints' in object["properties"]:
+      result_svg = string.Template(svg["svg"]).substitute(object["properties"]['datapoints'])
+      
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + result_svg + "</svg>"
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+
     data.append(object)
 
   return data
@@ -577,12 +583,18 @@ def query_gis_svg(w,n,e,s,z):
     
     try:
       svg = db.svg_templates.find_one({"name":object["properties"]["svg"]})
-      object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + string.Template(svg["svg"]).substitute(object["properties"]['datapoints']) + "</svg>"
-      object["id"] = "_" + str(object["_id"])
-      object.pop("_id")
     except Exception as ex:
       logger.error("while fetching svg template for '"+str(object["properties"]["svg"])+"' : " + str(ex))
       continue
+    
+    result_svg = svg["svg"]
+    if 'datapoints' in object["properties"]:
+      result_svg = string.Template(svg["svg"]).substitute(object["properties"]['datapoints'])
+      
+    object["svg"] = '<svg xmlns="http://www.w3.org/2000/svg">' + result_svg + "</svg>"
+    object["id"] = "_" + str(object["_id"])
+    object.pop("_id")
+
     data.append(object)
 
   return data

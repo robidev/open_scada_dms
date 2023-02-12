@@ -20,16 +20,7 @@ earth3: close, open - class:XSWI
 -->
  <g id="msr" fill="orange" stroke="orange" class="draggable-group" pointer-events="visible"><g>
   <title>MSR</title>
-  <g id="busbar">
-    <line id="svg_3" y2="1.95172" x2="3.00001" y1="49.97081" x1="3.00001" stroke-width="1.6" stroke="inherit" fill="none"/>
-    <line id="svg_5" y2="20.70946" x2="3" y1="20.70946" x1="13.49037" stroke="inherit" fill="none"/>
-    <line id="svg_4" y2="5.34582" x2="13.49037" y1="5.34582" x1="3" stroke="inherit" fill="none"/>
-    <line id="svg_14" y2="46.70945" x2="13.49037" y1="46.70945" x1="3" stroke="inherit" fill="none"/>
-
-    <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
-    <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
-  </g>
-
+  <rect height="51" width="49" y="0" x="0" stroke="none" fill="none"/>
 
   <line id="feed1" y2="5.34582" x2="34.9091" y1="5.34582" x1="18" stroke="inherit" fill="none">
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
@@ -45,14 +36,6 @@ earth3: close, open - class:XSWI
     <line id="svg_25" y2="7.18751" x2="47.37498" y1="3.68751" x1="47.37498" stroke="yellow" fill="none"/>
     <line id="svg_26" y2="6.49554" x2="48.87498" y1="4.31251" x1="48.87498" stroke="yellow" fill="none"/>
   </g>
-
-  <rect id="CBR1" class="XCBR" height="4.43182" width="4.43182" y="2.98219" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'CBR1')">
-      <animate id="error" attributeName="fill" to="red" dur="10ms" fill="freeze" />  
-      <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
-      <animate id="transition" attributeName="fill" to="green" dur="10ms" fill="freeze" />
-      <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
-  </rect>
-
 
   <g id="trafo">
     <line id="svg_5" y2="20.70946" x2="35.94666" y1="20.70946" x1="18" stroke="inherit" fill="none"/>
@@ -74,25 +57,11 @@ earth3: close, open - class:XSWI
     <line id="svg_33" y2="35.3125" x2="47.37498" y1="31.8125" x1="47.37498" stroke="yellow" fill="none"/>
     <line id="svg_34" y2="34.62053" x2="48.87498" y1="32.4375" x1="48.87498" stroke="yellow" fill="none"/>
   </g>
-  <rect id="CBR2" class="XCBR" height="4.43182" width="4.43182" y="18.34582" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'CBR2')">
-      <animate id="error" attributeName="fill" to="red" dur="10ms" fill="freeze" />  
-      <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
-      <animate id="transition" attributeName="fill" to="green" dur="10ms" fill="freeze" />
-      <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
-  </rect>
-
 
   <line id="feed2" y2="46.70945" x2="35.30196" y1="46.70945" x1="18" stroke="inherit" fill="none">
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
     <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" />  
   </line>
-  <rect id="CBR3" class="XCBR" height="4.43182" width="4.43182" y="44.51627" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'CBR3')">
-      <animate id="error" attributeName="fill" to="red" dur="10ms" fill="freeze" />  
-      <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
-      <animate id="transition" attributeName="fill" to="green" dur="10ms" fill="freeze" />
-      <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
-  </rect>
-
 
   <g id="earth3_g" >
     <ellipse class="XSWI" stroke-width="0.8" ry="3.39773" rx="3.39773" id="earth3_status" cy="46.56172" cx="38.89771" stroke="yellow" fill="none" onclick="open_control(evt,'earth3_oper')" >
@@ -105,11 +74,34 @@ earth3: close, open - class:XSWI
     <line id="svg_38" y2="47.74553" x2="48.87498" y1="45.5625" x1="48.87498" stroke="yellow" fill="none"/>
   </g>
 
+  <g id="busbar">
+    <line id="svg_3" y2="1.95172" x2="3.00001" y1="49.97081" x1="3.00001" stroke-width="1.6" stroke="inherit" fill="none"/>
+    <line id="svg_5" y2="20.70946" x2="3" y1="20.70946" x1="13.49037" stroke="inherit" fill="none"/>
+    <line id="svg_4" y2="5.34582" x2="13.49037" y1="5.34582" x1="3" stroke="inherit" fill="none"/>
+    <line id="svg_14" y2="46.70945" x2="13.49037" y1="46.70945" x1="3" stroke="inherit" fill="none"/>
+
+    <rect id="cbr1_status" class="XCBR" height="4.43182" width="4.43182" y="2.98219" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'cbr1_oper')">
+        <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
+        <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
+    </rect>
+    <rect id="cbr2_status" class="XCBR" height="4.43182" width="4.43182" y="18.34582" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'cbr2_oper')">
+        <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
+        <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
+    </rect>
+    <rect id="cbr3_status" class="XCBR" height="4.43182" width="4.43182" y="44.51627" x="13.49037" stroke="inherit" fill="inherit" onclick="open_control(evt,'cbr3_oper')">
+        <animate id="open" attributeName="fill" to="none" dur="100ms" fill="freeze" />
+        <animate id="close" attributeName="fill" to="inherit" dur="100ms" fill="freeze" /> 
+    </rect>
+    <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
+    <animate id="fail2" attributeName="fill"  to="white" dur="100ms" fill="freeze" begin="fail.begin"/> 
+    <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
+    <animate id="normal2" attributeName="fill"  to="inherit" dur="100ms" fill="freeze" begin="normal.begin"/> 
+  </g>
+
   <animate id="failall" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
-  <animate id="fail2" attributeName="fill"  to="white" dur="100ms" begin="failall.begin" fill="freeze" /> 
+  <animate id="failall2" attributeName="fill"  to="white" dur="100ms" begin="failall.begin" fill="freeze" /> 
   <animate id="normalall" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
-  <animate id="normal2" attributeName="fill"  to="inherit" dur="100ms" begin="normalall.begin" fill="freeze" /> 
+  <animate id="normalall2" attributeName="fill"  to="inherit" dur="100ms" begin="normalall.begin" fill="freeze" /> 
  </g>
 </g>
-
 </svg>

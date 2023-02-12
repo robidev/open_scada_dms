@@ -353,7 +353,7 @@ if __name__ == "__main__":
             publish_signals(link_list)
             update = False
             curtime = int(time.monotonic())
-            settime = curtime + 10
+            settime = curtime + 1
             logger.info("sleeping " + str(settime - curtime) + " seconds")
             #time.sleep(settime - curtime)
         # rerun calc periodic, 

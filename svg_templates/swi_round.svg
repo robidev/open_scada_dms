@@ -1,19 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
-
 <g fill="blue" stroke="blue" id="swi" class="draggable-group" pointer-events="visible" >
   <g id="xswi">
     <title>SWI</title>
-	<rect height="22" width="22" y="0" x="0" stroke="none" fill="none"/>
-	<circle class="XSWI" cx="10.5" cy="10.5" r="10" id="swi_status" onclick="open_control(evt,'swi_oper')" >
-          <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
-          <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
-	</circle>
-
+	  <rect height="22" width="22" y="0" x="0" stroke="none" fill="none"/>
+	  <circle class="XSWI" cx="10.5" cy="10.5" r="10" id="swi_status" onclick="open_control(evt,'swi_oper')" >
+      <animate id="open" attributeName="fill"   to="none" dur="100ms" fill="freeze" /> 
+      <animate id="close" attributeName="fill"   to="inherit" dur="100ms" fill="freeze" /> 
+	  </circle>
+  
     <animate id="fail" attributeName="stroke"  to="white" dur="100ms" fill="freeze" /> 
     <animate id="fail2" attributeName="fill"  to="white" dur="100ms" begin="fail.begin" fill="freeze" /> 
     <animate id="normal" attributeName="stroke"  to="inherit" dur="100ms" fill="freeze" /> 
     <animate id="normal2" attributeName="fill"  to="inherit" dur="100ms" begin="normal.begin" fill="freeze" /> 
-
   </g>
 </g>
 </svg>

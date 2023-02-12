@@ -10,7 +10,7 @@ function init_gis(){
   //gis_map = new L.Map('gis_map').setView([51.980, 5.842], 17);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'openstreetmap',
-    maxZoom: 20,
+    maxZoom: 24,
     id: 'openstreetmap',
     tileSize: 512,
     zoomOffset: -1,
