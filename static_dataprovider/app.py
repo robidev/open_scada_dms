@@ -101,7 +101,7 @@ if __name__ == '__main__':
     influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
     influxdb_org = "scada"
 
-    export_file = "saved_static_datapoints.pkl"
+    export_file = "./saved_static_datapoints.pkl"
 
     if len(sys.argv) > 1:
         if sys.argv[1] == "remote":
@@ -173,6 +173,22 @@ if __name__ == '__main__':
             del influxdb_client
             del rt_db
             os._exit(0) # hard exit
+
+        if sys.argv[2] == "init":
+            check_values = influxdb_get_datapoints()
+            if check_values != None and len(check_values) > 0 and len(check_values[0].records) > 0:
+                logger.info("static dataprovider value database has been initialised")
+            else:
+                logger.info("static dataprovider value database has not been initialised, importing defaults")
+                logger.info("importing file:" + export_file)
+                with open(export_file, 'rb') as f:
+                    loaded_dict = pickle.load(f)
+                    for item in loaded_dict:
+                        logger.info("importing:" + str(item) + ", with value:" + str(loaded_dict[item]))
+                        update_datapoint(item, loaded_dict[item] )
+                    f.close()
+                logger.info("import done, continuing execution")
+
 
     # update redis with historic influxdb data
     result = influxdb_get_datapoints()

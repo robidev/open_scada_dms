@@ -10,9 +10,7 @@ click to go to location, from alarm-window
 close-alarm comments
 
 
-run one-time import of static_dataprovider values
 maybe portainer init too
-add test-gateway button status
 
 
 documentation:
@@ -29,7 +27,7 @@ Publish!!!
 -- future --
 
 oper dialog status msg after succes/failed oper
-
+add test-gateway button status
 editable layer/item order? map.getPane('labels').style.zIndex = 650???
 
 script fire on alarm logic

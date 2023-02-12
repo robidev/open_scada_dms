@@ -8,4 +8,4 @@ COPY . /srv/static_dataprovider
 
 WORKDIR /srv/static_dataprovider
 
-CMD ["python3","app.py","remote"]
+CMD ["python3","app.py","remote", "init"]
