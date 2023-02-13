@@ -3,11 +3,103 @@
 # Open SCADA EMS/DMS
 This is an open source project for a basic ems/dms scada system. It contains a HMI(human-machine-interface) with vector graphics tailored towards power-scada, and supports an IEC60870-5-104 based IFS(the connection between the field devices and the central scada). 
 
+[screenshot.png]
+
+## TL;DR; I just want to start it
+
+```
+$ git clone https://github.com/robidev/open_scada_dms.git
+$ cd open_scada_dms
+$ sudo docker-compose up```
+
+browse to http://127.0.0.1:5000
+
+It might be that due to initialisation of the databases, some containers fail due to connection timeouts. Have a look in portainer (username: admin, password: administrator), and restart the stopped containers. Additionally, you can attempt another `$ sudo docker-compose up`
+
+The system will start with an example configuration, and a simulated gateway. 
+
+[diagram_test.drawio.png]
+
+If you configure an additional dataprovider, such as an RTU, and connect it to
+your system, it can connect to it.
+
+[diagram_rtu.drawio.png]
+
+if you wish a fully simulated environment, from physical process, to IED, to RTU and all the way up to DMS, you should do the following;
+
+```
+$ git clone https://github.com/robidev/iec61850_open_server.git
+$ git clone https://github.com/robidev/iec61850_open_client.git
+$ git clone https://github.com/robidev/iec61850_open_gateway.git
+$ git clone https://github.com/robidev/open_scada_dms.git
+```
+then you define the gateway.yml in iec61850_open_gateway:
+```
+version: "3.3"
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.libiec61850_gateway
+    hostname: gateway
+    networks:
+      subnetwork1:
+        ipv4_address: 10.0.0.250
+      scada_wannetwork:
+        ipv4_address: 10.1.0.10
+    privileged: true
+    depends_on:
+      - "ied1_xcbr"
+      - "ied2_ptoc"
+      - "ied3_smv"
+      - "ied4_smv"
+
+# networks should not be defined twice, or you get an error regarding missing subnet
+networks:
+  scada_wannetwork:
+    driver: bridge
+    external: true
+```
+and build the gateway by following the readme
+
+then follow the readme of iec61850_open_server to build the substation and client.
+
+next we start all containers regarding the substation from the iec61850_open_server directory:
+
+`$ sudo docker-compose -f substation.yml -f substation.simulator.yml -f ../iec61850_open_gateway/gateway.yml up`
+
+and finally, we start the open_scada_dms from the open_scada_dms directory:
+
+`$ sudo docker-compose up mongodb influxdb redis grafana static_dataprovider ifs solver portainer scada_client`
+(so omit the test_gateway, as you will be using the simulated one instead, and they sit on the same WAN IP; 10.1.0.10)
+
+when you start the simulation on the iec61850_open_client via the web-interface, you should see values update on the open_scada_dms web interface.
+
+[diagram_sim.drawio.png]
+
+
+# usage
+
 ## schema and gis
 schema shows a schematic view of a power grid, with scroll and zoom capability. gis is data overlayed on a geographic map
 
 data is live updated, and the view is animated. 
 
+### control
+TODO
+
+### grafana for historic analysis
+TODO
+
+## alarms and events
+alarms are shown in the alarms tab. alarm logic can be added, edited and removed via the edit button
+alarms can be open or closed, and acknowledged and unacknowledged. only closed alarms are hidden from the view, but can be seen in the event log.
+events are static, and can be viewed and sorted. more advanced analysis can be done in grafana 
+
+## dataproviders
+
+
+# Editing
 
 ### editing schema and gis
 SVG objects can be imported or chosen from a library. basic shapes can be drawn and styled based on datapoint values
@@ -81,15 +173,27 @@ e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
 each object can be viewed or hidden at a certain zoom level. use z_min and z_max to define the zoom level the object should be
 visible/hidden. the zoom level can be viewed in the url bar as part of the coordinate hash
 
+## editing alarms
 
 
-## alarms and events
-alarms are shown in the alarms tab. alarm logic can be added, edited and removed via the edit button
-alarms can be open or closed, and acknowledged and unacknowledged. only closed alarms are hidden from the view, but can be seen in the event log.
-events are static, and can be viewed and sorted. more advanced analysis can be done in grafana 
+
+
+# general architecture
+
+[scada.drawio.png]
+
+The open_scada_dms attempts to approach some of the main functions of a real SCADA DMS system. However, it should probably not be used in production ,as I
+provide no guarantee about its reliability. It is purely educational. That being said, the system shoul be able to scale, and supports a fully scalable,
+redundant setup.
+
+The main components and its ports are listed as follows;
+
+[diagram_detail.drawio.png]
 
 
 ## Inner workings
+portainer is the container orchestration
+
 The backend is powered by mongodb for persistence, influxdb for time-series and historic data, and redis for the real-time database. 
 
 The project is a collection of containers, and tries to mainly rely on actively developed projects that are fairly self contained.
@@ -97,7 +201,7 @@ The project is a collection of containers, and tries to mainly rely on actively 
 The following containers are included:
 
 container		purpose				port		username	password
-scada			main application		http/5000	-		-
+scada_client			main application		http/5000	-		-
 grafana			for historical data analysis	https/3000	-		-
 admin-mongo 		for mongodb administation 	http/8081	admin		admin
 redis-commander 	for redis administration  	http/8082	admin		admin
@@ -108,16 +212,19 @@ ifs			for connection to RTU's		-		-		-
 static_dataprovider   for static datapoints
 solver    for solving power flow in the network
 
+value initialisation is done on startup, and redis, influxdb and mongodb are persistent regarding data storage
+.env stores all keys, credentials and other project specific environment variables
 
-# Testing
-##ifs:
+
+## Testing
+### ifs:
 IFS can be run on localhost or in a container. no argument means localhost, an argument(such as "remote") will assume it is run from a container
 
-##test-gateway:
+### test-gateway:
 test_gateway can be used to simulate a gateway/RTU, and will open port 2404 to allow an IEC60870-5-104 connection from the IFS
 
 
-# Databases
+## Databases
 ##redis
   does not need a schema. it needs a password: yourpassword
 
@@ -140,7 +247,7 @@ test_gateway can be used to simulate a gateway/RTU, and will open port 2404 to a
     bucket_1 - for timeseries data from IFS
     bucket_2 - for event data
   
-# Solver
+## Solver
 
 The solver can provide information about the network. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. coupling(such as Transformers) are also seen as connections. connected wires are seen as one.
 
@@ -163,3 +270,11 @@ you add network information by adding a v_node_list:[] as a property. example:
       "input": "<datapoint>"
     }
   ]
+
+
+## static_dataprovider
+
+static:// for static values
+
+
+## grafana
