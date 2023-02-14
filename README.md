@@ -9,7 +9,8 @@ This is an open source project for a basic ems/dms scada system. It contains a H
 $ git clone https://github.com/robidev/open_scada_dms.git
 $ cd open_scada_dms
 $ sudo docker-compose build
-$ sudo docker-compose up```
+$ sudo docker-compose up
+```
 
 browse to [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
