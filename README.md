@@ -252,15 +252,13 @@ The project is a collection of containers, and tries to mainly rely on actively 
 
 Value initialisation is done on startup, and redis, influxdb and mongodb are persistent regarding data storage. `.env` stores all keys, credentials and other project specific environment variables
 
-## Testing
-
 ### IFS
 IFS can be run on localhost or in a container. no argument means localhost, an argument(such as "remote") will assume it is run from a container
 
 ### Test-gateway
 Test gateway can be used to simulate a gateway/RTU, and will open port 2404 to allow an IEC60870-5-104 connection from the IFS
 
-## Databases
+### Databases
 ##Redis
 Does not need a schema. it needs a password: (defined in .env)
 
@@ -285,7 +283,7 @@ Has 2 buckets:
 * bucket_1 - for timeseries data from dataproviders
 * bucket_2 - for event data
   
-## Solver
+### Solver
 The solver is used to modify a style(i.e color) of an element, based on the power-flow. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. Based on that model, each connection in the model provides a datapoint, that can be connected to a style of an element. Couplings (such as Transformers) are also seen as connections. Joined wires are seen as one large wire.
 
 You add network information by adding a v_node_list:[] as a property. example:
@@ -309,10 +307,10 @@ You add network information by adding a v_node_list:[] as a property. example:
   ]
 ```
 
-## Static dataprovider
+### Static dataprovider
 Static values can be created for svg by defining datapoints, and operating on them to set a value. it will be stored in the historic db, and the latest value is retrieved when needed for display. This is done by the static_dataprovider. The URI`static://` is used for static values. When written to via an operate command, a value is created if it did not yet exist and stored in influxdb and redis where it can be read back from. 
 
 
-## Grafana
+### Grafana
 Grafana is used for displaying graphs of datapoints, and analyzing historical data and trends from the influxdb time-series database.
 
