@@ -13,6 +13,8 @@ add read measurement value element for grafana
 
 pin all containers and git repos
 
+TEST!!!!!
+
 Publish!!!
 
 

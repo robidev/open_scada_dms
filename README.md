@@ -5,13 +5,14 @@ This is an open source project for a basic ems/dms scada system. It contains a H
 
 ## TL;DR; I just want to start it
 
-### prerequisites
+### Prerequisites
 The following version of docker and docker-compose were used and tested:
 * Docker version 20.10.12, build 20.10.12-0ubuntu4
 * docker-compose version 1.29.2, build unknown
 
-### preparation
+### Preparation
 A key needs to be generated before mongodb can start in replication mode. use `generate_key.sh` for this, and ensure ownership and permissions are set. Else the mongodb replication set will not initialise. Replication is in turn needed for journaling so changes can be detected by the IFS. 
+After that, the containers can be build and spun up using portainer or docker-compose.
 
 ```bash
 $ git clone https://github.com/robidev/open_scada_dms.git
