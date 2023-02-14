@@ -9,8 +9,7 @@ Main alarms include
 click to go to location, from alarm-window
 close-alarm comments
 
-
-finish documentation
+add read measurement value element for grafana
 
 pin all containers and git repos
 

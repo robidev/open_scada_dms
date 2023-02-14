@@ -5,9 +5,19 @@ This is an open source project for a basic ems/dms scada system. It contains a H
 
 ## TL;DR; I just want to start it
 
+### prerequisites
+The following version of docker and docker-compose were used and tested:
+* Docker version 20.10.12, build 20.10.12-0ubuntu4
+* docker-compose version 1.29.2, build unknown
+
+### preparation
+A key needs to be generated before mongodb can start in replication mode. use `generate_key.sh` for this, and ensure ownership and permissions are set. Else the mongodb replication set will not initialise. Replication is in turn needed for journaling so changes can be detected by the IFS. 
+
 ```bash
 $ git clone https://github.com/robidev/open_scada_dms.git
-$ cd open_scada_dms
+$ cd open_scada_dms/mongodb
+$ sudo ./generate_key.sh
+$ cd ..
 $ sudo docker-compose build
 $ sudo docker-compose up
 ```
@@ -18,10 +28,13 @@ It might be that due to initialisation of the databases, some containers fail du
 
 The system will start with an example configuration, and a simulated gateway. 
 
+It seems mongodb needs the 'mongodb' DNS entry to resolve to the mongodb server-ip, and app.py needs to adress the dns for replication to work. This will just work when run in docker. But if you want to run the client on the host machine, add `mongodb 127.0.0.1` to /etc/hosts.
+
+
 ![Alt text](diagram_test.drawio.png?raw=true "diagram of the scada and a test gateway")
 
 ### Start with an external RTU
-If you configure an additional dataprovider in the dataprovider tab by pressing 'add dataprovider', such as an RTU, and connect it to your system, it can connect to it.
+If you configure an additional dataprovider in the dataproviders tab by pressing 'add dataprovider', such as an RTU, and connect it to your system, it can connect to it.
 
 ![Alt text](diagram_rtu.drawio.png?raw=true "diagram of the scada and some rtu's")
 
@@ -32,7 +45,8 @@ If you wish a fully simulated environment, from physical process, to IED, to RTU
 $ git clone https://github.com/robidev/iec61850_open_server.git
 $ git clone https://github.com/robidev/iec61850_open_client.git
 $ git clone https://github.com/robidev/iec61850_open_gateway.git
-$ git clone https://github.com/robidev/open_scada_dms.git```
+$ git clone https://github.com/robidev/open_scada_dms.git
+```
 
 then you define `iec61850_open_gateway/gateway.yml`
 
@@ -81,28 +95,38 @@ When you start the simulation on the iec61850_open_client via the web-interface,
 # Usage
 
 ## Schema and gis
-Schema shows a schematic view of a power grid, with scroll and zoom capability. gis is data overlayed on a geographic map. Data is live updated, and the view is animated. 
+Schema shows a schematic view of a power grid, with scroll and zoom capability. gis is data overlayed on a geographic map. Data is live updated, and the view is animated. Clicking elements will reveal a sidepanel with name and description information, and more data if available.
 
 ### Control
-TODO
+if you click an operateable control in the map such as a square or circle, a side-panel will be shown with the control. The dialog will allow for actions to be executed such as select, cancel and operate. Additionally, if you click a datapoint reference, you get a window with a graph of historic values. Hovering over a datapoint-field will reveal the whole item, if the element is too small.
 
 ### Grafana for historic analysis
-TODO
+If you click a datapoint in the sidepanel, a new window will open with the values of that datapoint from the last seven days plottet in a graph. Time and display can be modified in the window. For further understanding of grafana and its power, it is advised to follow some courses;
+[](https://grafana.com/tutorials/grafana-fundamentals/)
+[](https://docs.influxdata.com/flux/v0.x/get-started/query-basics/)
 
 ## Alarms and events
 Alarms are shown in the alarms tab. alarm logic can be added, edited and removed via the edit button. Alarms can be open or closed, and acknowledged and unacknowledged. only closed alarms are hidden from the view, but can be seen in the event log. Events are static, and can be viewed and sorted. more advanced analysis can be done in grafana.
 
 ## Dataproviders
+All datapoints need a dataprovider. by default, there is a static dataprovider front-end that just allows a datapoint to be defined. after writing a value to a datapoint, it exists, and can be updated.
+
+The solver is another dataprovider front-end, but one that is not stored in the historical database, as it is only a visual aid.
+
+The IFS is a dataprovider front-end for actual data retrieved from external devices. currently only iec60870-5-104 is supported, but implementing support for modbus, iec61850, tase.2, dnp3 or iec60870-5-101 should be easy enough. After a new dataporvider front end is added, the dataproviders and datapoints it retrieves can be used immediatly by the scada.
 
 
 # Editing
 
 ### Editing schema and gis
-SVG objects can be imported or chosen from a library. basic shapes can be drawn and styled based on datapoint values. The editor bars allow objects to be added, edited and removed. 
-clicking an object allows to edit data regarding the coupling to datapoints.
+Open edit mode with pen button on the left side on the map. Clicking on an item will open the side pane with items to modify. A grid can be displayed as a helper to align items to. You can add and svg from a template or from the template database db by using the edit buttons. Svg items have a size and position, and can be animated. SVG objects can be imported or chosen from a library. basic shapes can be drawn and styled based on datapoint values. The editor bars allow objects to be added, edited and removed. Clicking an object allows to edit data regarding the coupling to datapoints.
+
+Some premade svg have been provided that include a datapoint and animation for open, close and loss of power(normal/fail). Each svg uses id's for defining the element the datapoint should connect to. The class provides information how the animation should be called.
+
+Polygon, polyline and squares/circles can also be added with the corresponding buttons. These items can be styled in the edit menu, or styled dynamically via datapoints.
 
 #### Overrrides
-Objects can have values overwritten during initialisation, using javascript entities. e.g. to overwrite svg tekst, use an array of dicts: 
+Overrides can be used to statically override some properties. This can be used for example to modify text, or change style/color of an svg. Objects can have values overwritten during initialisation, using javascript entities. e.g. to overwrite svg tekst, use an array of dicts: 
 ```javascript
 "overrides" : [
 	{ 
@@ -114,8 +138,10 @@ Objects can have values overwritten during initialisation, using javascript enti
 ```
 check the svg file for the ekement_id to overwrite.
 
+
+
 #### Svg datapoints
-Svg objects allow datapoints to be attached to control animations. based on the defined class in the svg element, certain animation id's are assumed. e.g. and XCBR and XSWI class element have an 'open' and 'close' animation. example:
+Svg objects allow datapoints to be attached to control animations. Based on the defined class in the svg element, certain animation id's are assumed. e.g. and XCBR and XSWI class element have an 'open' and 'close' animation. Datapoints are mapped to svg-identifiers as such: [datapoint]:[svg-id] e.g.:
 
 ```javascript
 "datapoints": [
@@ -135,7 +161,8 @@ The datapoint\_\* element is defined as the (parent) element_id of the element t
 
 All schema network elements in the example have a 'normal' and 'fail' mode animation. normal is the normal color. fail turns the item white.
 
-The operate dialog is triggered by making an svg element clickable, and calling the open_control(event, datapoint) function via onclick. the event is passed from the svg element. the datapoint should contain the element to operate on. the id of the svg element that is clicked is used as the associated status element. by convention it is easy to consider all interactive switches to contain 2 datapoint, e.g. swi_status and swi_oper. the oper element can be the same datapoint as the status. but with some protocols sich as iec60870-5-104 and modbus, it is common to write to a different point, than what reads the status.
+
+The operate dialog is triggered by making an svg element clickable, and calling the `open_control(event, datapoint)` javascript function via `onclick`. The event is passed from the svg element. The datapoint should contain the element to operate on. The id of the svg element that is clicked is used as the associated status element. by convention it is easy to consider all interactive switches to contain 2 datapoint, e.g. swi_status and swi_oper. the oper element can be the same datapoint as the status. but with some protocols sich as iec60870-5-104 and modbus, it is common to write to a different point, than what reads the status.
 
 #### Type and description
 By defining a `type`, we can hint to the scada-client what type of datapoint it is, so it can display the data more user friendly. current types are;
@@ -185,8 +212,10 @@ e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
 Each object can be viewed or hidden at a certain zoom level. use `z_min` and `z_max` to define the zoom level the object should be visible/hidden. the zoom level can be viewed in the url bar as part of the coordinate hash.
 
 ## Editing alarms
-
 TODO
+
+## Add dataprovider
+Dataproviders can be added, modified or removed. modifying the IP will always create a new dataprovider. the IFS and type defines the dataprovider front-end to be used
 
 
 # General architecture
@@ -224,12 +253,12 @@ The project is a collection of containers, and tries to mainly rely on actively 
 Value initialisation is done on startup, and redis, influxdb and mongodb are persistent regarding data storage. `.env` stores all keys, credentials and other project specific environment variables
 
 ## Testing
+
 ### IFS
 IFS can be run on localhost or in a container. no argument means localhost, an argument(such as "remote") will assume it is run from a container
 
 ### Test-gateway
 Test gateway can be used to simulate a gateway/RTU, and will open port 2404 to allow an IEC60870-5-104 connection from the IFS
-
 
 ## Databases
 ##Redis
@@ -257,8 +286,7 @@ Has 2 buckets:
 * bucket_2 - for event data
   
 ## Solver
-
-The solver can provide information about the network. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. coupling(such as Transformers) are also seen as connections. connected wires are seen as one.
+The solver is used to modify a style(i.e color) of an element, based on the power-flow. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. Based on that model, each connection in the model provides a datapoint, that can be connected to a style of an element. Couplings (such as Transformers) are also seen as connections. Joined wires are seen as one large wire.
 
 You add network information by adding a v_node_list:[] as a property. example:
 ```javascript
@@ -282,11 +310,9 @@ You add network information by adding a v_node_list:[] as a property. example:
 ```
 
 ## Static dataprovider
-
-The URI`static://` is used for static values. When written to via an operate command, a value is created if it did not yet exist and stored in influxdb and redis. The values are read on initialisation. 
+Static values can be created for svg by defining datapoints, and operating on them to set a value. it will be stored in the historic db, and the latest value is retrieved when needed for display. This is done by the static_dataprovider. The URI`static://` is used for static values. When written to via an operate command, a value is created if it did not yet exist and stored in influxdb and redis where it can be read back from. 
 
 
 ## Grafana
-
-Grafana is used
+Grafana is used for displaying graphs of datapoints, and analyzing historical data and trends from the influxdb time-series database.
 
