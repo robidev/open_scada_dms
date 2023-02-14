@@ -3,7 +3,7 @@ version: '3.8'
 services:
 # mongodb as persistent scada database for schema, gis and configuration data
   mongodb:
-    image: mongo
+    image: mongo:6.0.4
     container_name: mongodb
     hostname: mongodb
     networks:
@@ -30,7 +30,7 @@ services:
 
 # redis as real-time database for current values
   redis:
-    image: "redis:alpine"
+    image: "redis:alpine3.17"
     container_name: redis
     hostname: redis
     networks:
@@ -46,7 +46,7 @@ services:
 # timeseries db for value storage
 # 8086 is the managment interface, username: admin, password: administrator
   influxdb:
-    image: influxdb:latest
+    image: influxdb:2.6.1
     container_name: influxdb
     ports:
       - "8083:8083"
@@ -95,7 +95,7 @@ services:
 
 # timeseries dashboard, username: admin, password: admin
   grafana:
-    image: grafana/grafana-oss:latest
+    image: grafana/grafana-oss:9.3.6
     container_name: grafana
     hostname: grafana
     ports:
@@ -122,7 +122,7 @@ services:
 
 # manage containers, password: Administrator
   portainer:
-    image: portainer/portainer-ce
+    image: portainer/portainer-ce:2.17.0
     container_name: portainer
     hostname: portainer
     ports:
@@ -222,7 +222,7 @@ services:
 
 # management interface for mongodb, username: admin, password: admin
   admin-mongo:
-    image: mongo-express
+    image: mongo-express:1.0.0-alpha.4
     container_name: admin-mongo
     hostname: admin-mongo
     networks:

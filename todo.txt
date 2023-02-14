@@ -11,7 +11,7 @@ close-alarm comments
 
 add read measurement value element for grafana
 
-pin all containers and git repos
+pin all git repos (libiec60870)
 
 TEST!!!!!
 
