@@ -237,7 +237,9 @@ container|purpose|port|username|password
 portainer|for docker administration|https/9443|admin|Administrator
 scada_client|main application|http/5000|-|-
 grafana|for historical data analysis|https/3000|admin|admin
+mongodb|mongodb database|-|[.env]|[.env]
 admin-mongo|for mongodb administation|http/8081|admin|admin
+redis|redis real-time database|-|-|[.env]
 redis-commander|for redis administration|http/8082|admin|admin
 influxdb|for influxdb administration|https/8086|admin|administrator
 ifs|for connection to (external) RTUs|-|-|-
