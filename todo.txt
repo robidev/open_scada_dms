@@ -10,13 +10,9 @@ click to go to location, from alarm-window
 close-alarm comments
 
 
-documentation:
- - getting started
- - overview operations
- - document functions
- - schematic overview of whole system
-screenshot of scada-schema (with correct values)
+finish documentation
 
+pin all containers and git repos
 
 Publish!!!
 
