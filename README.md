@@ -20,9 +20,13 @@ $ git clone https://github.com/robidev/open_scada_dms.git
 $ cd open_scada_dms/mongodb
 $ sudo ./generate_key.sh
 $ cd ..
-$ sudo ./generate_new_env_secrets.sh # optional step for generating unique database secrets in .env from env.template
+$ sudo ./generate_new_env_secrets.sh # optional step for generating unique database secrets in .env from env.template and update grafana datasource config
 $ sudo docker-compose build
-$ sudo docker-compose up
+$ sudo docker-compose up -d redis influxdb mongodb portainer # first start the databases, and container management console and let them initialise themselves
+$ sleep 60 # wait about 60 seconds for mongodb to have been set up
+$ sudo docker-compose up -d mongoClientTemp # create the mongodb scada user when the database is done initialising
+$ sleep 5 # ensure the mongodb user has been generated
+$ sudo docker-compose up # start everything else; scada_client, grafana, static_dataprovider, solver, ifs, mongodb admin panel, redis admin panel
 ```
 
 browse to [http://127.0.0.1:5000](http://127.0.0.1:5000)
