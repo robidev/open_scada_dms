@@ -7,7 +7,7 @@ import logging
 import redis
 import libiec60870client
 
-from pymongo import MongoClient
+import pymongo
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -181,44 +181,50 @@ def mongo_watch_changes(stream):
 
 ################################################################
 if __name__ == '__main__':
-    logger = logging.getLogger('webserver')
+    logger = logging.getLogger('ifs')
     logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
         level=logging.INFO)
+
     logger.info("starting IFS")
 
-    mongodb_host = 'mongodb'
-    mongodb_username="aaa"
-    mongodb_password="bbb"
+    mongodb_host = "mongodb"
+    mongodb_db = "scada"
+    mongodb_username="dbuser"
+    mongodb_password="mongo_secret"
 
-    redis_host = 'localhost'
-    redis_password = "yourpassword"
+    redis_host = "localhost"
+    redis_password = "redis_secret"
 
     influxdb_host = "http://127.0.0.1:8086"
-    influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
+    influxdb_api = "influxdb_secret"
     influxdb_org = "scada"
 
     if len(sys.argv) > 1:
-        logger.info("remote host parameters (for inside docker-compose network)")
-        mongodb_host = os.environ['IFS_MONGODB_HOST']
-        mongodb_username=os.environ['IFS_MONGODB_USERNAME']
-        mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
+        if sys.argv[1] == "remote":
+            logger.info("remote host parameters (for inside docker-compose network)")
+            mongodb_host = os.environ['IFS_MONGODB_HOST']
+            mongodb_db = os.environ['IFS_MONGODB_DB']
+            mongodb_username=os.environ['IFS_MONGODB_USERNAME']
+            mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
 
-        redis_host = os.environ['IFS_REDIS_HOST']
-        redis_password = os.environ['IFS_REDIS_PASSWORD']
+            redis_host = os.environ['IFS_REDIS_HOST']
+            redis_password = os.environ['IFS_REDIS_PASSWORD']
 
-        influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
-        influxdb_api = os.environ['IFS_INFLUXDB_API']
-        influxdb_org = os.environ['IFS_INFLUXDB_ORG']
+            influxdb_host = os.environ['IFS_INFLUXDB_HOST'] #"http://influxdb:8086"
+            influxdb_api = os.environ['IFS_INFLUXDB_API']
+            influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
+
+    #connect redis, mongodb and influxdb
     try:
-        mongodb_client = MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
-        username=mongodb_username,
-        password=mongodb_password, 
-        authSource='scada', 
-        authMechanism='SCRAM-SHA-256', 
-        connect=True, 
-        connectTimeoutMS=2000,
-        socketTimeoutMS=2000)
+        mongodb_client = pymongo.MongoClient(host=mongodb_host, port=27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
+            username=mongodb_username,
+            password=mongodb_password, 
+            authSource=mongodb_db, 
+            authMechanism='SCRAM-SHA-256', 
+            connect=True, 
+            connectTimeoutMS=2000,
+            socketTimeoutMS=2000)
         logger.info("connected to mongodb")
         scada_database = mongodb_client.scada
     except Exception as e:
@@ -302,7 +308,7 @@ if __name__ == '__main__':
                             cancl:cancel_handler, 
                         })
                 else:
-                    logger.error("failed to connect RTU:"+rtu)
+                    logger.debug("failed to connect RTU:"+rtu)
                     # retry periodically, set status in redis
                     rt_db.set("connections:"+rtu+".active", b'0')
 

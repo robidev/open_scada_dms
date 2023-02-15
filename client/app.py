@@ -313,7 +313,7 @@ def get_page_data(data):
 def register_datapoint(point):
   global rt_db
   client = request.sid
-  logger.info("register datapoint:" + str(point) )
+  logger.debug("register datapoint:" + str(point) )
   if not client in clients: # create a new client list, if it did not yet exist
     clients[client] = []
   
@@ -345,9 +345,9 @@ def updateDataPoint(point, data_l):
 # register datapoint for polling/reporting
 @socketio.on('unregister_datapoint', namespace='')
 def unregister_datapoint(data):
-  logger.info("client:" + request.sid)
+  logger.debug("client:" + request.sid)
   client = request.sid
-  logger.info("unregister datapoint:" + str(data) )
+  logger.debug("unregister datapoint:" + str(data) )
   if not client in clients:
     clients[client] = []
 
@@ -367,8 +367,8 @@ def disconnect():
 # web UI: load datamodels for registered IED's
 @socketio.on('register_datapoint_finished', namespace='')
 def register_datapoint_finished(data):
-  logger.info(request.sid)
-  logger.info("register datapoint finished")
+  logger.debug(request.sid)
+  logger.debug("register datapoint finished")
 
 # load svg schema data
 def query_schema_svg(x1,y1,x2,y2,z):
@@ -649,7 +649,7 @@ def redis_dataUpdate(msg):
   key_u8 = key.decode("utf-8")[5:]
   data_u8 = data.decode("utf-8")
   
-  logger.info("update: %s %s", str(key_u8), str(data_u8))
+  logger.debug("update: %s %s", str(key_u8), str(data_u8))
   updateDataPoint( key_u8,data_u8) # emit to connected webclients
   update_alarms( key_u8,data_u8 )
 
@@ -934,13 +934,13 @@ def get_alarm_logic(clear=True):
 
   db = mongoclient.scada
   cursor = db.alarm_logic.find({})
-  logger.info("get_alarm_logic: got data from mongodb")
+  logger.debug("get_alarm_logic: got data from mongodb")
   # clear the list if desired
   if clear == True:
     alarm_list = {}
 
   for object in cursor:
-    logger.info("get_alarm_logic: parsing object")
+    logger.debug("get_alarm_logic: parsing object")
     datapoint = object["datapoint"]
     alert_id = object["alert_id"]
     # set alarm state in memory
@@ -961,7 +961,7 @@ def get_alarm_logic(clear=True):
     }
 
     alarm_list[datapoint]['alarm_logic_list'].append(alarm)
-  logger.info("get_alarm_logic: done")
+  logger.debug("get_alarm_logic: done")
 
 
 @socketio.on('get_alarm_rules', namespace='')
@@ -1138,7 +1138,7 @@ def refresh_datapoints(force_update=True):
 def worker():
   global poll_datapoint
   socketio.sleep(tick)
-  logger.info("polling thread started")
+  logger.debug("polling thread started")
   interval = 50
   interval_counter = 0
   while True:
@@ -1174,20 +1174,23 @@ if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     level=logging.INFO)
 
-  mongodb_host = 'mongodb'
-  mongodb_username="aaa"
-  mongodb_password="bbb"
+  mongodb_host = "mongodb"
+  mongodb_db = "scada"
+  mongodb_username="dbuser"
+  mongodb_password="mongo_secret"
 
-  redis_host = 'localhost'
-  redis_password = "yourpassword"
+  redis_host = "localhost"
+  redis_password = "redis_secret"
 
   influxdb_host = "http://127.0.0.1:8086"
-  influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
+  influxdb_api = "influxdb_secret"
   influxdb_org = "scada"
 
   if len(sys.argv) > 1:
+    if sys.argv[1] == "remote":
       logger.info("remote host parameters (for inside docker-compose network)")
       mongodb_host = os.environ['IFS_MONGODB_HOST']
+      mongodb_db = os.environ['IFS_MONGODB_DB']
       mongodb_username=os.environ['IFS_MONGODB_USERNAME']
       mongodb_password=os.environ['IFS_MONGODB_PASSWORD']
 
@@ -1199,10 +1202,11 @@ if __name__ == '__main__':
       influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
   try:
+    print("user:" + mongodb_username + ", pw:" + mongodb_password)
     mongoclient = pymongo.MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
       username=mongodb_username,
       password=mongodb_password, 
-      authSource='scada', 
+      authSource=mongodb_db, 
       authMechanism='SCRAM-SHA-256', 
       connect=True, 
       connectTimeoutMS=2000,
@@ -1260,7 +1264,6 @@ if __name__ == '__main__':
   get_value = influxdb_get_value # mongodb_get_value
 
   logger.info("starting webserver")
-  #publish_event("system","webserver ready","ok")
   socketio.run(app,host="0.0.0.0")
 
 

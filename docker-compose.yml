@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     environment:
-      MONGO_INITDB_DATABASE: scada
+      MONGO_INITDB_DATABASE: ${MONGO_USER_DB}
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET_NAME} # replicaset is needed for changestreams
@@ -22,10 +22,27 @@ services:
       - ./mongodb/mongodb.key:/data/mongodb.key
       - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
-      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
+      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
       interval: 10s
-      start_period: 30s
+      start_period: 40s
     command: ["--keyFile", "/data/mongodb.key", "--replSet", "${MONGO_REPLICA_SET_NAME}", "--bind_ip_all"]
+
+
+  mongoClientTemp:
+    image: mongo:6.0.4
+    container_name: mongoClientTemp
+    networks:
+      scadanetwork:
+        ipv4_address: 10.2.0.240
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_USER_DB: ${MONGO_USER_DB}
+      MONGO_USER_USERNAME: ${MONGO_USER_USERNAME}
+      MONGO_USER_PASSWORD: ${MONGO_USER_PASSWORD}
+    command: mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --host mongodb --eval  "db.getSiblingDB('${MONGO_USER_DB}').createUser({user:'${MONGO_USER_USERNAME}', pwd:'${MONGO_USER_PASSWORD}', roles:[{role:'readWrite',db:'${MONGO_USER_DB}'}]});"
+    depends_on:
+      - mongodb
 
 
 # redis as real-time database for current values
@@ -80,6 +97,7 @@ services:
       - IFS_REDIS_HOST=redis
       - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
       - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_DB=${MONGO_USER_DB}
       - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
       - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
       - IFS_INFLUXDB_HOST=http://influxdb:8086
@@ -172,8 +190,12 @@ services:
       - IFS_REDIS_HOST=redis
       - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
       - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_DB=${MONGO_USER_DB}
       - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
       - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
+      - IFS_INFLUXDB_HOST=http://influxdb:8086
+      - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+      - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
       - mongodb
       - influxdb
@@ -195,6 +217,7 @@ services:
       - IFS_REDIS_HOST=redis
       - IFS_REDIS_PASSWORD=${REDIS_PASSWORD}
       - IFS_MONGODB_HOST=mongodb
+      - IFS_MONGODB_DB=${MONGO_USER_DB}
       - IFS_MONGODB_USERNAME=${MONGO_USER_USERNAME}
       - IFS_MONGODB_PASSWORD=${MONGO_USER_PASSWORD}
       - IFS_INFLUXDB_HOST=http://influxdb:8086

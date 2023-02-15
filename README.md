@@ -11,14 +11,16 @@ The following version of docker and docker-compose were used and tested:
 * docker-compose version 1.29.2, build unknown
 
 ### Preparation
-A key needs to be generated before mongodb can start in replication mode. use `generate_key.sh` for this, and ensure ownership and permissions are set. Else the mongodb replication set will not initialise. Replication is in turn needed for journaling so changes can be detected by the IFS. 
+A key needs to be generated before mongodb can start in replication mode. use `generate_key.sh` for this, and ensure ownership and permissions are set. Else the mongodb replication set will not initialise. Replication is in turn needed for journaling so changes can be detected by the IFS. Secondly, generate_new_env_secrets.sh should be run to generate fresh secrets for the databases.
 After that, the containers can be build and spun up using portainer or docker-compose.
 
+### Commands to run
 ```bash
 $ git clone https://github.com/robidev/open_scada_dms.git
 $ cd open_scada_dms/mongodb
 $ sudo ./generate_key.sh
 $ cd ..
+$ sudo ./generate_new_env_secrets.sh # optional step for generating unique database secrets in .env from env.template
 $ sudo docker-compose build
 $ sudo docker-compose up
 ```
@@ -28,9 +30,6 @@ browse to [http://127.0.0.1:5000](http://127.0.0.1:5000)
 It might be that due to initialisation of the databases, some containers fail due to connection timeouts. Have a look in portainer (username: admin, password: administrator), and restart the stopped containers. Additionally, you can attempt another `$ sudo docker-compose up`
 
 The system will start with an example configuration, and a simulated gateway. 
-
-It seems mongodb needs the 'mongodb' DNS entry to resolve to the mongodb server-ip, and app.py needs to adress the dns for replication to work. This will just work when run in docker. But if you want to run the client on the host machine, add `mongodb 127.0.0.1` to /etc/hosts.
-
 
 ![Alt text](diagram_test.drawio.png?raw=true "diagram of the scada and a test gateway")
 
@@ -262,10 +261,10 @@ IFS can be run on localhost or in a container. no argument means localhost, an a
 Test gateway can be used to simulate a gateway/RTU, and will open port 2404 to allow an IEC60870-5-104 connection from the IFS
 
 ### Databases
-##Redis
+## Redis
 Does not need a schema. it needs a password: (defined in .env)
 
-##Mongodb 
+## Mongodb 
   username=(defined in .env), password=(defined in .env), database=scada
   has multiple schemas:
   ```javascript
@@ -279,8 +278,11 @@ Does not need a schema. it needs a password: (defined in .env)
     db.createCollection("gis_objects");			 // geo and svg objects for gis map
 ```
 
+It seems mongodb needs the 'mongodb' DNS entry to resolve to the mongodb server-ip, and app.py needs to adress the dns for replication to work. This will just work when run in docker. But if you want to run the client on the host machine, add `mongodb 127.0.0.1` to /etc/hosts.
 
-##Influxdb 
+`mongoClientTemp` is for adding the user to the database, based on the .env defined secrets. it should be run once before connecting with the webinterface/ifs/solver
+
+## Influxdb 
 Token: (defined in `.env`)
 Has 2 buckets:
 * bucket_1 - for timeseries data from dataproviders

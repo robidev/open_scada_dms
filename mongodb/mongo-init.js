@@ -1,15 +1,3 @@
-db.createUser(
-        {
-            user: "aaa",
-            pwd: "bbb",
-            roles: [
-                {
-                    role: "readWrite",
-                    db: "scada"
-                }
-            ]
-        }
-);
 db = new Mongo().getDB("scada");
 
 db.createCollection("dataprovider_list");

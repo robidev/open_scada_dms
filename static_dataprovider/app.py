@@ -95,10 +95,10 @@ if __name__ == '__main__':
     logger.info("starting static_dataprovider")
 
     redis_host = 'localhost'
-    redis_password = "yourpassword"
+    redis_password = "redis_secret"
 
     influxdb_host = "http://127.0.0.1:8086"
-    influxdb_api = "iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w=="
+    influxdb_api = "influxdb_secret"
     influxdb_org = "scada"
 
     export_file = "./saved_static_datapoints.pkl"

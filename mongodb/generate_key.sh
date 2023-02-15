@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 KEY_NAME=mongodb.key
 
