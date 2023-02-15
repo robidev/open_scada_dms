@@ -12,4 +12,4 @@ datasources:
       defaultBucket: bucket_1
       tlsSkipVerify: true
     secureJsonData:
-      token: iRiuItNtMZYMLQjbMhWYjPReKOe2PbIWzHVl98GHCwBN1WpVwYK_aKmRh99qvRTPg3pFc5CW97Y1QXEbmdtp0w==
+      token: influxdb_secret
