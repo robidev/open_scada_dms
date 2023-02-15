@@ -1202,7 +1202,6 @@ if __name__ == '__main__':
       influxdb_org = os.environ['IFS_INFLUXDB_ORG']
 
   try:
-    print("user:" + mongodb_username + ", pw:" + mongodb_password)
     mongoclient = pymongo.MongoClient(mongodb_host, 27017,  #'localhost', 27017, <- added mongodb to localhost for resolution of the replicaset, else there is a coonect error
       username=mongodb_username,
       password=mongodb_password, 
