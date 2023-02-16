@@ -9,19 +9,13 @@ Main alarms include
 click to go to location, from alarm-window
 close-alarm comments
 
-add read measurement value element for grafana
-
-pin all git repos (libiec60870)
-
-TEST!!!!!
-
-Publish!!!
-
 
 -- future --
+main client authentication
+support restricted areas of responsiblity/operation
 
 oper dialog status msg after succes/failed oper
-add test-gateway button status
+
 editable layer/item order? map.getPane('labels').style.zIndex = 650???
 
 script fire on alarm logic
@@ -34,8 +28,8 @@ script fire on alarm logic
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)
-iccp-connector?
 
+iccp-connector?
 iec61850 ifs?
 modbus ifs?
 tase.2 ifs?

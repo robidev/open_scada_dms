@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="vector-effect: non-scaling-stroke;">
   <g id="vt" fill="white" stroke="none">
     <title>VTR</title>
-    <text id="voltage_value" class="MEAS" data-text="Voltage: {value} V" fill="inherit" stroke="inherit" x="0" y="10" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal">--- Voltage: {value} V ---</text>
+    <text id="voltage_value" class="MEAS" data-text="Voltage: {value} V" fill="inherit" stroke="inherit" x="0" y="10" font-size="12" font-family="Helvetica, Arial, sans-serif" text-anchor="start" xml:space="preserve" font-weight="normal" font-style="normal" onclick="open_control(evt,'voltage_value')">--- Voltage: {value} V ---</text>
   </g>
 </svg>

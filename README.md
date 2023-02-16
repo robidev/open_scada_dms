@@ -232,7 +232,7 @@ The main components and its ports are listed as follows;
 
 ![Alt text](diagram_detail.drawio.png?raw=true "main open scada dms components")
 
-## Inner workings
+# Inner workings
 The following containers are included:
 
 container|purpose|port|username|password
@@ -249,8 +249,10 @@ ifs|for connection to (external) RTUs|-|-|-
 static_dataprovider|for static datapoints|-|-|-
 solver|for solving power flow in the network|-|-|-
 
-
+## Primary services
 Portainer is the container orchestration
+
+The frontend is scada_client, a python/flask/socketio based web interface using leaflet and tabulator for the gui. Graphs are provided by Grafana.
 
 The backend is powered by mongodb for persistence, influxdb for time-series and historic data, and redis for the real-time database. 
 
@@ -258,17 +260,26 @@ The project is a collection of containers, and tries to mainly rely on actively 
 
 Value initialisation is done on startup, and redis, influxdb and mongodb are persistent regarding data storage. `.env` stores all keys, credentials and other project specific environment variables
 
+### Grafana
+Grafana is used for displaying graphs of datapoints, and analyzing historical data and trends from the influxdb time-series database.
+
 ### IFS
+This is a service to connect to RTU's based on a table in mongodb, and retrieve values, and perform operations on them.
+
 IFS can be run on localhost or in a container. no argument means localhost, an argument(such as "remote") will assume it is run from a container
+
+Please note it uses the (awesome!) libiec60870 library from MZ-automation, that contains the GPLv3 license.
 
 ### Test-gateway
 Test gateway can be used to simulate a gateway/RTU, and will open port 2404 to allow an IEC60870-5-104 connection from the IFS
 
-### Databases
-## Redis
+Please note it uses the (awesome!) libiec60870 library from MZ-automation, that contains the GPLv3 license.
+
+## Databases
+### Redis
 Does not need a schema. it needs a password: (defined in .env)
 
-## Mongodb 
+### Mongodb 
   username=(defined in .env), password=(defined in .env), database=scada
   has multiple schemas:
   ```javascript
@@ -286,12 +297,13 @@ It seems mongodb needs the 'mongodb' DNS entry to resolve to the mongodb server-
 
 `mongoClientTemp` is for adding the user to the database, based on the .env defined secrets. it should be run once before connecting with the webinterface/ifs/solver
 
-## Influxdb 
+### Influxdb 
 Token: (defined in `.env`)
 Has 2 buckets:
 * bucket_1 - for timeseries data from dataproviders
 * bucket_2 - for event data
-  
+
+## Support services
 ### Solver
 The solver is used to modify a style(i.e color) of an element, based on the power-flow. By adding network information to the elements in the schema, it will resolve the unknown elements based on simple flow logic and the network topology. E.g. if a known voltage is on a wire, and a switch is connected, when the switch is closed, the other connected wire is set to the same voltage. Based on that model, each connection in the model provides a datapoint, that can be connected to a style of an element. Couplings (such as Transformers) are also seen as connections. Joined wires are seen as one large wire.
 
@@ -318,8 +330,4 @@ You add network information by adding a v_node_list:[] as a property. example:
 
 ### Static dataprovider
 Static values can be created for svg by defining datapoints, and operating on them to set a value. it will be stored in the historic db, and the latest value is retrieved when needed for display. This is done by the static_dataprovider. The URI`static://` is used for static values. When written to via an operate command, a value is created if it did not yet exist and stored in influxdb and redis where it can be read back from. 
-
-
-### Grafana
-Grafana is used for displaying graphs of datapoints, and analyzing historical data and trends from the influxdb time-series database.
 
