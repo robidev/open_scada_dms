@@ -2,12 +2,13 @@ add some alarm logic
  - alarm on circuit-breaker open (substation 1)
  - alarm on undervoltage/overvoltage (substation 1 and 2, voltage measurements)
 Main alarms include 
- - Analog limit violation alarms, 
- - Point status change alarms
- - Control actions
- - communication alarms, dataprovider or Front End
-click to go to location, from alarm-window
-close-alarm comments
+ - Analog limit violation alarms - ok
+ - Point status change alarms - ok
+ - communication alarms, dataprovider or Front End - ok
+ - Control actions (event only) - todo
+
+**click to go to location, from alarm-window
+**close-alarm comments
 
 
 -- future --
@@ -25,6 +26,7 @@ script fire on alarm logic
  - trigger other events?
  - modify scada views?
  - email/sms?
+alarm grouping?
 
 scaling values in IFS (before storage)
 scaling values in GUI (only on display)

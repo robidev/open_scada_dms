@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 import os, sys
+import threading
+import string
+import logging
+import time
+import uuid
+import json
+from datetime import datetime
+
 from flask import Flask, render_template, session, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
+
+import pymongo
+from bson import ObjectId
+
+import redis
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.bucket_api import BucketsApi
-
-import string
-import logging
-
-import pymongo
-from bson import ObjectId
-import redis
-import uuid
-import json
 
 
 async_mode = None #"threading" #"eventlet" None
@@ -27,6 +31,7 @@ rt_pubsub = None
 redis_event_thread = None
 rt_db = None
 get_value = None
+ifs_status = {}
 
 poll_datapoint = {}
 alarm_list = {}
@@ -38,6 +43,8 @@ app.secret_key = 'BAD_SECRET_KEY'
 #influxdb buckets
 value_bucket = "bucket_1"
 event_bucket = "bucket_2"
+
+STATUS_POLL_INTERVAL = 2 # 2 seconds
 
 socketio = SocketIO(app, async_mode=async_mode)
 
@@ -69,6 +76,7 @@ def add_listener(point):
   #  return "rt"
 
   #else subscribe for db poll(keep reference count)
+  global poll_datapoint
   if not point in poll_datapoint:
     poll_datapoint[point] = {}
     poll_datapoint[point]['refCount'] = 0
@@ -87,6 +95,7 @@ def remove_listener(point):
   #  return "rt"
 
   #else unsubscribe for db poll(keep reference count)
+  global poll_datapoint
   if point in poll_datapoint:
     if poll_datapoint[point]['refCount'] > 0:
       poll_datapoint[point]['refCount'] -= 1
@@ -312,6 +321,8 @@ def get_page_data(data):
 @socketio.on('register_datapoint', namespace='')
 def register_datapoint(point):
   global rt_db
+  global poll_datapoint
+  global clients
   client = request.sid
   logger.debug("register datapoint:" + str(point) )
   if not client in clients: # create a new client list, if it did not yet exist
@@ -334,6 +345,7 @@ def register_datapoint(point):
 
 
 def updateDataPoint(point, data_l):
+  global clients
   recepients = []
   # send data to all subscribed clients
   for client in clients:
@@ -627,12 +639,48 @@ def publish_operation(data):
   if data['operation'] == 'select':
     logger.info("select:" + data['element'] + ">" + data['value'])
     rt_db.publish("select:" + data['element'],data['value'])
+    publish_event(data['element'],"control:select",data['value'])
   if data['operation'] == 'operate':
     logger.info("operate:" + data['element'] + ">" + data['value'])
     rt_db.publish("operate:" + data['element'],data['value'])
+    publish_event(data['element'],"control:operate",data['value'])
   if data['operation'] == 'cancel':  
     logger.info("cancel:" + data['element'])
     rt_db.publish("cancel:" + data['element'],"cancel")
+    publish_event(data['element'],"control:cancel","None")
+
+
+### front end status check
+def get_ifs_status(ifs):
+  global rt_db
+  rt_db.publish("ifs_status:",ifs) # send a status request
+
+
+def ifs_status_handler(message): # receive a status answer
+  global ifs_status
+  ifs = message['data'].decode("utf-8")
+  old_status =  False
+  if ifs in ifs_status:
+    old_status =  ifs_status[ifs]['online']
+
+  ifs_status[ifs] = {'lastseen': time.time(),'online': True}
+  if ifs in ifs_status and old_status == False:
+    publish_event(ifs,"status","online")
+  
+
+# call this on interval
+def ifs_check_online(interval):
+  global ifs_status
+  while True:
+    temp_ifs_status = ifs_status.copy() # shallow copy in case list changes size during operation
+    for ifs in temp_ifs_status:
+      if time.time() > (temp_ifs_status[ifs]['lastseen'] + (interval * 4)) and temp_ifs_status[ifs]['online'] == True: # if more than 2x poll-time, set offline
+        # set IFS status to offline
+        temp_ifs_status[ifs]['online'] = False
+        publish_event(ifs,"status","offline")
+    time.sleep(interval)
+
+
 
 
 #######################################################################
@@ -726,20 +774,21 @@ def trigger_alarm(key, alarm, value):
   # check if event should only be send on state change (enables polling), or every check fires event
   alert_id = alarm['alert_id']
 
+  update = False
   if alarm['retrigger'] == True:
     update = True
-  else:
-    update = False
 
   if "set_alarm" in alarm['action']:
     # if alarm can be retriggered, or if not, only trigger if state changes
-    if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != True):
+    if (alarm['retrigger'] == True or 
+        not alert_id in alarm_list[key] or
+        (alarm['retrigger'] == False and alarm_list[key][alert_id] != True)):
       logger.debug("set alarm: " + key)
       alarm_list[key][alert_id] = True
       update = True
       # add/update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = "2022/02/10 - 10:00:00"
+      time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       myquery = {'datapoint': key, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -753,17 +802,19 @@ def trigger_alarm(key, alarm, value):
             "open":         True
           }
       db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
-      get_alarm_table(None)
+      update_alarm_table(None)
 
 
   if "reset_alarm"in alarm['action']:
-    if alarm['retrigger'] == True or (alarm['retrigger'] == False and alarm_list[key][alert_id] != False):
+    if (alarm['retrigger'] == True or 
+        not alert_id in alarm_list[key] or
+        (alarm['retrigger'] == False and alarm_list[key][alert_id] != False)):
       logger.debug("reset alarm: " + key)
       alarm_list[key][alert_id] = False
       update = True
       # update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = "2022/02/10 - 10:00:00"
+      time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       myquery = {'datapoint': key, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -775,7 +826,7 @@ def trigger_alarm(key, alarm, value):
             "alarm":        False
           }
       db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
-      get_alarm_table(None)
+      update_alarm_table(None)
 
 
   if "event" in alarm['action'] and update == True:
@@ -851,42 +902,33 @@ def update_alarm_state(dataitem):
     return
 
   db = mongoclient.scada
-  myquery = {'datapoint': datapoint, "alert_id": alert_id } 
+  this_alarm = {'datapoint': datapoint, "alert_id": alert_id } 
   newvalues =  {
         "alarm": alarm,
         "acknowledged": ack,
         "open": open
       }
   # get old values
-  cursor = db.alarm_table.find(myquery)
+  cursor = db.alarm_table.find(this_alarm)
   for object in cursor:
     oldack = object['acknowledged']
     oldopen = object['open']
   # set net values
-  db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=False)
+  db.alarm_table.update_one(this_alarm, {"$set": newvalues}, upsert=False)
   logger.debug("++update_alarm_state")
   # check if event needs to be made
   for alarm_item in  alarm_list[datapoint]['alarm_logic_list']:
     if alarm_item['alert_id'] == alert_id:
       logger.debug("-- ack:" + str(ack) + " open:" + str(open) + " alarm:" + str(alarm))
       if ack != oldack:
-        if ack  == True:
-          publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",True)
-        else:
-          publish_event(json.dumps(alarm_item['element']),"alarm unacknowledged",False)
+        publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",ack)
       if open != oldopen:
-        if open == True:
-          publish_event(json.dumps(alarm_item['element']),"alarm set open",True)
-        else:
-          publish_event(json.dumps(alarm_item['element']),"alarm set closed",False)
+        publish_event(json.dumps(alarm_item['element']),"alarm open",open)
       if alarm != alarm_list[datapoint][alert_id]:
-        if alarm == True:
-          publish_event(json.dumps(alarm_item['element']),"alarm manually raised",True)
-        else:
-          publish_event(json.dumps(alarm_item['element']),"alarm manually lowered",False)
+        publish_event(json.dumps(alarm_item['element']),"alarm manually raised",alarm)
       break
 
-  get_alarm_table(None)
+  update_alarm_table(None)
 
 
 
@@ -894,7 +936,7 @@ def update_alarm_state(dataitem):
 # io with frontend
 
 @socketio.on('get_alarm_table', namespace='')
-def get_alarm_table(data):
+def update_alarm_table(data):
   global alarm_list
   global mongoclient
 
@@ -1000,18 +1042,16 @@ def save_alarm_rules(data):
 
 ### Event logic ###
 def publish_event(element,msg,value):
-  # IFS: dataprovider connect/discoonect (with additional values for substsation/bay info if available)
-  # main: db's up/down, client connect/disconnect(not page refresh, but new session cookie)
-  #   operate/select/cancel command and result (of action, and actual process)
-  #   alarms trigger
   el = json.dumps(element)
-  # logger.debug("-- element: %s, message: %s, value: %s" % (el, msg, str(value)))
+
   # add event item @ influxdb
   global influxdb_write_api
-  p = Point("event").tag("element", el).field("message", msg).field("value", str(value))
+  current_time = datetime.utcnow()
+  p = Point("event").tag("element", el).time(int(current_time.timestamp()*1000000),write_precision='us').field("message", msg).field("value", str(value))
   influxdb_write_api.write(bucket=event_bucket, record=p)
-  socketio.emit('add_event_to_table', {'element':element, 'message':msg, 'value':value})
-
+  socketio.emit('add_event_to_table', {"time":current_time.strftime("%Y-%m-%d %H:%M:%S.%f+00:00"), 'element':'"'+element+'"', 'msg':msg, 'value':value})
+  # re-eval if we need to trigger an alarm-rule. this can become recursive, but due to the "." concatination, we prevent an endless loop in the logic
+  update_alarms( element + "." + msg, value )
 
 @socketio.on('get_event_table', namespace='')
 def get_event_table(param):
@@ -1115,8 +1155,10 @@ def del_dataprovider(uuid):
 
 def refresh_datapoints(force_update=True):
   global rt_db
-  for point in poll_datapoint:
-    if poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
+  global poll_datapoint
+  new_poll_datapoint = poll_datapoint.copy() # make shallow copy to account for changes during iteration
+  for point in new_poll_datapoint:
+    if new_poll_datapoint[point]['refCount'] > 0: # check if currently a client wants this datapoint updated
 
       value = rt_db.get("data:" + point )
       if value != None:
@@ -1128,15 +1170,14 @@ def refresh_datapoints(force_update=True):
         value = 'UNKNOWN'
 
       # check if data changed since last check
-      oldValue = poll_datapoint[point]['value']
+      oldValue = new_poll_datapoint[point]['value']
       if oldValue != value or force_update == True: # update value, only if value was changed, or if update is forced)
-        poll_datapoint[point]['value'] = value
+        poll_datapoint[point]['value'] = value # update the actual dict
         updateDataPoint(point,value) # emit to connected webclients  
 
 
 #background thread
 def worker():
-  global poll_datapoint
   socketio.sleep(tick)
   logger.debug("polling thread started")
   interval = 50
@@ -1226,6 +1267,8 @@ if __name__ == '__main__':
     rt_pubsub = rt_db.pubsub()
     # TODO: should all keys be subscribed separately, and only when used, or filtered in python
     rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
+    rt_pubsub.subscribe(**{ "ifs_status_online": ifs_status_handler })
+    
     redis_event_thread = socketio.start_background_task(target=redis_events)
     logger.info("connected to redis")
   except:
@@ -1261,6 +1304,9 @@ if __name__ == '__main__':
 
   # get values
   get_value = influxdb_get_value # mongodb_get_value
+
+  status_poll_thread = threading.Thread(target=ifs_check_online, args=(STATUS_POLL_INTERVAL,))
+  status_poll_thread.start()
 
   logger.info("starting webserver")
   socketio.run(app,host="0.0.0.0")

@@ -54,6 +54,8 @@ def getAsduName(datatype):
         return "BitstringCommand" #                     C_BO_NA_1; 51 (bits, max 32 bits )
     if datatype == 107:
         return "TestCommand_CP56Time2a" #	            C_TS_TA_1; 107
+    if datatype == 256:
+        return "status" #	                            RTU status type, not mapped in IEC60870 standard, used for device status datapoint in IFS
 
 datatypes_match = {
     "SinglePointCommand": "SinglePointInformation",
@@ -90,10 +92,14 @@ def callback(tupl, data):
     global rt_db
     logger.debug("RTU:" + tupl + " - update:" + str(data))
     for key, value in data.items():
-        rt_db.set("data:iec60870-5-104://"+tupl+"/"+getAsduName(value['ASDU'])+"/"+str(key), int(value['value']))# {rtu, type, ioa}{value, timestamp, quality}
-        # push timeseries data to time series db 
-        update_datapoint(tupl, key, value['ASDU'], value['value'])
+        set_data(tupl,value['ASDU'],key, value['value'])
+
         
+def set_data(rtu,ASDU,key,value):
+    # push to realtime db
+    rt_db.set("data:iec60870-5-104://"+rtu+"/"+getAsduName(ASDU)+"/"+str(key), int(value))# {rtu, type, ioa}{value, timestamp, quality}
+    # push timeseries data to time series db 
+    update_datapoint(rtu, key, ASDU, value)
 
 
 def operate_handler(message):
@@ -115,7 +121,8 @@ def cancel_handler(message):
 
 
 def ifs_status(message):
-    logger.info("ifs:"+str(message))
+    if message['data'].decode("utf-8") == IFS_NAME:
+        logger.info("status ifs:"+str(message))
 
 
 def get_RTU(rtu):
@@ -266,11 +273,14 @@ if __name__ == '__main__':
     #reset all RTU's
     for rtu in rtu_list:
         rt_db.set("connections:"+rtu+".active", b'0')
+        set_data(rtu,256,1, 0) # set status datapoint to offline, if we initialise the RTU
 
     logger.info("init done: %s" % str(rtu_list))
 
     while True:
         time.sleep(1)
+        # watchdog signal
+        rt_db.publish("ifs_status_online",IFS_NAME)
         # watch datapoint table in mongo for additions/removals (add/remove RTU on update)
         if mongo_watch_changes(stream) == True:
             new_rtu_list = get_RTU_list() 
@@ -278,6 +288,7 @@ if __name__ == '__main__':
             remove = set(list(rtu_list)) - set(list(new_rtu_list))
             for rem_rtu in remove:
                 logger.info("removing RTU:" + rem_rtu)
+                set_data(rem_rtu,256,1, 0) # set status datapoint to offline, if we remove the RTU
                 remove_RTU(rem_rtu)
                 rem_oper = "operate:%s" % ("iec60870-5-104://" + rem_rtu + "/*")
                 rem_sel = "select:%s" % ("iec60870-5-104://" + rem_rtu + "/*")
@@ -294,10 +305,12 @@ if __name__ == '__main__':
                 # perform periodic testframe to check connection of all RTU, set status in redis
                 if testframe(rtu) == -1:
                     rt_db.set("connections:"+rtu+".active", b'0') # reset status if testframe returns -1
+                    set_data(rtu,256,1, 0) # set status datapoint to offline, if we were connected, and now are not
             else:
-                if get_RTU(rtu) == 0: # register and connect RTU's, set status in redis
+                if get_RTU(rtu) == 0: # register and connect RTU's, set status in redis (0 is ok, -1 is fail)
                     logger.info("RTU connected:"+rtu)
                     rt_db.set('connections:'+rtu+".active", b'1')
+                    set_data(rtu,256,1, 1) # set status datapoint to online, if we were not connected, and now are
                     # register this IFS with RTU
                     oper = "operate:%s" % ("iec60870-5-104://" + rtu + "/*")
                     sel = "select:%s" % ("iec60870-5-104://" + rtu + "/*")
