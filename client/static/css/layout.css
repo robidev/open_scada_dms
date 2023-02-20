@@ -307,9 +307,15 @@ div.tabcontents {
 }
 
 .aPop-close {
-    padding-right: 10px;
+    padding-right: 8px;
     float: right;
     cursor: pointer;
+    opacity: 0.2;
+    filter: alpha(opacity=20);
+}
+.aPop-close:hover {
+  opacity: 0.8;
+  filter: alpha(opacity=80);
 }
 
 .aPop-content {
@@ -334,7 +340,52 @@ div.tabcontents {
 }
 
 
-@keyframes blinker {
+@keyframes blinker_info {
+  0% {
+    background-color: rgb(0, 0, 255);
+  }
+  49% {
+    background-color: rgb(0, 0, 255);
+  }
+  50% {
+    background-color: rgb(0, 0, 0);
+  }
+  100% {
+    background-color: rgb(0, 0, 0);
+  }
+}
+
+@keyframes blinker_low {
+  0% {
+    background-color: rgb(125, 125, 125);
+  }
+  49% {
+    background-color: rgb(125, 125, 125);
+  }
+  50% {
+    background-color: rgb(0, 0, 0);
+  }
+  100% {
+    background-color: rgb(0, 0, 0);
+  }
+}
+
+@keyframes blinker_medium {
+  0% {
+    background-color: rgb(255, 0, 195);
+  }
+  49% {
+    background-color: rgb(255, 0, 195);
+  }
+  50% {
+    background-color: rgb(0, 0, 0);
+  }
+  100% {
+    background-color: rgb(0, 0, 0);
+  }
+}
+
+@keyframes blinker_high {
   0% {
     background-color: rgb(255, 0, 0);
   }
@@ -348,6 +399,23 @@ div.tabcontents {
     background-color: rgb(0, 0, 0);
   }
 }
+
+@keyframes blinker_critical {
+  0% {
+    background-color: rgb(179, 0, 255);
+  }
+  49% {
+    background-color: rgb(179, 0, 255);
+  }
+  50% {
+    background-color: rgb(0, 0, 0);
+  }
+  100% {
+    background-color: rgb(0, 0, 0);
+  }
+}
+
+
 
 .modal-fader {
   display: none;

@@ -34,7 +34,8 @@ get_value = None
 ifs_status = {}
 
 poll_datapoint = {}
-alarm_list = {}
+alarm_rules_list = {}
+alarm_table_mem = {}
 
 #webserver
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -252,24 +253,6 @@ def remove_from_gis_database(uuid):
   db = mongoclient.scada
   db.gis_objects.delete_one({'_id':ObjectId(uuid[1:])})
 
-  #TEST! TODO remove
-  #new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
-  #  alert_id = 1, # alert id within this datapoint
-  #  logic = ">", # logic to apply to value
-  #  value_1 = 89,value_2 = 0, # test values to check logic and value with
-  #  actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
-  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
-  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
-  #  )
-  #new_alarm_check("iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101",  
-  #  alert_id = 2, # alert id within this datapoint
-  #  logic = "<", # logic to apply to value
-  #  value_1 = 90,value_2 = 0, # test values to check logic and value with
-  #  actions = {"reset_alarm":"OverVoltage"}, # actions to perform on match
-  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
-  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
-  #  )
-
 
 ### templates ###
 
@@ -388,7 +371,7 @@ def query_schema_svg(x1,y1,x2,y2,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
+  # perform a query, based on a x/y box, and z-depth
   # return list of svg items that fall within that box, thus should be drawn
   db = mongoclient.scada
 
@@ -474,7 +457,7 @@ def get_objects_for_schema(data):
   
   in_view_geojson_schema = query_schema_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
   geojson = [{"type": "FeatureCollection", "features": in_view_geojson_schema }]
-  socketio.emit("geojson_object_add_to_map",geojson )
+  socketio.emit("geojson_object_add_to_map_schema",geojson )
   
   
 
@@ -484,7 +467,7 @@ def query_schema_geojson(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, FUTURE TODO:  and z-depth
+  # perform a query, based on a x/y box, and z-depth
   # return list of svg items that (partly) fall within that box, thus should be drawn
   db = mongoclient.scada
   cursor = db.schema_geojson.find({ 
@@ -523,7 +506,7 @@ def query_gis_geojson(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
+  # perform a query, based on a x/y box, and z-depth
   # return list of svg items that (partly) fall within that box, thus should be drawn
   db = mongoclient.scada
   cursor = db.gis_objects.find({ 
@@ -562,7 +545,7 @@ def query_gis_svg(w,n,e,s,z):
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, FUTURE TODO: and z-depth
+  # perform a query, based on a x/y box, and z-depth
   # return list of svg items that (partly) fall within that box, thus should be drawn
 
   db = mongoclient.scada
@@ -630,7 +613,7 @@ def get_objects_for_gis(data):
 
   in_view_geojson = query_gis_geojson(data['w'], data['n'], data['e'], data['s'], data['z'])
   geojson = [{"type": "FeatureCollection", "features": in_view_geojson }]
-  socketio.emit("geojson_object_add_to_map",geojson )
+  socketio.emit("geojson_object_add_to_map_gis",geojson )
 
 
 @socketio.on('publish', namespace='')
@@ -735,10 +718,11 @@ def influxdb_get_value(point):
 ###############################################################
 ### Alarm logic ###
 
+# called if any updated value event is triggered, checks if an alarm should be modified
 def update_alarms(key, value):
-  global alarm_list
-  if key in alarm_list:
-    alarm_logic_list = alarm_list[key]['alarm_logic_list']
+  global alarm_rules_list
+  if key in alarm_rules_list:
+    alarm_logic_list = alarm_rules_list[key]['alarm_logic_list']
     for alarm in alarm_logic_list:
       # alarm.
       #  value_1, value_2 = "number"
@@ -768,10 +752,12 @@ def update_alarms(key, value):
         trigger_alarm(key, alarm, value)
 
 
-def trigger_alarm(key, alarm, value):
-  global alarm_list
+def trigger_alarm(datapoint, alarm, value):
+  global alarm_table_mem
   global mongoclient
   # check if event should only be send on state change (enables polling), or every check fires event
+  if not datapoint in alarm_table_mem:
+    alarm_table_mem[datapoint] = {}
   alert_id = alarm['alert_id']
 
   update = False
@@ -780,52 +766,56 @@ def trigger_alarm(key, alarm, value):
 
   if "set_alarm" in alarm['action']:
     # if alarm can be retriggered, or if not, only trigger if state changes
-    if (alarm['retrigger'] == True or 
-        not alert_id in alarm_list[key] or
-        (alarm['retrigger'] == False and alarm_list[key][alert_id] != True)):
-      logger.debug("set alarm: " + key)
-      alarm_list[key][alert_id] = True
+    if (update == True or 
+        not alert_id in alarm_table_mem[datapoint] or
+        alarm_table_mem[datapoint][alert_id] != True):
+      logger.debug("set alarm: " + datapoint)
+      alarm_table_mem[datapoint][alert_id] = True
       update = True
       # add/update item in alarm_table @ mongodb
       db = mongoclient.scada
       time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
-      myquery = {'datapoint': key, "alert_id": alert_id } 
+      datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
-            "datapoint":    key,
+            "datapoint":    datapoint,
             "alert_id":     alert_id,
             "element":      alarm['element'],
             "message":      alarm['action']['set_alarm'],
+            "severity":     alarm['severity'],
+            "details":      alarm['details'],
             "value":        str(value),
             "alarm":        True, 
             "acknowledged": False, 
             "open":         True
           }
-      db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+      db.alarm_table.update_one(datapoint_and_alert_id, {"$set": newvalues}, upsert=True)
       update_alarm_table(None)
 
 
   if "reset_alarm"in alarm['action']:
-    if (alarm['retrigger'] == True or 
-        not alert_id in alarm_list[key] or
-        (alarm['retrigger'] == False and alarm_list[key][alert_id] != False)):
-      logger.debug("reset alarm: " + key)
-      alarm_list[key][alert_id] = False
+    if (update == True or 
+        not alert_id in alarm_table_mem[datapoint] or
+        alarm_table_mem[datapoint][alert_id] != False):
+      logger.debug("reset alarm: " + datapoint)
+      alarm_table_mem[datapoint][alert_id] = False
       update = True
       # update item in alarm_table @ mongodb
       db = mongoclient.scada
       time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
-      myquery = {'datapoint': key, "alert_id": alert_id } 
+      datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
-            "datapoint":    key,
+            "datapoint":    datapoint,
             "alert_id":     alert_id,
             "element":      alarm['element'],
             "message":      alarm['action']['reset_alarm'],
+            "severity":     alarm['severity'],
+            "details":      alarm['details'],
             "value":        str(value),
             "alarm":        False
           }
-      db.alarm_table.update_one(myquery, {"$set": newvalues}, upsert=True)
+      db.alarm_table.update_one(datapoint_and_alert_id, {"$set": newvalues}, upsert=True)
       update_alarm_table(None)
 
 
@@ -838,51 +828,12 @@ def trigger_alarm(key, alarm, value):
   return
 
 
-def new_alarm_check(datapoint,  
-    alert_id = 1, # alert id within this datapoint
-    logic = ">", # logic to apply to value
-    value_1 = 0,value_2 = 0, # test values to check logic and value with
-    actions = {"set_alarm":"Al1"}, # actions to perform on match (value of set_alarm is used in message)
-    retrigger = True, # retrigger on every match, or only if new alarm (allows for polling)
-    element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window
-    ): 
-  """
-  logic = "" #  <,>,==,<>,!=
-  actions = {
-    "set_alarm":"Al1", 
-    "reset_alarm":"AL1",
-    "event":"EV1", 
-    "script":"/var/script/run1"
-    }
-  """
-  global alarm_list
-  alarm = {
-    "alert_id":alert_id,
-    "logic":logic,
-    "value_1":value_1, 
-    "value_2":value_2,
-    "action": actions,
-    "retrigger":retrigger,
-    "element":element,
-  }
-
-  if not datapoint in alarm_list:
-    alarm_list[datapoint] = {}
-    alarm_list[datapoint]['alarm_logic_list'] = []
-    alarm_list[datapoint][alert_id]=False
-
-  alarm_list[datapoint]['alarm_logic_list'].append(alarm)
-
-  # add alarm to alarm_list in mongodb (TODO: should we check on alert_id for update/insert?)
-  global mongoclient
-  db = mongoclient.scada
-  alarm['datapoint'] = datapoint
-  db.alarm_logic.insert_one(alarm)
-
+#########################################################################################
+# alarm io with frontend
 
 @socketio.on('update_alarm_state', namespace='')
 def update_alarm_state(dataitem):
-  global alarm_list
+  global alarm_rules_list
   global mongoclient
 
   # object identifier
@@ -893,11 +844,21 @@ def update_alarm_state(dataitem):
   alarm = dataitem['alarm']
   ack = dataitem['acknowledged']
   open = dataitem['open']
+  comment = ""
+  if 'comment' in dataitem:
+    comment = dataitem['comment']
 
-  if not datapoint in alarm_list:
+  if not datapoint in alarm_rules_list:
     logger.warning("could not find datapoint in alarm list")
     return
-  if not alert_id in alarm_list[datapoint]:
+
+  alarm_item = None
+  for rule_index in alarm_rules_list[datapoint]['alarm_logic_list']:
+    if alert_id == rule_index['alert_id']:
+      alarm_item = rule_index
+      break
+
+  if alarm_item == None:
     logger.warning("could not find alert_id in alarm list[datapoint]")
     return
 
@@ -906,42 +867,41 @@ def update_alarm_state(dataitem):
   newvalues =  {
         "alarm": alarm,
         "acknowledged": ack,
-        "open": open
+        "open": open,
+        "comment": comment 
       }
   # get old values
   cursor = db.alarm_table.find(this_alarm)
   for object in cursor:
     oldack = object['acknowledged']
     oldopen = object['open']
+    oldalarm = object['alarm']
   # set net values
   db.alarm_table.update_one(this_alarm, {"$set": newvalues}, upsert=False)
   logger.debug("++update_alarm_state")
+
   # check if event needs to be made
-  for alarm_item in  alarm_list[datapoint]['alarm_logic_list']:
-    if alarm_item['alert_id'] == alert_id:
-      logger.debug("-- ack:" + str(ack) + " open:" + str(open) + " alarm:" + str(alarm))
-      if ack != oldack:
-        publish_event(json.dumps(alarm_item['element']),"alarm acknowledged",ack)
-      if open != oldopen:
-        publish_event(json.dumps(alarm_item['element']),"alarm open",open)
-      if alarm != alarm_list[datapoint][alert_id]:
-        publish_event(json.dumps(alarm_item['element']),"alarm manually raised",alarm)
-      break
+  if ack != oldack:
+    publish_event(alarm_item['element'],"alarm acknowledged",ack)
+    if comment != "":
+      publish_event(alarm_item['element'],"alarm acknowledged "+str(ack)+" with comment:",comment)
+  if open != oldopen:
+    publish_event(alarm_item['element'],"alarm open",open)
+    if comment != "":
+      publish_event(alarm_item['element'],"alarm open  "+str(open)+" with comment:",comment)
+  if alarm != oldalarm:
+    publish_event(alarm_item['element'],"alarm raised",alarm)
+    if comment != "":
+      publish_event(alarm_item['element'],"alarm raised "+str(alarm)+" with comment:",comment)
+  # set comment if provided
 
   update_alarm_table(None)
 
 
-
-#########################################################################################
-# io with frontend
-
 @socketio.on('get_alarm_table', namespace='')
 def update_alarm_table(data):
-  global alarm_list
+  global alarm_table_mem
   global mongoclient
-
-  # event test
-  #publish_event("element_1","alarm set closed","TEST") # test
 
   if mongoclient == None:
     logger.error("no mongodb connection")
@@ -954,21 +914,20 @@ def update_alarm_table(data):
     object["id"] = "_" + str(object["_id"])
     object.pop("_id")
     alarm_items.append(object)
+
+    # additional processing; set alarm state in memory
     datapoint = object["datapoint"]
     alert_id = object["alert_id"]
-    # set alarm state in memory
-    if not datapoint in alarm_list:
-      alarm_list[datapoint] = {}
-      alarm_list[datapoint]['alarm_logic_list'] = []
-    
-    alarm_list[datapoint][alert_id]=object["alarm"]
+    if not datapoint in alarm_table_mem:
+      alarm_table_mem[datapoint] = {}
+    alarm_table_mem[datapoint][alert_id]=object["alarm"]
 
   socketio.emit('update_alarm_table', alarm_items)
   # return alarm_items
 
 
-def get_alarm_logic(clear=True):
-  global alarm_list
+def get_alarm_logic():
+  global alarm_rules_list
   global mongoclient
   if mongoclient == None:
     logger.error("no mongodb connection")
@@ -978,40 +937,39 @@ def get_alarm_logic(clear=True):
   cursor = db.alarm_logic.find({})
   logger.debug("get_alarm_logic: got data from mongodb")
   # clear the list if desired
-  if clear == True:
-    alarm_list = {}
+  alarm_rules_list = {}
 
   for object in cursor:
     logger.debug("get_alarm_logic: parsing object")
     datapoint = object["datapoint"]
-    alert_id = object["alert_id"]
     # set alarm state in memory
-    if not datapoint in alarm_list:
-      alarm_list[datapoint] = {}
-      alarm_list[datapoint]['alarm_logic_list'] = []
-    if not alert_id in alarm_list[datapoint]:
-      alarm_list[datapoint][alert_id]=False
+    if not datapoint in alarm_rules_list:
+      alarm_rules_list[datapoint] = {}
+      alarm_rules_list[datapoint]['alarm_logic_list'] = []
 
     alarm = {
-      "alert_id":alert_id,
+      "alert_id":object["alert_id"],
       "logic":object["logic"],
       "value_1":object["value_1"], 
       "value_2":object["value_2"],
       "action": object["action"],
       "retrigger":object['retrigger'],
       "element":object['element'],
+      "severity":object['severity'],
+      "details":object['details']
     }
 
-    alarm_list[datapoint]['alarm_logic_list'].append(alarm)
+    alarm_rules_list[datapoint]['alarm_logic_list'].append(alarm)
   logger.debug("get_alarm_logic: done")
 
 
 @socketio.on('get_alarm_rules', namespace='')
 def get_alarm_rules(data):
-  global alarm_list
-  if len(alarm_list) == 0:
+  global alarm_rules_list
+  if len(alarm_rules_list) == 0:
     get_alarm_logic()
-  return json.dumps(alarm_list, indent=4)
+  return json.dumps(alarm_rules_list, indent=4)
+
 
 @socketio.on('save_alarm_rules', namespace='')
 def save_alarm_rules(data):
@@ -1031,27 +989,31 @@ def save_alarm_rules(data):
       for alarm in local_alarm_list[datapoint]['alarm_logic_list']:
         alarm['datapoint'] = datapoint
         db.alarm_logic.insert_one(alarm)
+        alarm.pop("_id") # insert_one adds an _id, that we dont need
+        alarm.pop('datapoint')
   except:
     logger.error("could not save alarm rule data")
     return False
 
-  global alarm_list
-  alarm_list = local_alarm_list
+  global alarm_rules_list
+  alarm_rules_list = local_alarm_list
   return True
 
 
+##############################################################################
+##############################################################################
+##############################################################################
 ### Event logic ###
 def publish_event(element,msg,value):
-  el = json.dumps(element)
-
   # add event item @ influxdb
   global influxdb_write_api
   current_time = datetime.utcnow()
-  p = Point("event").tag("element", el).time(int(current_time.timestamp()*1000000),write_precision='us').field("message", msg).field("value", str(value))
+  p = Point("event").tag("element", element).time(int(current_time.timestamp()*1000000),write_precision='us').field("message", msg).field("value", str(value))
   influxdb_write_api.write(bucket=event_bucket, record=p)
-  socketio.emit('add_event_to_table', {"time":current_time.strftime("%Y-%m-%d %H:%M:%S.%f+00:00"), 'element':'"'+element+'"', 'msg':msg, 'value':value})
+  socketio.emit('add_event_to_table', {"time":current_time.strftime("%Y-%m-%d %H:%M:%S.%f+00:00"), 'element':element, 'msg':msg, 'value':value})
   # re-eval if we need to trigger an alarm-rule. this can become recursive, but due to the "." concatination, we prevent an endless loop in the logic
   update_alarms( element + "." + msg, value )
+
 
 @socketio.on('get_event_table', namespace='')
 def get_event_table(param):
@@ -1078,7 +1040,8 @@ def get_event_table(param):
 
 ###############################################################
 ###############################################################
-
+###############################################################
+### dataprovider config ###
 # retrieve dataprovider's from mongodb
 @socketio.on('get_dataproviders', namespace='')
 def get_dataproviders(data):
@@ -1265,8 +1228,8 @@ if __name__ == '__main__':
   try:
     rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
     rt_pubsub = rt_db.pubsub()
-    # TODO: should all keys be subscribed separately, and only when used, or filtered in python
-    rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate})
+
+    rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate}) # needed for values in clients and alarms
     rt_pubsub.subscribe(**{ "ifs_status_online": ifs_status_handler })
     
     redis_event_thread = socketio.start_background_task(target=redis_events)

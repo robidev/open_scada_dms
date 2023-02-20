@@ -149,6 +149,9 @@ function init_dataproviders(){
     document.querySelector(".modal-fader").className += " active";
     modalTarget.className += " active";
   
+    document.querySelector('#modal-2_error-message').innerHTML = "";
+    document.querySelector('#modal-2_error-message').style = "color:black";
+
     document.querySelectorAll(".modal-delete").forEach(function (deleteBtn) {
       deleteBtn.style.display = "none";
     });

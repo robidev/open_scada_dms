@@ -13,7 +13,7 @@ $(document).ready(function() {
   let focus = document.getElementById("focus").value
   if(focus === "1"){ // gis view
     init_gis();
-    init_mapelements();
+    init_mapelements('gis');
   }
   else if(focus === "2"){ // alarm view
     init_alarm();
@@ -26,7 +26,7 @@ $(document).ready(function() {
   }
   else{ //default is schema view
     init_schema();
-    init_mapelements();
+    init_mapelements('schema');
   }
 
 });
@@ -36,7 +36,7 @@ $(document).ready(function() {
 //////////////////////////////////////////////////////////////////////////////
 //leaflet maps
 
-function init_mapelements(){
+function init_mapelements(type){
   geojsonlayer = L.geoJSON().addTo(leafletmap);
 
   //draw grid
@@ -142,7 +142,8 @@ function init_mapelements(){
   // END OF INIT VIEW CODE
 
   //event to draw all visible geojson objets to a gis or schema map(i.e not svg, but geojson object such as polygon or polyline)
-  socket.on('geojson_object_add_to_map', function (json) {
+  let socket_endpoint = 'geojson_object_add_to_map_' + type;
+  socket.on(socket_endpoint, function (json) {
     //add geojson to object
     if (json) {
       //let local_geojsonlayer = L.geoJSON();
@@ -307,7 +308,6 @@ function updateLayers(layers,key, value){
         //template_item is property modification of geojson element. class is used for type of display
         //template_item = {"datapoint":['<element-id>','<comparisson>','<value>',<value to assing to element-id>]} 
         // e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
-        // TODO: perhaps this should be a dict instead
         let result = null;
         if(template_item[1] == ">" && value > template_item[2]){ // greater then
           result = template_item[3];

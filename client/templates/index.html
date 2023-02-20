@@ -150,6 +150,33 @@
     <div id="modal-1_error-message"></div>
   </div>
 
+  <div id="modal-alarm" class="modal-window aPop">
+    <h2>Alarm details<span class="aPop-close" title="close">&times;</span></h2>
+    <hr>
+    <div id="modal-alarm-time"></div>
+    <div id="modal-alarm-severity"></div>
+    <div id="modal-alarm-element"></div>
+    <div id="modal-alarm-datapoint"></div>
+    <div id="modal-alarm-value"></div>
+    <div id="modal-alarm-message"></div>
+
+    <br><b>Details:</b><br>
+    <div id="modal-alarm-details"></div><br><br>
+    <button class="modal-btn" id="modal-silence-alarm">Silence alarm</button>&nbsp;&nbsp;
+    <button class="modal-btn" id="modal-ack-alarm">Acknowledge alarm</button>&nbsp;&nbsp;
+    <button class="modal-btn" id="modal-close-alarm">Close alarm</button><br>
+    <b>Comment:</b><br>
+    <textarea style="width:100%;height:50px;"
+      class="" 
+      id="alarm_comment" 
+      name="comment" 
+      data-gramm_editor="true" 
+      spellcheck="true" 
+      autofocus="true" 
+      placeholder="" 
+      rows="2"></textarea>
+  </div>
+
   <div id="modal-2" class="modal-window">
     <h2>dataprovider</h2>
     <textarea style="width:400px;height:100px;"

@@ -112,6 +112,12 @@ If you click a datapoint in the sidepanel, a new window will open with the value
 ## Alarms and events
 Alarms are shown in the alarms tab. alarm logic can be added, edited and removed via the edit button. Alarms can be open or closed, and acknowledged and unacknowledged. only closed alarms are hidden from the view, but can be seen in the event log. Events are static, and can be viewed and sorted. more advanced analysis can be done in grafana.
 
+configurable alarms include 
+ - Analog limit violation alarms
+ - Point status change alarms (e.g. trip alarms)
+ - communication alarms, loss of communication to dataprovider or Front End(IFS)
+ - Any event message such as control actions
+
 ## Dataproviders
 All datapoints need a dataprovider. by default, there is a static dataprovider front-end that just allows a datapoint to be defined. after writing a value to a datapoint, it exists, and can be updated.
 
@@ -216,7 +222,21 @@ e.g. {"1":["color","gt","10","#00ff00"]}; ->  if(value > 10){color = '#00ff00';}
 Each object can be viewed or hidden at a certain zoom level. use `z_min` and `z_max` to define the zoom level the object should be visible/hidden. the zoom level can be viewed in the url bar as part of the coordinate hash.
 
 ## Editing alarms
-TODO
+editing is done via the edit rules button in the alarms window. there a json config is shown for all alarms that can be edited and updated. 
+datapoints can be datapoints on the map, or a combination of element+"."+message from the event window. Then a compare operation can be chosen such as <,>,==,!= where it will be compared to value_1. for >< 2 values have to be provided; value_1 and value_2. When a condition is met, action is executed. this can be set_alarm, reset_alarm, or event. An action contains an id, so by using this id, a reset action can be done as well. 
+
+An element field is a reference for display in the alarm window/event.
+
+retrigger will indicate if an open alarm should be overwritten on new events with the same datapoint/alarm_id
+
+  "iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101":{  
+  #  alert_id = 1, # alert id within this datapoint
+  #  logic = ">", # logic to apply to value
+  #  value_1 = 89,value_2 = 0, # test values to check logic and value with
+  #  actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
+  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window)
+  }
 
 ## Add dataprovider
 Dataproviders can be added, modified or removed. modifying the IP will always create a new dataprovider. the IFS and type defines the dataprovider front-end to be used

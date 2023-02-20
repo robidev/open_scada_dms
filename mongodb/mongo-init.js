@@ -8,14 +8,17 @@ db.dataprovider_list.insert([
 
 db.createCollection("alarm_table");
 db.alarm_table.insert([
-{"alert_id":1,"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101","acknowledged":false,"alarm":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"message":"OverVoltage","open":true,"time":"2022/02/10 - 10:00:00","value":"41"}
+    {"alert_id":1,"datapoint":"static://local/DoublePointInformation/414","acknowledged":false,"alarm":true,"details":"some stuff<br>link to schema alarm location: <a href=\"http://127.0.0.1:5000/?focus=0#19/-0.00018/0.00111\">here</a><br>link to gis alarm location: <a href=\"http://127.0.0.1:5000/?focus=1#19/51.99039/5.84950\">here</a>","element":"s2.a/b/c/d","message":"Trip","open":true,"severity":0,"time":"2023-02-20 19:25:28.830368+00:00","value":"2","comment":""}
 ])
 
 db.createCollection("alarm_logic");
 db.alarm_logic.insert([
-{"alert_id":1,"logic":">","value_1":89,"value_2":0,"action":{"set_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"},
-{"alert_id":1,"logic":"<","value_1":92,"value_2":0,"action":{"reset_alarm":"OverVoltage"},"retrigger":false,"element":{"B1":"s1","B2":"a/b/c","B3":"d"},"datapoint":"iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101"}
-])
+    {"alert_id":1,"logic":">","value_1":89,"value_2":0,"action":{"set_alarm":"OverVoltage"},"retrigger":false,"element":"s1.a/b/c/d","severity":3,"details":"yes","datapoint":"static://local/MeasuredValueScaled/400"}
+    ,{"alert_id":1,"logic":"<","value_1":92,"value_2":0,"action":{"reset_alarm":"OverVoltage"},"retrigger":false,"element":"s1.a/b/c/d","severity":3,"details":"yes","datapoint":"static://local/MeasuredValueScaled/400"}
+    ,{"alert_id":1,"logic":"==","value_1":2,"value_2":0,"action":{"set_alarm":"Trip"},"retrigger":false,"element":"s2.a/b/c/d","severity":0,"details":"yes","datapoint":"static://local/DoublePointInformation/414"}
+    ,{"alert_id":1,"logic":"==","value_1":1,"value_2":0,"action":{"reset_alarm":"Trip cleared"},"retrigger":false,"element":"s2.a/b/c/d","severity":0,"details":"yes","datapoint":"static://local/DoublePointInformation/414"}
+    ,{"alert_id":1,"logic":"==","value_1":2,"value_2":0,"action":{"set_alarm":"event trigger"},"retrigger":false,"element":"s1.a/b/c/r","severity":3,"details":"yes","datapoint":"iec60870-5-104://10.1.0.10:2404/DoublePointCommand/6000.control:operate"}
+    ])
 
 //db.createCollection("data_timeseries");
 

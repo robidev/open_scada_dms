@@ -39,8 +39,7 @@ def get_schema_data():
   if mongoclient == None:
     logger.error("no mongodb connection")
     return {}
-  # perform a query, based on a x/y box, FUTURE TODO:  and z-depth
-  # return list of svg items that (partly) fall within that box, thus should be drawn
+
   db = mongoclient.scada
   cursor1 = db.schema_objects.find(
     { 'properties.v_node_list': {'$exists': True } },
@@ -132,7 +131,7 @@ def get_network_mongodb():
 def get_link_byref(link_list, ref): 
     for link in link_list:
         if link_list[link]['uri'] == ref:
-            return link_list[link] # TODO ensure a reference to the original object is passed, not a copy
+            return link_list[link] 
     return None
 
 
@@ -182,11 +181,11 @@ def re_init(list):
 
 # update the calculation if a redis update event happened
 def redis_dataUpdate(msg):
+    # only update when an ext is updated
     if msg['channel'].decode("utf-8").startswith("__keyspace@0__:data:solver://"):
         return
     global update
     logger.info("dataupdate!")
-    # TODO: only update when an ext is updated
     update = True
 
 
@@ -325,8 +324,8 @@ if __name__ == "__main__":
     try:
         rt_db = redis.Redis(host=redis_host, port=6379, password=redis_password)
         rt_pubsub = rt_db.pubsub()
-        # TODO: should all keys be subscribed separately, and only when used, or filtered in python
-        rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate}) # TODO: not working yet
+
+        rt_pubsub.psubscribe(**{'__keyspace@0__:data:*': redis_dataUpdate}) 
         logger.info("connected to redis")
     except:
         logger.error("there is an issue with redis db")
