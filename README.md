@@ -228,16 +228,19 @@ datapoints can be datapoints on the map, or a combination of element+"."+message
 An element field is a reference for display in the alarm window/event.
 
 retrigger will indicate if an open alarm should be overwritten on new events with the same datapoint/alarm_id
-
+```python
   "iec60870-5-104://127.0.0.1:2404/MeasuredValueScaled/101":{  
-  #  alert_id = 1, # alert id within this datapoint
-  #  logic = ">", # logic to apply to value
-  #  value_1 = 89,value_2 = 0, # test values to check logic and value with
-  #  actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
-  #  retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
-  #  element = { "B1":"s1","B2":"a/b/c","B3":"d" } # text elements to be logged in alarm/event window)
+    alert_id = 1, # alert id within this datapoint
+    logic = ">", # logic to apply to value
+    value_1 = 89,value_2 = 0, # test values to check logic and value with
+    actions = {"set_alarm":"OverVoltage"}, # actions to perform on match
+    retrigger = False, # retrigger on every match, or only if new alarm (allows for polling)
+    element = "ref", # text elements to be logged in alarm/event window)
+    message = "message to display",
+    details = "links to schema and gis",
+    severity = 3
   }
-
+```
 ## Add dataprovider
 Dataproviders can be added, modified or removed. modifying the IP will always create a new dataprovider. the IFS and type defines the dataprovider front-end to be used
 
