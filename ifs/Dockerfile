@@ -16,7 +16,7 @@ RUN cd /tmp/lib60870/lib60870-C && make dynlib \
 
 COPY ./requirements.txt /srv/ifs/requirements.txt
 
-RUN cd /srv/ifs && pip3 install -r requirements.txt
+RUN cd /srv/ifs && pip3 install --break-system-packages -r requirements.txt
 
 COPY . /srv/ifs
 
