@@ -68,9 +68,9 @@ def index():
 ################################################
 
 def add_listener(point):
-  #global rt_db
+  #global rt_d
   #check redis for point,
-  #if rt_db.exists("data:" + point) > 0:
+  #if rt_d.exists("data:" + point) > 0:
     # we allready get all redis data update events, so nothing to be done
     # possibly add psub for point in the future to limit amount of events
     # and/or increase reference count for subscribed data points
@@ -88,9 +88,9 @@ def add_listener(point):
 
 
 def remove_listener(point):
-  #global rt_db
+  #global rt_d
   #check redis for point
-  #if rt_db.exists("data:" + point) > 0:
+  #if rt_d.exists("data:" + point) > 0:
     # possibly remove psub for point
     # and/or decrease reference count
   #  return "rt"
@@ -686,16 +686,6 @@ def redis_dataUpdate(msg):
 
 
 
-#def mongodb_get_value(point):
-#  global mongoclient
-#  # query mongodb for possible update
-#  db = mongoclient.scada
-# cursor = db.data_timeseries.find({'id':point}).sort([('timestamp', -1)]).limit(1) # find newest value
-#  for object in cursor:
-#    return object['value']
-#  return None
-
-
 def influxdb_get_value(point):
   global influxdb_query_api
   # query influxdb for possible update
@@ -984,7 +974,7 @@ def save_alarm_rules(data):
     db = mongoclient.scada
 
     db.alarm_logic.drop()
-    #db.createCollection("alarm_logic")
+
     for datapoint in local_alarm_list:
       for alarm in local_alarm_list[datapoint]['alarm_logic_list']:
         alarm['datapoint'] = datapoint
@@ -1085,11 +1075,16 @@ def edit_dataprovider(data):
     IFS = item['IFS'] 
     type = item['type']
 
+    config = {}
+    if 'config' in item:
+      config = item['config']
+
     db = mongoclient.scada
     newvalues =  {
         "enabled": enabled,
         "IFS": IFS,
-        "type": type
+        "type": type,
+        "config": config
       }
     _id = db.dataprovider_list.update_one({"dataprovider":dataprovider}, {"$set": newvalues}, upsert=True)
     # ensure _id gets retrieved

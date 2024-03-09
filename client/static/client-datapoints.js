@@ -49,11 +49,12 @@ function init_dataproviders(){
       document.querySelectorAll(".modal-delete").forEach(function (deleteBtn) {
         deleteBtn.style.display = "inline-block";
       });
-      modalTarget.childNodes[3].value = '{            \n \
-  "dataprovider":"' + row.getData().dataprovider + '",\n \
-  "enabled": '+ row.getData().enabled +',             \n \
-  "IFS": "'+ row.getData().IFS +'",                   \n \
-  "type": "'+ row.getData().type +'"                  \n \
+      modalTarget.childNodes[3].value = '{\n  \
+"dataprovider":"' + row.getData().dataprovider + '",\n  \
+"enabled": '+ row.getData().enabled +',\n  \
+"IFS": "'+ row.getData().IFS +'",\n  \
+"type": "'+ row.getData().type +'",\n  \
+"config": "'+ JSON.stringify(row.getData().config, null, 2) +'"\n\
 }';
     });
 
@@ -156,10 +157,11 @@ function init_dataproviders(){
       deleteBtn.style.display = "none";
     });
     modalTarget.childNodes[3].value = '{ \n \
-  "dataprovider":"[IP]:[port]",          \n \
-  "enabled": [false/true],               \n \
-  "IFS": "[IFS name]",                   \n \
-  "type": "[Protocol type]"              \n \
+  "dataprovider":"[IP]:[port]",\n \
+  "enabled": [false/true],\n \
+  "IFS": "[IFS name]",\n \
+  "type": "[Protocol type]",\n \
+  "config": {}\n \
 }';
   }
   
