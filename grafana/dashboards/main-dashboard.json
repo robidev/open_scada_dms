@@ -105,7 +105,7 @@
             "type": "influxdb",
             "uid": "G479iV-nz"
           },
-          "query": "from(bucket: \"bucket_1\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"id\"] == \"[[dataprovider]]\")",
+          "query": "from(bucket: \"bucket_1\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"id\"] == \"${dataprovider}\")",
           "refId": "A"
         }
       ],
@@ -185,7 +185,7 @@
         "name": "dataprovider",
         "query": "static://local/DoublePointInformation/300",
         "skipUrlSync": false,
-        "type": "constant"
+        "type": "custom"
       }
     ]
   },

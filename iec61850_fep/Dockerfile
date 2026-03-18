@@ -1,4 +1,4 @@
-FROM debian:stable-20211115-slim
+FROM debian:stable-20260112-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
         && rm -rf /var/lib/apt/lists/*
 ENV DEBIAN_FRONTEND=
 
-RUN git clone -b v1.4 https://github.com/mz-automation/libiec61850.git /tmp/libiec61850
+RUN git clone -b v1.6 https://github.com/mz-automation/libiec61850.git /tmp/libiec61850
 
 RUN cd /tmp/libiec61850 && make dynlib \
 	&& cp build/libiec61850.so /usr/local/lib/

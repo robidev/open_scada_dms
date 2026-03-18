@@ -1,4 +1,4 @@
-FROM debian:stable-20211115-slim
+FROM debian:stable-20260112-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
@@ -9,10 +9,10 @@ RUN apt-get update && apt-get install -y \
         && rm -rf /var/lib/apt/lists/*
 ENV DEBIAN_FRONTEND=
 
-RUN git clone -b master https://github.com/mz-automation/lib60870.git /tmp/lib60870 && cd /tmp/lib60870 && git checkout 5741f28c122f83982ff3b8e20137b7db5c66eb70
+RUN git clone -b master https://github.com/mz-automation/lib60870.git /tmp/lib60870
 
 RUN cd /tmp/lib60870/lib60870-C && make dynlib \
-	&& cp build/liblib60870.so /usr/local/lib/lib60870.so
+	&& cp build/liblib60870.so /usr/local/lib/libiec60870.so
 
 COPY ./requirements.txt /srv/ifs/requirements.txt
 

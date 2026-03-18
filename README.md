@@ -267,7 +267,7 @@ mongodb|mongodb database|-|[.env]|[.env]
 admin-mongo|for mongodb administation|http/8081|admin|admin
 redis|redis real-time database|-|-|[.env]
 redis-commander|for redis administration|http/8082|admin|admin
-influxdb|for influxdb administration|https/8086|admin|administrator
+influxdb|for influxdb administration|http/8086|admin|administrator
 ifs|for connection to (external) RTUs|-|-|-
 static_dataprovider|for static datapoints|-|-|-
 solver|for solving power flow in the network|-|-|-
