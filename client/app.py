@@ -59,7 +59,7 @@ def index():
     session['user_id'] = client_uuid
     session_clients[client_uuid] = {}
   focus = str(request.args.get('focus'))
-  if focus == None:
+  if focus == "None":
     focus = "0"
   return render_template('index.html', async_mode=socketio.async_mode, session=session, user_id = session['user_id'],focus = focus)
 
@@ -1055,13 +1055,6 @@ def get_dataproviders(data):
     data.append(object)
 
   return data
-
-def update_dataprovider_status(dataprovider):
-  dataprovider_on = rt_db.get("connections:"+object["dataprovider"]+".active")
-  online = False
-  if dataprovider_on == b'1':
-    online = True
-  emit('update_dataprovider_status',{'dataprovider':dataprovider,'online':online})
 
 
   # edit/add dataprovider's from mongodb

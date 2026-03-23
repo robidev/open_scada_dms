@@ -86,6 +86,11 @@ function setSvg(event){
   svg_img.data = input.value.substring(input.value.lastIndexOf('\\')+1);
 }
 
+function setBackgroundColor(){
+  const color = document.querySelector('#bgcolor').value;
+  document.body.style.backgroundColor = color;
+}
+
 function open_control(evt, element){
   const element_obj = document.querySelector('#element');
   element_obj.value = element
@@ -97,6 +102,57 @@ function open_control(evt, element){
     toggle_anim[element] = 1;   
   } 
 }
+
+
+function dumpSvgData(){
+  const svgRoot = getSvgRoot("svg_img");
+  if(svgRoot === null){return;}
+
+  const classes = ["XCBR", "XSWI", "MEAS"];
+  let result = [];
+
+  classes.forEach(cls => {
+    $(svgRoot).find("." + cls).each(function(idx, el){
+      let obj = {
+        id: el.id || null,
+        class: cls,
+        value: null,
+        onclick: null
+      };
+
+      // value (attribute or property)
+      if(el.hasAttribute("value")){
+        obj.value = el.getAttribute("value");
+      } else if(el.value !== undefined){
+        obj.value = el.value;
+      }
+
+      // onclick attribute (string form)
+      if(el.getAttribute("onclick")){
+        obj.onclick = el.getAttribute("onclick");
+      }
+
+      result.push(obj);
+    });
+  });
+
+  // Convert to JSON
+  const jsonStr = JSON.stringify(result, null, 2);
+
+  // Create downloadable file
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "elements.json";
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 </script>
 
 	</head>
@@ -116,6 +172,9 @@ function open_control(evt, element){
 		<button type="button" onClick="setAnim('normalall');">normalall</button>
 		<button type="button" onClick="setAnim('failall');">failall</button>
 		<br>
+<label for="bgcolor">background:</label><br>
+<button type="button" onclick="dumpSvgData();">export JSON</button><br>
+<input type="color" id="bgcolor" value="#ffffff" onchange="setBackgroundColor()"/>
     <label for="element">text:</label><input type="text" id="text" value="1234"/>
     <button type="button" onClick="setText();">set text</button>
     <br>

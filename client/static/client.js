@@ -754,8 +754,8 @@ function open_graph(element){
   var url = "http://127.0.0.1:3000/d/0qabI_pVz/test-dashboard?orgId=1&viewPanel=4&var-dataprovider="+element+"&kiosk=tv";
   var x = 0;//window.outerWidth + window.screenX;
   var y = 0;//window.screenY;
-  var h = 300; //window.outerHeight - 37;
-  let params = 'width=500,height='+ h +',left='+ x +',top='+ y;
+  var h = 500; //window.outerHeight - 37;
+  let params = 'width=700,height='+ h +',left='+ x +',top='+ y;
   window.open(url, 'test', params);
 }
 
