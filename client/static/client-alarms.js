@@ -36,6 +36,7 @@ function init_alarm(){
   
   
     var table = new Tabulator("#mmi_svg", {
+      //height: "100vh",
       //data:tabledata,           //load row data from array
       layout:"fitColumns",      //fit columns to width of table
       responsiveLayout:"hide",  //hide columns that dont fit on the table
@@ -125,7 +126,6 @@ function init_alarm(){
 
     init_alarm_dialog();
     init_editRules();
-
     refresh_alarm_table();
   }
   

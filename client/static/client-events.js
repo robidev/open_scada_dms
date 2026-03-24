@@ -11,6 +11,7 @@ function init_events(){
     });
   
     var table = new Tabulator("#mmi_svg", {
+      height: "100%",
       autoColumns:true, //create columns from data field names
       //data:tabledata,           //load row data from array
       layout:"fitColumns",      //fit columns to width of table
@@ -32,7 +33,6 @@ function init_events(){
           {title:"Value", field:"value", hozAlign:"left", formatter:"plaintext"},
       ],
     });
-  
     refresh_event_table();
   }
   
