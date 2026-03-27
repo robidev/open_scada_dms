@@ -254,12 +254,12 @@ function updateLayers(layers,key, value){
             let cl = el.classList.toString();
             //register  
             if(cl == "XCBR" || cl == "XSWI"){ 
-              if(value == 1 && !('lastAnim' in el && el['lastAnim'] == 'close')) {
+              if(value != 1 && !('lastAnim' in el && el['lastAnim'] == 'close')) {
                 $("#close",el)[0].beginElementAt(0.1); 
                 el['lastAnim'] = 'close';
                 //$("#close",el)[0].beginElement(); 
               }
-              if(value != 1 && !('lastAnim' in el && el['lastAnim'] == 'open')) {
+              if(value == 1 && !('lastAnim' in el && el['lastAnim'] == 'open')) {
                 $("#open",el)[0].beginElementAt(0.1);
                 el['lastAnim'] = 'open';
                 //$("#open",el)[0].beginElement();
@@ -656,7 +656,7 @@ function open_control(event,datapoint){
     //oper   = true/false (suggest inverse)
     sidebar._container.querySelector('#info_control_bool').style.display = "block";
     sidebar._container.querySelector('#info_control_bool_SBO').style.display = "block";
-    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "OPEN" : "CLOSE";
     sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point]==1? 0:1;
 
   } else if(type == "doublepos_SBO"){
@@ -664,8 +664,8 @@ function open_control(event,datapoint){
     //oper   =  0/1 (suggest inverse)
     sidebar._container.querySelector('#info_control_doublepos').style.display = "block";
     sidebar._container.querySelector('#info_control_doublepos_SBO').style.display = "block";
-    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
-    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 2:1;
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "OPEN" : "CLOSE";
+    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 1:2;
 
   } else if(type == "int_SBO"){
     //status is value
@@ -680,7 +680,7 @@ function open_control(event,datapoint){
     //oper   = true/false (suggest inverse)
     sidebar._container.querySelector('#info_control_bool').style.display = "block";
     sidebar._container.querySelector('#info_control_bool_SBO').style.display = "none";
-    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "OPEN" : "CLOSE";
     sidebar._container.querySelector('#control_value_bool').value = local_data_cache[status_point]==1? 0:1;
 
   } else if(type == "doublepos_direct"){
@@ -688,8 +688,8 @@ function open_control(event,datapoint){
     //oper   =  0/1 (suggest inverse)
     sidebar._container.querySelector('#info_control_doublepos').style.display = "block";
     sidebar._container.querySelector('#info_control_doublepos_SBO').style.display = "none";
-    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "CLOSE" : "OPEN";
-    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 2:1;
+    sidebar._container.querySelector('#status_value').value = local_data_cache[status_point] == 1? "OPEN" : "CLOSE";
+    sidebar._container.querySelector('#control_value_doublepos').value = local_data_cache[status_point]==1? 1:2;
 
   } else if(type == "int_direct"){
     //status is value
@@ -724,15 +724,15 @@ function updateEditDialog(key, value) {
   }
   let type = sidebar._container.querySelector('#hidden_type').value;
   if(type == "bool_SBO"){
-    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = value == 1? "OPEN" : "CLOSE";
   } else if(type == "doublepos_SBO"){
-    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = value == 1? "OPEN" : "CLOSE";
   } else if(type == "int_SBO"){
     sidebar._container.querySelector('#status_value').value = value;
   } else if(type == "bool_direct"){
-    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = value == 1? "OPEN" : "CLOSE";
   } else if(type == "doublepos_direct"){
-    sidebar._container.querySelector('#status_value').value = value == 1? "CLOSE" : "OPEN";
+    sidebar._container.querySelector('#status_value').value = value == 1? "OPEN" : "CLOSE";
   } else if(type == "int_direct"){
     sidebar._container.querySelector('#status_value').value = value;
   } else {
