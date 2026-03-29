@@ -6,7 +6,7 @@ import logging
 import time
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 
 from flask import Flask, render_template, session, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
@@ -764,7 +764,7 @@ def trigger_alarm(datapoint, alarm, value):
       update = True
       # add/update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
+      time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -792,7 +792,7 @@ def trigger_alarm(datapoint, alarm, value):
       update = True
       # update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
+      time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -997,7 +997,7 @@ def save_alarm_rules(data):
 def publish_event(element,msg,value):
   # add event item @ influxdb
   global influxdb_write_api
-  current_time = datetime.datetime.now(datetime.UTC)
+  current_time = datetime.now(UTC)
   p = Point("event").tag("element", element).time(int(current_time.timestamp()*1000000),write_precision='us').field("message", msg).field("value", str(value))
   influxdb_write_api.write(bucket=event_bucket, record=p)
   socketio.emit('add_event_to_table', {"time":current_time.strftime("%Y-%m-%d %H:%M:%S.%f+00:00"), 'element':element, 'msg':msg, 'value':value})
