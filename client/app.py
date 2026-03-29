@@ -764,7 +764,7 @@ def trigger_alarm(datapoint, alarm, value):
       update = True
       # add/update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
+      time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -792,7 +792,7 @@ def trigger_alarm(datapoint, alarm, value):
       update = True
       # update item in alarm_table @ mongodb
       db = mongoclient.scada
-      time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
+      time = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S.%f+00:00") #"2022/02/10 - 10:00:00"
       datapoint_and_alert_id = {'datapoint': datapoint, "alert_id": alert_id } 
       newvalues =  {
             "time":         time,
@@ -997,7 +997,7 @@ def save_alarm_rules(data):
 def publish_event(element,msg,value):
   # add event item @ influxdb
   global influxdb_write_api
-  current_time = datetime.utcnow()
+  current_time = datetime.datetime.now(datetime.UTC)
   p = Point("event").tag("element", element).time(int(current_time.timestamp()*1000000),write_precision='us').field("message", msg).field("value", str(value))
   influxdb_write_api.write(bucket=event_bucket, record=p)
   socketio.emit('add_event_to_table', {"time":current_time.strftime("%Y-%m-%d %H:%M:%S.%f+00:00"), 'element':element, 'msg':msg, 'value':value})
@@ -1162,9 +1162,21 @@ def redis_events():
 
 
 if __name__ == '__main__':
+  level = logging.CRITICAL  # default
+
+    # env override (e.g. LOG_LEVEL=DEBUG)
+  level = getattr(logging, os.getenv("LOG_LEVEL", "").upper(), level)
+
+    # CLI override (e.g. python app.py DEBUG)
+  if len(sys.argv) > 1:
+    level = getattr(logging, sys.argv[1].upper(), level)
+
+  logging.basicConfig(
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        level=level
+    )
+
   logger = logging.getLogger('webserver')
-  logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-    level=logging.INFO)
 
   mongodb_host = "mongodb"
   mongodb_db = "scada"

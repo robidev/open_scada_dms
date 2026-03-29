@@ -541,7 +541,7 @@ class iec61850client():
 			elif depth > 1:
 				_ref = ref + "." + element
 			if 'value' in model[element]:
-				print(_ref + ":\t" + str(model[element]['value']))
+				logger.debug(_ref + ":\t" + str(model[element]['value']))
 			else:
 				iec61850client.printrefs(model[element],_ref, depth + 1)
 
@@ -756,7 +756,7 @@ class iec61850client():
 		b = lib61850.ClientReport_getRptId(report)
 		reason = lib61850.ClientReport_getReasonForInclusion(report, 0)
 		d = lib61850.ReasonForInclusion_getValueAsString(reason)
-		#print("Callback: RTP received report for %s with rptId %s, DSRef %s and inclusion: %s" % ( a,b,DSRef,d ) )
+		#logger.debug("Callback: RTP received report for %s with rptId %s, DSRef %s and inclusion: %s" % ( a,b,DSRef,d ) )
 		
 		dataSetValues = lib61850.ClientReport_getDataSetValues(report)
 		dataset = self.connections[tupl]['model'][LD][LN][DSRef]
@@ -1166,7 +1166,7 @@ if __name__=="__main__":
 	#	model = iec61850client.discovery(con)
 		
 	#	model, err = iec61850client.updateValueInModel(con, model, "IED3_SMVMUnn")
-	#	print(err)
+	#	logger.debug(err)
 		#iec61850client.printrefs(val,"",len(path))
 
 
@@ -1180,7 +1180,7 @@ if __name__=="__main__":
 		# rcb = lib61850.IedConnection_getRCBValues(con,ctypes.byref(error), "simpleIOGenericIO/LLN0.RP.EventsRCB01", None)
 
 		# if error.value != lib61850.IED_ERROR_OK:
-		# 	print("getRCBValues service error!")
+		# 	logger.debug("getRCBValues service error!")
 		# 	exit()
 
 		# #/* prepare the parameters of the RCP */
@@ -1193,20 +1193,20 @@ if __name__=="__main__":
 
 		# cbRef = lib61850.ReportCallbackFunction(cb)
 		# lib61850.IedConnection_installReportHandler(con,"simpleIOGenericIO/LLN0.RP.EventsRCB",rptid,cbRef,None)
-		# print("cb installed")
+		# logger.debug("cb installed")
 		# lib61850.IedConnection_setRCBValues(con,ctypes.byref(error), rcb, lib61850.RCB_ELEMENT_RESV | lib61850.RCB_ELEMENT_DATSET | lib61850.RCB_ELEMENT_TRG_OPS | lib61850.RCB_ELEMENT_RPT_ENA | lib61850.RCB_ELEMENT_GI, True)
-		# print("setRCB called")
+		# logger.debug("setRCB called")
 		# if error.value != lib61850.IED_ERROR_OK:
-		# 	print("setRCBValues service error!")
+		# 	logger.debug("setRCBValues service error!")
 
 		# time.sleep(1)
 
 		# #/* Trigger GI Report */
 		# lib61850.ClientReportControlBlock_setGI(rcb, True)
 		# lib61850.IedConnection_setRCBValues(con,ctypes.byref(error), rcb, lib61850.RCB_ELEMENT_GI, True)
-		# print("gi send, waiting 5 sec.")
+		# logger.debug("gi send, waiting 5 sec.")
 		# if error.value != lib61850.IED_ERROR_OK:
-		# 	print("Error triggering a GI report (code: %i)"% err)
+		# 	logger.debug("Error triggering a GI report (code: %i)"% err)
 		
 		# time.sleep(5)
 
@@ -1233,23 +1233,23 @@ if __name__=="__main__":
 	#cl.registerWriteValue("iec61850://127.0.0.1:9102/IED3_SMVMUnn/LLN0.MSVCB01.SvEna",True)
 	error = cl.select("iec61850://127.0.0.1:102/IED1_XCBRGenericIO/CSWI2.Pos", "True")
 	if error == 1:
-		print("selected successfully")
+		logger.debug("selected successfully")
 	else:
-		print("failed to select")	
+		logger.debug("failed to select")	
 	#control = None
 	if cl.operate("iec61850://127.0.0.1:102/IED1_XCBRGenericIO/CSWI2.Pos", "True") == 1:
-		print("operated successfully")
+		logger.debug("operated successfully")
 	else:
-		print("failed to operate")
+		logger.debug("failed to operate")
 	
 	error = cl.select("iec61850://127.0.0.1:102/IED1_XCBRGenericIO/CSWI1.Pos", "True")
 	if error == 1:
-		print("selected successfully")
+		logger.debug("selected successfully")
 	else:
-		print("failed to select")	
+		logger.debug("failed to select")	
 	#control = None
 	if cl.operate("iec61850://127.0.0.1:102/IED1_XCBRGenericIO/CSWI1.Pos", "True") == 1:
-		print("operated successfully")
+		logger.debug("operated successfully")
 	else:
-		print("failed to operate")
+		logger.debug("failed to operate")
 

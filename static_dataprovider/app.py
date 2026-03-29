@@ -88,9 +88,23 @@ def dataprovider_status(message):
 
 ################################################################
 if __name__ == '__main__':
+    level = logging.CRITICAL  # default
+
+        # env override (e.g. LOG_LEVEL=DEBUG)
+    level = getattr(logging, os.getenv("LOG_LEVEL", "").upper(), level)
+
+        # CLI override (e.g. python app.py DEBUG)
+    if len(sys.argv) > 1:
+        level = getattr(logging, sys.argv[1].upper(), level)
+
+    logging.basicConfig(
+            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+            level=level
+        )
+
+    logger = logging.getLogger('webserver')
     logger = logging.getLogger('static_dataprovider')
-    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-    level=logging.INFO)
+
 
     logger.info("starting static_dataprovider")
 
