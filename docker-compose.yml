@@ -28,6 +28,8 @@ services:
       #test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
       test: test $$(mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet --eval --eval "try { print(rs.status().ok) } catch(e) { print(rs.initiate().ok) }") -eq 1
       interval: 10s
+      timeout: 5s
+      retries: 20
       start_period: 40s
     command: ["--keyFile", "/data/mongodb.key", "--replSet", "${MONGO_REPLICA_SET_NAME}", "--bind_ip_all", "--quiet"]
 
@@ -59,6 +61,11 @@ services:
         ipv4_address: 10.2.0.3
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     command: redis-server --requirepass ${REDIS_PASSWORD} --notify-keyspace-events K$$
     ports:
       - "6379:6379"
@@ -79,6 +86,11 @@ services:
         ipv4_address: 10.2.0.4
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     #volumes:
       # Optional data persistency on host
       # sudo mkdir -p /srv/docker/influxdb/data
@@ -107,9 +119,12 @@ services:
       - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
       - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
-      - mongodb
-      - redis
-      - influxdb
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
     ports:
       - "5000:5000"
 
@@ -152,6 +167,11 @@ services:
     networks:
       scadanetwork:
         ipv4_address: 10.2.0.7
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9443"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -176,8 +196,10 @@ services:
       - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
       - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
-      - influxdb
-      - redis
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
 
 # a solver of network data
   solver:
@@ -200,9 +222,12 @@ services:
       - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
       - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
-      - mongodb
-      - influxdb
-      - redis
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
 
 # an IEC60870-5-104 connector
   ifs:
@@ -227,9 +252,12 @@ services:
       - IFS_INFLUXDB_API=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
       - IFS_INFLUXDB_ORG=${DOCKER_INFLUXDB_INIT_ORG}
     depends_on:
-      - mongodb
-      - redis
-      - influxdb
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
 
 
 ### test data ###
@@ -270,7 +298,8 @@ services:
     links:
       - mongodb
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
 
 
 # management interface for redis, username: admin, password: admin
@@ -290,7 +319,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
     - "8082:8081"
-
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   portainer_data:
