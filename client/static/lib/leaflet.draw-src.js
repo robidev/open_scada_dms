@@ -595,6 +595,11 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 				.on('touchstart', this._onTouch, this)
 				.on('zoomend', this._onZoomEnd, this);
 
+		// Add key listeners for constrained drawing
+		L.DomEvent.on(document, 'keydown', this._onKeyDown, this);
+		L.DomEvent.on(document, 'keyup', this._onKeyUp, this);
+		this._shiftKeyPressed = false;
+
 		}
 	},
 
@@ -633,6 +638,10 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			.off('zoomend', this._onZoomEnd, this)
 			.off('touchstart', this._onTouch, this)
 			.off('click', this._onTouch, this);
+
+		// Remove key listeners
+		L.DomEvent.off(document, 'keydown', this._onKeyDown, this);
+		L.DomEvent.off(document, 'keyup', this._onKeyUp, this);
 	},
 
 	// @method deleteLastVertex(): void
@@ -729,8 +738,14 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		var newPos = this._map.mouseEventToLayerPoint(e.originalEvent);
 		var latlng = this._map.layerPointToLatLng(newPos);
 
+		// Apply shift constraint in screen space so the guide line matches the final vertex.
+		if (this._shiftKeyPressed && this._markers.length > 0) {
+			var lastPoint = this._map.latLngToLayerPoint(this._markers[this._markers.length - 1].getLatLng());
+			newPos = this._constrainToHorizontalOrVerticalPoint(newPos, lastPoint);
+			latlng = this._map.layerPointToLatLng(newPos);
+		}
+
 		// Save latlng
-		// should this be moved to _updateGuide() ?
 		this._currentLatLng = latlng;
 
 		this._updateTooltip(latlng);
@@ -784,13 +799,18 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			var dragCheckDistance = L.point(clientX, clientY)
 				.distanceTo(this._mouseDownOrigin);
 			var lastPtDistance = this._calculateFinishDistance(e.latlng);
+			var latlng = e.latlng;
+			// Apply constraint if shift key is pressed and there's already at least one marker
+			if (this._shiftKeyPressed && this._markers.length > 0) {
+				latlng = this._constrainToHorizontalOrVertical(latlng);
+			}
 			if (this.options.maxPoints > 1 && this.options.maxPoints == this._markers.length + 1) {
-				this.addVertex(e.latlng);
+				this.addVertex(latlng);
 				this._finishShape();
 			} else if (lastPtDistance < 10 && L.Browser.touch) {
 				this._finishShape();
 			} else if (Math.abs(dragCheckDistance) < 9 * (window.devicePixelRatio || 1)) {
-				this.addVertex(e.latlng);
+				this.addVertex(latlng);
 			}
 			this._enableNewMarkers(); // after a short pause, enable new markers
 		}
@@ -813,6 +833,53 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 			this._touchHandled = null;
 		}
 		this._clickHandled = null;
+	},
+
+	_onKeyDown: function (e) {
+		if (e.shiftKey) {
+			this._shiftKeyPressed = true;
+		}
+	},
+
+	_onKeyUp: function (e) {
+		if (!e.shiftKey) {
+			this._shiftKeyPressed = false;
+		}
+	},
+
+	// Constrain a point to be either horizontally or vertically aligned with the last marker
+	// Chooses the constraint that results in the smaller distance from the original point
+	_constrainToHorizontalOrVerticalPoint: function (point, lastPoint) {
+		var xDiff = Math.abs(point.x - lastPoint.x);
+		var yDiff = Math.abs(point.y - lastPoint.y);
+
+		if (xDiff > yDiff) {
+			return L.point(point.x, lastPoint.y);
+		}
+		return L.point(lastPoint.x, point.y);
+	},
+
+	_constrainToHorizontalOrVertical: function (latlng) {
+		if (this._markers.length === 0) {
+			return latlng;
+		}
+
+		var lastMarker = this._markers[this._markers.length - 1];
+		var lastLatLng = lastMarker.getLatLng();
+
+		// Calculate absolute differences in lat and lng
+		var latDiff = Math.abs(latlng.lat - lastLatLng.lat);
+		var lngDiff = Math.abs(latlng.lng - lastLatLng.lng);
+
+		// If latDiff is smaller, constrain to horizontal (keep current lng, use last lat)
+		// Otherwise, constrain to vertical (keep current lat, use last lng)
+		if (latDiff < lngDiff) {
+			// Horizontal constraint: keep the same latitude as last point
+			return L.latLng(lastLatLng.lat, latlng.lng);
+		} else {
+			// Vertical constraint: keep the same longitude as last point
+			return L.latLng(latlng.lat, lastLatLng.lng);
+		}
 	},
 
 	_onMouseOut: function () {
