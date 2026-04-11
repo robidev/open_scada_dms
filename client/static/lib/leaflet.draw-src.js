@@ -167,7 +167,7 @@ L.drawLocal = {
 					title: 'Cancel editing, discards all changes',
 					text: 'Cancel'
 				},
-				clearAll: {
+				clearAll:{
 					title: 'Clear all layers',
 					text: 'Clear All'
 				}
@@ -383,6 +383,7 @@ L.Draw = L.Draw || {};
  * @aka Draw.Feature
  */
 L.Draw.Feature = L.Handler.extend({
+	includes: L.Mixin.Events,
 
 	// @method initialize(): void
 	initialize: function (map, options) {
@@ -399,11 +400,11 @@ L.Draw.Feature = L.Handler.extend({
 
 		var version = L.version.split('.');
 		//If Version is >= 1.2.0
-		if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
-			L.Draw.Feature.include(L.Evented.prototype);
-		} else {
+		//if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
+		//	L.Draw.Feature.include(L.Evented.prototype);
+		//} else {
 			L.Draw.Feature.include(L.Mixin.Events);
-		}
+		//}
 	},
 
 	// @method enable(): void
@@ -415,9 +416,9 @@ L.Draw.Feature = L.Handler.extend({
 
 		L.Handler.prototype.enable.call(this);
 
-		this.fire('enabled', {handler: this.type});
+		this.fire('enabled', { handler: this.type });
 
-		this._map.fire(L.Draw.Event.DRAWSTART, {layerType: this.type});
+		this._map.fire(L.Draw.Event.DRAWSTART, { layerType: this.type });
 	},
 
 	// @method disable(): void
@@ -428,9 +429,9 @@ L.Draw.Feature = L.Handler.extend({
 
 		L.Handler.prototype.disable.call(this);
 
-		this._map.fire(L.Draw.Event.DRAWSTOP, {layerType: this.type});
+		this._map.fire(L.Draw.Event.DRAWSTOP, { layerType: this.type });
 
-		this.fire('disabled', {handler: this.type});
+		this.fire('disabled', { handler: this.type });
 	},
 
 	// @method addHooks(): void
@@ -469,13 +470,13 @@ L.Draw.Feature = L.Handler.extend({
 	},
 
 	_fireCreatedEvent: function (layer) {
-		this._map.fire(L.Draw.Event.CREATED, {layer: layer, layerType: this.type});
+		this._map.fire(L.Draw.Event.CREATED, { layer: layer, layerType: this.type });
 	},
 
 	// Cancel drawing when the escape key is pressed
 	_cancelDrawing: function (e) {
 		if (e.keyCode === 27) {
-			this._map.fire('draw:canceled', {layerType: this.type});
+			this._map.fire('draw:canceled', { layerType: this.type });
 			this.disable();
 		}
 	}
@@ -760,7 +761,7 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 	},
 
 	_vertexChanged: function (latlng, added) {
-		this._map.fire(L.Draw.Event.DRAWVERTEX, {layers: this._markerGroup});
+		this._map.fire(L.Draw.Event.DRAWVERTEX, { layers: this._markerGroup });
 		this._updateFinishHandler();
 
 		this._updateRunningMeasure(latlng, added);
@@ -1085,11 +1086,11 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		// Update tooltip
 		this._tooltip
 			.showAsError()
-			.updateContent({text: this.options.drawError.message});
+			.updateContent({ text: this.options.drawError.message });
 
 		// Update shape
 		this._updateGuideColor(this.options.drawError.color);
-		this._poly.setStyle({color: this.options.drawError.color});
+		this._poly.setStyle({ color: this.options.drawError.color });
 
 		// Hide the error after 2 seconds
 		this._clearHideErrorTimeout();
@@ -1108,7 +1109,7 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 
 		// Revert shape
 		this._updateGuideColor(this.options.shapeOptions.color);
-		this._poly.setStyle({color: this.options.shapeOptions.color});
+		this._poly.setStyle({ color: this.options.shapeOptions.color });
 	},
 
 	_clearHideErrorTimeout: function () {
@@ -1126,7 +1127,7 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 
 	// see _disableNewMarkers
 	_enableNewMarkers: function () {
-		setTimeout(function () {
+		setTimeout(function() {
 			this._disableMarkers = false;
 		}.bind(this), 50);
 	},
@@ -1309,7 +1310,7 @@ L.Draw.SimpleShape = L.Draw.Feature.extend({
 			//TODO refactor: move cursor to styles
 			this._container.style.cursor = 'crosshair';
 
-			this._tooltip.updateContent({text: this._initialLabelText});
+			this._tooltip.updateContent({ text: this._initialLabelText });
 
 			this._map
 				.on('mousedown', this._onMouseDown, this)
@@ -1396,7 +1397,6 @@ L.Draw.SimpleShape = L.Draw.Feature.extend({
 		}
 	}
 });
-
 
 
 /**
@@ -1532,7 +1532,7 @@ L.Draw.Marker = L.Draw.Feature.extend({
 		L.Draw.Feature.prototype.addHooks.call(this);
 
 		if (this._map) {
-			this._tooltip.updateContent({text: this._initialLabelText});
+			this._tooltip.updateContent({ text: this._initialLabelText });
 
 			// Same mouseMarker as in Draw.Polyline
 			if (!this._mouseMarker) {
@@ -1623,7 +1623,7 @@ L.Draw.Marker = L.Draw.Feature.extend({
 	},
 
 	_fireCreatedEvent: function () {
-		var marker = new L.Marker.Touch(this._marker.getLatLng(), {icon: this.options.icon});
+		var marker = new L.Marker.Touch(this._marker.getLatLng(), { icon: this.options.icon });
 		L.Draw.Feature.prototype._fireCreatedEvent.call(this, marker);
 	}
 });
@@ -1797,7 +1797,7 @@ L.Edit.Marker = L.Handler.extend({
 	_onDragEnd: function (e) {
 		var layer = e.target;
 		layer.edited = true;
-		this._map.fire(L.Draw.Event.EDITMOVE, {layer: layer});
+		this._map.fire(L.Draw.Event.EDITMOVE, { layer: layer });
 	},
 
 	_toggleMarkerHighlight: function () {
@@ -2137,7 +2137,7 @@ L.Edit.PolyVerticesEdit = L.Handler.extend({
 	_fireEdit: function () {
 		this._poly.edited = true;
 		this._poly.fire('edit');
-		this._poly._map.fire(L.Draw.Event.EDITVERTEX, {layers: this._markerGroup, poly: this._poly});
+		this._poly._map.fire(L.Draw.Event.EDITVERTEX, { layers: this._markerGroup, poly: this._poly });
 	},
 
 	_onMarkerDrag: function (e) {
@@ -2160,7 +2160,7 @@ L.Edit.PolyVerticesEdit = L.Handler.extend({
 			if (!poly.options.poly.allowIntersection && poly.intersects()) {
 
 				var originalColor = poly.options.color;
-				poly.setStyle({color: this.options.drawError.color});
+				poly.setStyle({ color: this.options.drawError.color });
 
 				// Manually trigger 'dragend' behavior on marker we are about to remove
 				// WORKAROUND: introduced in 1.0.0-rc2, may be related to #4484
@@ -2178,7 +2178,7 @@ L.Edit.PolyVerticesEdit = L.Handler.extend({
 
 				// Reset everything back to normal after a second
 				setTimeout(function () {
-					poly.setStyle({color: originalColor});
+					poly.setStyle({ color: originalColor });
 					if (tooltip) {
 						tooltip.updateContent({
 							text: L.drawLocal.edit.handlers.edit.tooltip.text,
@@ -2685,7 +2685,7 @@ L.Edit.Rectangle = L.Edit.SimpleShape.extend({
 		// Reposition the resize markers
 		this._repositionCornerMarkers();
 
-		this._map.fire(L.Draw.Event.EDITMOVE, {layer: this._shape});
+		this._map.fire(L.Draw.Event.EDITMOVE, { layer: this._shape });
 	},
 
 	_resize: function (latlng) {
@@ -2698,7 +2698,7 @@ L.Edit.Rectangle = L.Edit.SimpleShape.extend({
 		bounds = this._shape.getBounds();
 		this._moveMarker.setLatLng(bounds.getCenter());
 
-		this._map.fire(L.Draw.Event.EDITRESIZE, {layer: this._shape});
+		this._map.fire(L.Draw.Event.EDITRESIZE, { layer: this._shape });
 	},
 
 	_getCorners: function () {
@@ -2766,7 +2766,7 @@ L.Edit.CircleMarker = L.Edit.SimpleShape.extend({
 		// Move the circle
 		this._shape.setLatLng(latlng);
 
-		this._map.fire(L.Draw.Event.EDITMOVE, {layer: this._shape});
+		this._map.fire(L.Draw.Event.EDITMOVE, { layer: this._shape });
 	},
 });
 
@@ -3170,7 +3170,7 @@ L.LatLngUtil = {
 
 
 
-(function () {
+(function() {
 
 	var defaultPrecision = {
 		km: 2,
@@ -3363,7 +3363,6 @@ L.Util.extend(L.LineUtil, {
 		return (p2.y - p.y) * (p1.x - p.x) > (p1.y - p.y) * (p2.x - p.x);
 	}
 });
-
 
 
 /**
@@ -3678,6 +3677,8 @@ L.Map.addInitHook(function () {
  * ```
  */
 L.Toolbar = L.Class.extend({
+	includes: [L.Mixin.Events],
+
 	// @section Methods for modifying the toolbar
 
 	// @method initialize(options): void
@@ -3689,13 +3690,13 @@ L.Toolbar = L.Class.extend({
 		this._actionButtons = [];
 		this._activeMode = null;
 
-		var version = L.version.split('.');
+		//var version = L.version.split('.');
 		//If Version is >= 1.2.0
-		if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
-			L.Toolbar.include(L.Evented.prototype);
-		} else {
+		//if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
+		//	L.Toolbar.include(L.Evented.prototype);
+		//} else {
 			L.Toolbar.include(L.Mixin.Events);
-		}
+		//}
 	},
 
 	// @method enabled(): boolean
@@ -4350,7 +4351,7 @@ L.EditToolbar = L.Toolbar.extend({
 		}
 	},
 
-	_clearAllLayers: function () {
+	_clearAllLayers:function(){
 		this._activeMode.handler.removeAllLayers();
 		if (this._activeMode) {
 			this._activeMode.handler.disable();
@@ -4409,6 +4410,8 @@ L.EditToolbar.Edit = L.Handler.extend({
 		TYPE: 'edit'
 	},
 
+	includes: L.Mixin.Events,
+
 	// @method intialize(): void
 	initialize: function (map, options) {
 		L.Handler.prototype.initialize.call(this, map);
@@ -4427,13 +4430,13 @@ L.EditToolbar.Edit = L.Handler.extend({
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
 		this.type = L.EditToolbar.Edit.TYPE;
 
-		var version = L.version.split('.');
+		//var version = L.version.split('.');
 		//If Version is >= 1.2.0
-		if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
-			L.EditToolbar.Edit.include(L.Evented.prototype);
-		} else {
+		//if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
+		//	L.EditToolbar.Edit.include(L.Evented.prototype);
+		//} else {
 			L.EditToolbar.Edit.include(L.Mixin.Events);
-		}
+		//}
 	},
 
 	// @method enable(): void
@@ -4442,10 +4445,10 @@ L.EditToolbar.Edit = L.Handler.extend({
 		if (this._enabled || !this._hasAvailableLayers()) {
 			return;
 		}
-		this.fire('enabled', {handler: this.type});
+		this.fire('enabled', { handler: this.type });
 		//this disable other handlers
 
-		this._map.fire(L.Draw.Event.EDITSTART, {handler: this.type});
+		this._map.fire(L.Draw.Event.EDITSTART, { handler: this.type });
 		//allow drawLayer to be updated before beginning edition.
 
 		L.Handler.prototype.enable.call(this);
@@ -4464,8 +4467,8 @@ L.EditToolbar.Edit = L.Handler.extend({
 			.off('layeradd', this._enableLayerEdit, this)
 			.off('layerremove', this._disableLayerEdit, this);
 		L.Handler.prototype.disable.call(this);
-		this._map.fire(L.Draw.Event.EDITSTOP, {handler: this.type});
-		this.fire('disabled', {handler: this.type});
+		this._map.fire(L.Draw.Event.EDITSTOP, { handler: this.type });
+		this.fire('disabled', { handler: this.type });
 	},
 
 	// @method addHooks(): void
@@ -4536,7 +4539,7 @@ L.EditToolbar.Edit = L.Handler.extend({
 				layer.edited = false;
 			}
 		});
-		this._map.fire(L.Draw.Event.EDITED, {layers: editedLayers});
+		this._map.fire(L.Draw.Event.EDITED, { layers: editedLayers });
 	},
 
 	_backupLayer: function (layer) {
@@ -4586,7 +4589,7 @@ L.EditToolbar.Edit = L.Handler.extend({
 				layer.setLatLng(this._uneditedLayerProps[id].latlng);
 			}
 
-			layer.fire('revert-edited', {layer: layer});
+			layer.fire('revert-edited', { layer: layer });
 		}
 	},
 
@@ -4676,7 +4679,7 @@ L.EditToolbar.Edit = L.Handler.extend({
 	_onMarkerDragEnd: function (e) {
 		var layer = e.target;
 		layer.edited = true;
-		this._map.fire(L.Draw.Event.EDITMOVE, {layer: layer});
+		this._map.fire(L.Draw.Event.EDITMOVE, { layer: layer });
 	},
 
 	_onTouchMove: function (e) {
@@ -4702,6 +4705,8 @@ L.EditToolbar.Delete = L.Handler.extend({
 		TYPE: 'remove' // not delete as delete is reserved in js
 	},
 
+	includes: L.Mixin.Events,
+
 	// @method intialize(): void
 	initialize: function (map, options) {
 		L.Handler.prototype.initialize.call(this, map);
@@ -4718,13 +4723,13 @@ L.EditToolbar.Delete = L.Handler.extend({
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
 		this.type = L.EditToolbar.Delete.TYPE;
 
-		var version = L.version.split('.');
+		//var version = L.version.split('.');
 		//If Version is >= 1.2.0
-		if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
-			L.EditToolbar.Delete.include(L.Evented.prototype);
-		} else {
+		//if (parseInt(version[0], 10) === 1 && parseInt(version[1], 10) >= 2) {
+		//	L.EditToolbar.Delete.include(L.Evented.prototype);
+		//} else {
 			L.EditToolbar.Delete.include(L.Mixin.Events);
-		}
+		//}
 
 	},
 
@@ -4734,9 +4739,9 @@ L.EditToolbar.Delete = L.Handler.extend({
 		if (this._enabled || !this._hasAvailableLayers()) {
 			return;
 		}
-		this.fire('enabled', {handler: this.type});
+		this.fire('enabled', { handler: this.type });
 
-		this._map.fire(L.Draw.Event.DELETESTART, {handler: this.type});
+		this._map.fire(L.Draw.Event.DELETESTART, { handler: this.type });
 
 		L.Handler.prototype.enable.call(this);
 
@@ -4758,9 +4763,9 @@ L.EditToolbar.Delete = L.Handler.extend({
 
 		L.Handler.prototype.disable.call(this);
 
-		this._map.fire(L.Draw.Event.DELETESTOP, {handler: this.type});
+		this._map.fire(L.Draw.Event.DELETESTOP, { handler: this.type });
 
-		this.fire('disabled', {handler: this.type});
+		this.fire('disabled', { handler: this.type });
 	},
 
 	// @method addHooks(): void
@@ -4775,7 +4780,7 @@ L.EditToolbar.Delete = L.Handler.extend({
 			this._deletedLayers = new L.LayerGroup();
 
 			this._tooltip = new L.Draw.Tooltip(this._map);
-			this._tooltip.updateContent({text: L.drawLocal.edit.handlers.remove.tooltip.text});
+			this._tooltip.updateContent({ text: L.drawLocal.edit.handlers.remove.tooltip.text });
 
 			this._map.on('mousemove', this._onMouseMove, this);
 		}
@@ -4801,22 +4806,22 @@ L.EditToolbar.Delete = L.Handler.extend({
 		// Iterate of the deleted layers and add them back into the featureGroup
 		this._deletedLayers.eachLayer(function (layer) {
 			this._deletableLayers.addLayer(layer);
-			layer.fire('revert-deleted', {layer: layer});
+			layer.fire('revert-deleted', { layer: layer });
 		}, this);
 	},
 
 	// @method save(): void
 	// Save deleted layers
 	save: function () {
-		this._map.fire(L.Draw.Event.DELETED, {layers: this._deletedLayers});
+		this._map.fire(L.Draw.Event.DELETED, { layers: this._deletedLayers });
 	},
 
 	// @method removeAllLayers(): void
 	// Remove all delateable layers
-	removeAllLayers: function () {
+	removeAllLayers: function(){
 		// Iterate of the delateable layers and add remove them
 		this._deletableLayers.eachLayer(function (layer) {
-			this._removeLayer({layer: layer});
+			this._removeLayer({layer:layer});
 		}, this);
 		this.save();
 	},

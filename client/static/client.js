@@ -41,8 +41,8 @@ function init_mapelements(type){
 
   //draw grid
   var GridOptions = {
-		xticks: 55,
-		yticks: 25,
+		xticks: 50,
+		yticks: 50,
 		lineStyle: {
 			stroke: false,
 			color: 'white',
@@ -68,7 +68,6 @@ function init_mapelements(type){
       //console.log("on");
     }  
   }).addTo( leafletmap );
-
 
   //draw edit controls
   //https://codepen.io/mochaNate/pen/bWNveg
@@ -138,6 +137,13 @@ function init_mapelements(type){
 
   // Set up the hash
   var hash = new L.Hash(leafletmap);
+
+  drawControl.setDrawingOptions({
+      polyline: { guideLayers: [grid],  snapDistance: 15 },
+      polygon: { guideLayers: [grid], snapDistance: 15 },
+  });
+
+
 
   // END OF INIT VIEW CODE
 

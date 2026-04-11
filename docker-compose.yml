@@ -34,22 +34,6 @@ services:
     command: ["--keyFile", "/data/mongodb.key", "--replSet", "${MONGO_REPLICA_SET_NAME}", "--bind_ip_all", "--quiet"]
 
 
-#  mongoClientTemp:
-#    image: mongo:8
-#    container_name: mongoClientTemp
-#    networks:
-#      scadanetwork:
-#        ipv4_address: 10.2.0.240
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-#      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-#      MONGO_USER_DB: ${MONGO_USER_DB}
-#      MONGO_USER_USERNAME: ${MONGO_USER_USERNAME}
-#      MONGO_USER_PASSWORD: ${MONGO_USER_PASSWORD}
-#    command: mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --host mongodb --eval  "db.getSiblingDB('${MONGO_USER_DB}').createUser({user:'${MONGO_USER_USERNAME}', pwd:'${MONGO_USER_PASSWORD}', roles:[{role:'readWrite',db:'${MONGO_USER_DB}'}]});"
-#    depends_on:
-#      - mongodb
-
 
 # redis as real-time database for current values
   redis:
@@ -126,7 +110,7 @@ services:
       influxdb:
         condition: service_healthy
     ports:
-      - "5000:5000"
+      - "5001:5000" # 5000:5000
 
 
 # timeseries dashboard, username: admin, password: admin
@@ -154,6 +138,8 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
       - ./grafana/dashboards:/var/lib/grafana/dashboards
       - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    profiles:
+      - optional
 
 
 # manage containers, password: Administrator
@@ -175,6 +161,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    profiles:
+      - optional
 
 
 ### dataproviders ###
@@ -228,6 +216,8 @@ services:
         condition: service_healthy
       influxdb:
         condition: service_healthy
+    profiles:
+      - optional
 
 # an IEC60870-5-104 connector
   ifs:
@@ -270,6 +260,8 @@ services:
     networks:
       wannetwork:
         ipv4_address: 10.1.0.10
+    profiles:
+      - optional
 
 
 ### backend management systems ###
@@ -322,6 +314,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    profiles:
+      - optional
+
 
 volumes:
   portainer_data:
