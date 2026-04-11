@@ -52,22 +52,73 @@ function init_mapelements(type){
 	};
   var grid = L.grid(GridOptions).addTo(leafletmap);
 
-  isGridEnabled = false;
-  L.easyButton('fa-table-cells', function(){
-    if(isGridEnabled == true){
+  isGridEnabled = true;
+  var maskSnapEnabled = false;
+  function setGridEnabled(GridEnabled){
+    isGridEnabled = GridEnabled;
+    if(GridEnabled == false){
       GridOptions.lineStyle.stroke = false;
       L.Util.setOptions(grid, GridOptions);
       grid.redraw();
-      isGridEnabled = false;
+      maskSnapEnabled = snapEnabled;
+      setSnapEnabled(false);
+      snapButton.state('snap-off');
       //console.log("off");
     }else{
       GridOptions.lineStyle.stroke = true;
       L.Util.setOptions(grid, GridOptions);
       grid.redraw();
-      isGridEnabled = true;
+      if(maskSnapEnabled == true){
+        setSnapEnabled(true);
+        snapButton.state('snap-on');
+      }
       //console.log("on");
     }  
+  }
+  var gridButton = L.easyButton('fa-table-cells', function() {
+    setGridEnabled(!isGridEnabled);
   }).addTo( leafletmap );
+  setGridEnabled(true);
+
+  //snapping
+  var snapEnabled = true;
+  function setSnapEnabled(enabled) {
+    snapEnabled = enabled;
+    var guideLayers = enabled ? _guideLayer : null;
+
+    drawControl.setDrawingOptions({
+      polyline:  { guideLayers: guideLayers, snapDistance: enabled ? 15 : 0, snapVertices: true },
+      polygon:   { guideLayers: guideLayers, snapDistance: enabled ? 15 : 0, snapVertices: true },
+      circle:    { guideLayers: guideLayers, snapDistance: enabled ? 15 : 0, snapVertices: true },
+      rectangle: { guideLayers: guideLayers, snapDistance: enabled ? 15 : 0, snapVertices: true }
+    });
+
+    drawControl.options.snapOptions = {
+      guideLayers: guideLayers,
+      snapDistance: enabled ? 15 : 0,
+      snapVertices: true
+    };
+  }
+
+  var snapButton = L.easyButton({
+    states: [{
+      stateName: 'snap-on',
+      icon: 'fa-magnet',
+      title: 'Snap is ON — click to disable',
+      onClick: function(btn, map) {
+        setSnapEnabled(false);
+        btn.state('snap-off');
+      }
+    }, {
+      stateName: 'snap-off',
+      icon: '<i class="fa fa-magnet" style="opacity:0.3"></i>',
+      title: 'Snap is OFF — click to enable',
+      onClick: function(btn, map) {
+        setSnapEnabled(true);
+        btn.state('snap-on');
+      }
+    }]
+  }).addTo(leafletmap);
 
   //draw edit controls
   //https://codepen.io/mochaNate/pen/bWNveg
@@ -138,10 +189,10 @@ function init_mapelements(type){
   // Set up the hash
   var hash = new L.Hash(leafletmap);
 
-  drawControl.setDrawingOptions({
-      polyline: { guideLayers: [grid],  snapDistance: 15 },
-      polygon: { guideLayers: [grid], snapDistance: 15 },
-  });
+  //set up snapping layer
+  var _guideLayer = [grid, geojsonlayer, editableLayers];
+  setSnapEnabled(true);
+
 
 
 
