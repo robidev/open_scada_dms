@@ -39,18 +39,59 @@ $(document).ready(function() {
 function init_mapelements(type){
   geojsonlayer = L.geoJSON().addTo(leafletmap);
 
+  function getGridSizeFromUI() {
+    const xticksInput = document.getElementById('grid_xticks');
+    const yticksInput = document.getElementById('grid_yticks');
+    let xticks = parseInt(xticksInput?.value, 10);
+    let yticks = parseInt(yticksInput?.value, 10);
+    if (!Number.isFinite(xticks) || xticks < 2) {
+      xticks = 50;
+    }
+    if (!Number.isFinite(yticks) || yticks < 2) {
+      yticks = 50;
+    }
+    return { xticks, yticks };
+  }
+
+  function applyGridSize() {
+    const gridSize = getGridSizeFromUI();
+    GridOptions.xticks = gridSize.xticks;
+    GridOptions.yticks = gridSize.yticks;
+    L.Util.setOptions(grid, GridOptions);
+    grid.redraw();
+  }
+
   //draw grid
+  var gridcolor = 'white';
+  if (leafletmap.options.mapType === 'schema'){
+    gridcolor = 'white';
+  }
+  if (leafletmap.options.mapType === 'gis'){
+    gridcolor = 'black';
+  }
   var GridOptions = {
-		xticks: 50,
-		yticks: 50,
-		lineStyle: {
-			stroke: false,
-			color: 'white',
-			opacity: 0.6,
-			weight: 1
-		},
-	};
+    xticks: getGridSizeFromUI().xticks,
+    yticks: getGridSizeFromUI().yticks,
+    lineStyle: {
+      stroke: false,
+      color: gridcolor,
+      opacity: 0.6,
+      weight: 1
+    },
+  };
   var grid = L.grid(GridOptions).addTo(leafletmap);
+
+  document.getElementById('grid_apply').addEventListener('click', applyGridSize);
+  document.getElementById('grid_xticks').addEventListener('change', applyGridSize);
+  document.getElementById('grid_yticks').addEventListener('change', applyGridSize);
+
+  function updateGridControlsVisibility() {
+    const panel = document.getElementById('grid-controls-panel');
+    if (!panel) {
+      return;
+    }
+    panel.style.display = (isGridEnabled && isEditEnabled) ? 'inline-flex' : 'none';
+  }
 
   isGridEnabled = true;
   var maskSnapEnabled = false;
@@ -73,7 +114,8 @@ function init_mapelements(type){
         snapButton.state('snap-on');
       }
       //console.log("on");
-    }  
+    }
+    updateGridControlsVisibility();
   }
   var gridButton = L.easyButton('fa-table-cells', function() {
     setGridEnabled(!isGridEnabled);
@@ -165,7 +207,8 @@ function init_mapelements(type){
       document.getElementById("info_panel").style.display = "none";
       document.getElementById("edit_panel").style.display = "block";
       isEditEnabled = true;
-    }  
+    }
+    updateGridControlsVisibility();
   }).addTo( leafletmap );
 
   //attach the sidebar for info/editing to leaflet

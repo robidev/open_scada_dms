@@ -162,6 +162,50 @@ body {
 
 .button-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.grid-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-weight: bold;
+}
+
+.grid-settings label,
+.grid-settings input,
+.grid-settings button {
+  font: inherit;
+  color: #26343e;
+}
+
+.grid-settings label {
+  font-size: 16px;
+}
+
+.grid-settings input {
+  width: 64px;
+  padding: 5px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  color: #26343e;
+}
+
+.grid-settings button {
+  padding: 7px 10px;
+  cursor: pointer;
+  background-color: transparent;
+  color: #26343e;
+  border: 1px solid #009b86;
+  border-radius: 4px;
+}
+
+.grid-settings button:hover {
+  background-color: rgba(0, 155, 134, 0.12);
 }
 
 ul.tabs {

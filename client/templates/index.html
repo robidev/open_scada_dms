@@ -215,6 +215,13 @@
         <a href="?focus=2" class="mapButton">alarms</a>
         <a href="?focus=3" class="mapButton">events</a>
         <a href="?focus=4" class="mapButton">dataproviders</a>
+        <div id="grid-controls-panel" class="grid-settings" style="display:none;">
+          <label for="grid_xticks">Grid Size: X</label>
+          <input id="grid_xticks" type="number" min="2" max="500" value="50">
+          <label for="grid_yticks">Y</label>
+          <input id="grid_yticks" type="number" min="2" max="500" value="50">
+          <button id="grid_apply" type="button">Redraw</button>
+        </div>
       </div>
       
       <div class='content'>
