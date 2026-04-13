@@ -550,14 +550,13 @@ L.Draw.Feature.SnapMixin = {
             return;
         }
 
-        if (! this._mouseMarker) {
+        if (!this._mouseMarker) {
             this._map.on('layeradd', this._snap_on_enabled, this);
             return;
-        }
-        else {
+        }else{
             this._map.off('layeradd', this._snap_on_enabled, this);
         }
-        
+
         if (!this._snapper) {
             this._snapper = new L.Handler.MarkerSnap(this._map);
             if (this.options.snapDistance) {
@@ -568,98 +567,48 @@ L.Draw.Feature.SnapMixin = {
             }
         }
 
-        for (var i=0, n=this.options.guideLayers.length; i<n; i++) {
+        for (var i=0, n=this.options.guideLayers.length; i<n; i++)
             this._snapper.addGuideLayer(this.options.guideLayers[i]);
-        }
 
         var marker = this._mouseMarker;
+
         this._snapper.watchMarker(marker);
-        
+
         // Show marker when (snap for user feedback)
         var icon = marker.options.icon;
         marker.on('snap', function (e) {
-            marker.setIcon(this.options.icon);
-            marker.setOpacity(1);
-        }, this);
-        
-        marker.on('unsnap', function (e) {
-            marker.setIcon(icon);
-            marker.setOpacity(0);
-        }, this);
+                  marker.setIcon(this.options.icon);
+                  marker.setOpacity(1);
+              }, this)
+              .on('unsnap', function (e) {
+                  marker.setIcon(icon);
+                  marker.setOpacity(0);
+              }, this);
 
-        marker.on('click', this._snap_on_click, this);
-        
-        this._map.on('mousedown', this._snap_on_click, this);
-        this._map.on('touchstart', this._snap_on_click, this);
+        //marker.on('click', this._snap_on_click, this);
+        marker.on('mousedown', this._snap_on_click, this);
     },
 
     _snap_on_click: function (e) {
-        if (this._errorShown) {
-            return;
-        }
-        
-        // for touch 
         if (this._markers) {
-            var markerCount = this._markers.length;
-            var marker = this._markers[markerCount - 1];
-            
-            if (marker && this._mouseMarker.snap) {
+            var markerCount = this._markers.length,
+                marker = this._markers[markerCount - 1];
+            if (this._mouseMarker.snap) {
+                if(e){
+                  // update the feature being drawn to reflect the snapped location:
+                  marker.setLatLng(e.target._latlng);
+                  if(this._poly){
+                    var polyPointsCount = this._poly._latlngs.length;
+                    this._poly._latlngs[polyPointsCount - 1] = e.target._latlng;
+                    this._poly.redraw();
+                  }
+                }
+
                 L.DomUtil.addClass(marker._icon, 'marker-snapped');
             }
         }
-        
-        // for shapes
-        if (this._startLatLng) {
-            var closest = this._manuallyCorrectClick(this._startLatLng);
-            
-            if (closest.latlng) {
-                this._mouseMarker.setLatLng(closest.latlng);
-                this._startLatLng = closest.latlng;
-            }
-        }
-        
-        // for poly vertices
-        if (this._mouseDownOrigin) {
-            var z = this._map.getZoom();
-            var mdOrigin = this._map.unproject(this._mouseDownOrigin, z);
-            var closestMDO = this._manuallyCorrectClick(mdOrigin);
-            
-            if (closestMDO.latlng) {
-                this._mouseMarker.setLatLng(closestMDO.latlng);
-                this._mouseDownOrigin = this._map.project(closestMDO.latlng, z);
-            }
-    
-            if (e.originalEvent) {
-                var oeOrigin = this._map.unproject([e.originalEvent.clientX, e.originalEvent.clientY], z);
-                var closestOE = this._manuallyCorrectClick(oeOrigin);
-                
-                if (closestOE.latlng) {
-                    e.originalEvent = this._map.project(closestOE.latlng, z);
-                }
-            }
-        }
     },
-    
-    _manuallyCorrectClick: function (originalLatLng) {
-        var ex = {
-            'target': this._mouseMarker,
-            'latlng': originalLatLng
-        };
-        
-        if (! this._mouseMarker) {
-            return {
-                'latlng': null
-            };
-        }
 
-        var buffer = 0;
-        if (this.hasOwnProperty('_snapper') && this._snapper.hasOwnProperty('_buffer')) {
-            buffer = this._snapper._buffer;
-        }
-        
-        return L.Snap.snapMarker(ex, this.options.guideLayers || [], this._map, this.options, buffer);
-    },
-    
     _snap_on_disabled: function () {
         delete this._snapper;
     },
