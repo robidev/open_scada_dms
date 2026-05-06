@@ -24,6 +24,7 @@ services:
       - ./mongodb/mongo-init_replicaset.js:/docker-entrypoint-initdb.d/10_mongo-init_replicaset.js:ro
       - ./mongodb/mongo-init_users.js:/docker-entrypoint-initdb.d/20_mongo-init_users.js:ro
       - ./mongodb/mongo-init_database.js:/docker-entrypoint-initdb.d/30_mongo-init_database.js:ro
+      - ./mongodb/mongo-export.js:/data/mongo-export.js:ro
     healthcheck:
       #test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet) -eq 1
       test: test $$(mongosh -u ${MONGO_INITDB_ROOT_USERNAME} -p ${MONGO_INITDB_ROOT_PASSWORD} --quiet --eval --eval "try { print(rs.status().ok) } catch(e) { print(rs.initiate().ok) }") -eq 1
@@ -33,7 +34,7 @@ services:
       start_period: 40s
     command: ["--keyFile", "/data/mongodb.key", "--replSet", "${MONGO_REPLICA_SET_NAME}", "--bind_ip_all", "--quiet"]
 
-
+# sudo docker compose exec mongodb mongosh -u [dbuser] -p [mongo_secret] scada /data/mongo-export.js > mongodb/mongo-init_database.js 
 
 # redis as real-time database for current values
   redis:
